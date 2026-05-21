@@ -1,0 +1,278 @@
+/*
+ * Tetrel Security Design System Stylesheet
+ * Source: https://tetrelsec.com (Blowfish Theme)
+ * Purpose: Strict design tokens, colors, typography, and premium micro-interactions
+ *          constant across all project artifacts, markdown files, and web interfaces.
+ */
+
+:root {
+  /* ==========================================
+   * 1. TYPOGRAPHY
+   * ========================================== */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  /* ==========================================
+   * 2. COLOR PALETTE (RGB Comma Formats for Tailwind Alpha/Opacity Support)
+   * ========================================== */
+  
+  /* Neutral Palette (Tailwind Slate) */
+  --color-neutral: 255, 255, 255;             /* #ffffff (Pure White) */
+  --color-neutral-50: 248, 250, 252;          /* #f8fafc */
+  --color-neutral-100: 241, 245, 249;         /* #f1f5f9 */
+  --color-neutral-200: 226, 232, 240;         /* #e2e8f0 */
+  --color-neutral-300: 203, 213, 225;         /* #cbd5e1 */
+  --color-neutral-400: 148, 163, 184;         /* #94a3b8 */
+  --color-neutral-500: 100, 116, 139;         /* #64748b */
+  --color-neutral-600: 71, 85, 105;           /* #475569 */
+  --color-neutral-700: 51, 65, 85;            /* #334155 */
+  --color-neutral-800: 30, 41, 59;            /* #1e293b */
+  --color-neutral-900: 15, 23, 42;            /* #0f172a */
+
+  /* Primary Palette (Tailwind Blue - Tetrel Corporate Accents) */
+  --color-primary-50: 239, 246, 255;          /* #eff6ff */
+  --color-primary-100: 219, 234, 254;         /* #dbeafe */
+  --color-primary-200: 191, 219, 254;         /* #bfdbfe */
+  --color-primary-300: 147, 197, 253;         /* #93c5fd */
+  --color-primary-400: 96, 165, 250;          /* #60a5fa */
+  --color-primary-500: 59, 130, 246;          /* #3b82f6 */
+  --color-primary-600: 37, 99, 235;           /* #2563eb */
+  --color-primary-700: 29, 78, 216;           /* #1d4ed8 */
+  --color-primary-800: 30, 64, 175;           /* #1e40af */
+  --color-primary-900: 30, 58, 138;           /* #1e3a8a */
+
+  /* Secondary Palette (Tailwind Cyan - Alternate System/Highlight Accents) */
+  --color-secondary-50: 236, 254, 255;        /* #ecfeff */
+  --color-secondary-100: 207, 250, 254;       /* #cffafe */
+  --color-secondary-200: 165, 243, 252;       /* #a5f3fc */
+  --color-secondary-300: 103, 232, 249;       /* #67e8f9 */
+  --color-secondary-400: 34, 211, 238;        /* #22d3ee */
+  --color-secondary-500: 6, 182, 212;         /* #06b6d4 */
+  --color-secondary-600: 8, 145, 178;         /* #0891b2 */
+  --color-secondary-700: 14, 116, 144;        /* #0e7490 */
+  --color-secondary-800: 21, 94, 117;         /* #155e75 */
+  --color-secondary-900: 22, 78, 99;          /* #164e63 */
+
+  /* Hex Aliases for General / Document Usage */
+  --color-bg-light: #ffffff;
+  --color-text-light: #0f172a;
+  --color-border-light: #e2e8f0;
+  
+  --color-bg-dark: #1e293b;
+  --color-text-dark: #cbd5e1;
+  --color-border-dark: #475569;
+
+  /* ==========================================
+   * 3. THEME SEMANTIC TOKENS (LIGHT MODE DEFAULT)
+   * ========================================== */
+  --theme-bg: var(--color-bg-light);
+  --theme-text: var(--color-text-light);
+  --theme-text-muted: #64748b; /* Slate-500 */
+  --theme-border: var(--color-border-light);
+  
+  --theme-primary: #3b82f6; /* Blue-500 */
+  --theme-primary-hover: #2563eb; /* Blue-600 */
+  --theme-secondary: #06b6d4; /* Cyan-500 */
+  
+  /* Scrollbars */
+  --scrollbar-track: var(--color-neutral-100);
+  --scrollbar-thumb: var(--color-neutral-300);
+  --scrollbar-thumb-hover: var(--color-neutral-400);
+}
+
+/* ==========================================
+ * 4. THEME SEMANTIC TOKENS (DARK MODE)
+ * ========================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-bg: var(--color-bg-dark);
+    --theme-text: var(--color-text-dark);
+    --theme-text-muted: #94a3b8; /* Slate-400 */
+    --theme-border: var(--color-border-dark);
+    
+    --theme-primary: #60a5fa; /* Blue-400 */
+    --theme-primary-hover: #93c5fd; /* Blue-300 */
+    --theme-secondary: #22d3ee; /* Cyan-400 */
+    
+    /* Scrollbars */
+    --scrollbar-track: var(--color-neutral-800);
+    --scrollbar-thumb: var(--color-neutral-600);
+    --scrollbar-thumb-hover: var(--color-neutral-500);
+  }
+}
+
+/* Explicit class-based overrides for theme switching (e.g. .dark class) */
+.dark {
+  --theme-bg: var(--color-bg-dark);
+  --theme-text: var(--color-text-dark);
+  --theme-text-muted: #94a3b8;
+  --theme-border: var(--color-border-dark);
+  
+  --theme-primary: #60a5fa;
+  --theme-primary-hover: #93c5fd;
+  --theme-secondary: #22d3ee;
+  
+  --scrollbar-track: var(--color-neutral-800);
+  --scrollbar-thumb: var(--color-neutral-600);
+  --scrollbar-thumb-hover: var(--color-neutral-500);
+}
+
+/* ==========================================
+ * 5. CORE LAYOUT & SCROLLBAR DESIGN PATTERNS
+ * ========================================== */
+body {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+  font-family: var(--font-sans);
+  line-height: 1.75;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Code Typography */
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+pre {
+  background-color: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.dark pre {
+  background-color: var(--color-neutral-900);
+  border-color: var(--color-neutral-800);
+}
+
+/* ==========================================
+ * 6. SIGNATURE ELEMENTS FROM TETRELSEC.COM
+ * ========================================== */
+
+/* Hero Image Banner Block styling */
+.tetrel-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 400px;
+  background-color: #000;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.tetrel-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+
+.tetrel-hero-content {
+  position: relative;
+  z-index: 2;
+  color: #ffffff;
+  font-size: 2.25rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0 2rem;
+  max-width: 56rem;
+  line-height: 1.25;
+}
+
+@media (min-width: 768px) {
+  .tetrel-hero-content {
+    font-size: 3rem;
+  }
+}
+
+/* Highlight / Signature Block Callout */
+.tetrel-highlight-box {
+  border-left: 4px solid var(--theme-secondary);
+  background-color: rgba(6, 182, 212, 0.05); /* 5% Cyan */
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  font-weight: 500;
+}
+
+.dark .tetrel-highlight-box {
+  background-color: rgba(34, 211, 238, 0.05);
+}
+
+/* Article Link Cards */
+.tetrel-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border);
+  padding: 1.25rem;
+  background-color: var(--theme-bg);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tetrel-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: rgba(59, 130, 246, 0.3); /* Accent Border on Hover */
+}
+
+.dark .tetrel-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+/* Corporate Buttons */
+.tetrel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--theme-primary);
+  background-color: transparent;
+  color: var(--theme-primary);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+}
+
+.tetrel-btn:hover {
+  background-color: var(--theme-primary);
+  color: #ffffff;
+}
+
+.dark .tetrel-btn:hover {
+  color: var(--color-neutral-900);
+}
