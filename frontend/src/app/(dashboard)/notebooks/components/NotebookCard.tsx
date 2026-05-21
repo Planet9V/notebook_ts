@@ -43,7 +43,7 @@ export function NotebookCard({ notebook }: NotebookCardProps) {
   return (
     <>
       <Card 
-        className="group card-hover"
+        className="group card-hover hover:border-primary/20"
         onClick={handleCardClick}
         style={{ cursor: 'pointer' }}
       >

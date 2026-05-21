@@ -23,6 +23,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -87,6 +88,7 @@
   --accent: var(--neutral-100);
   --accent-foreground: var(--neutral-900);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);  /* White on destructive */
   --border: var(--neutral-200);               /* Slate-200 */
   --input: var(--neutral-200);
   --ring: var(--blue-500);
@@ -124,7 +126,8 @@
   --muted-foreground: var(--neutral-400);
   --accent: var(--neutral-800);
   --accent-foreground: var(--neutral-50);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);  /* White on destructive */
   --border: var(--neutral-700);               /* Slate-700 */
   --input: var(--neutral-700);
   --ring: var(--blue-500);
@@ -166,6 +169,22 @@
 
   :root {
     color-scheme: light;
+  }
+
+  /* Corporate focus-visible ring — Corporate Blue with subtle spread */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Premium text selection — Corporate Blue highlight */
+  ::selection {
+    background-color: oklch(0.623 0.214 259.815 / 0.25);
+    color: var(--foreground);
+  }
+
+  .dark ::selection {
+    background-color: oklch(0.707 0.165 233.15 / 0.3);
   }
 
   /* Ensure Radix UI components inherit theme properly */
@@ -269,4 +288,70 @@
 
 .tetrel-btn {
   @apply inline-flex items-center justify-center font-semibold px-5 py-2 rounded-md border border-primary bg-transparent text-primary cursor-pointer transition-all duration-200 no-underline hover:bg-primary hover:text-white dark:hover:text-slate-900;
+}
+
+/* Glassmorphism backdrop for overlays and popovers */
+.tetrel-glass {
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background-color: oklch(1 0 0 / 0.72);
+  border: 1px solid var(--border);
+}
+
+.dark .tetrel-glass {
+  background-color: oklch(0.248 0.033 255.008 / 0.72);
+}
+
+/* Sidebar gradient accent line */
+.tetrel-sidebar-accent {
+  position: relative;
+}
+
+.tetrel-sidebar-accent::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    oklch(0.623 0.214 259.815) 0%,
+    oklch(0.697 0.174 194.2) 50%,
+    oklch(0.623 0.214 259.815) 100%
+  );
+  opacity: 0.6;
+}
+
+/* Smooth page content transitions */
+.tetrel-page-enter {
+  animation: tetrel-fade-in 0.2s ease-out;
+}
+
+@keyframes tetrel-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Premium empty state container */
+.tetrel-empty-state {
+  @apply flex flex-col items-center justify-center py-16 px-8 text-center;
+}
+
+.tetrel-empty-state-icon {
+  @apply w-16 h-16 mb-6 text-muted-foreground/40;
+}
+
+.tetrel-empty-state-title {
+  @apply text-lg font-semibold text-foreground mb-2;
+}
+
+.tetrel-empty-state-desc {
+  @apply text-sm text-muted-foreground max-w-sm;
 }

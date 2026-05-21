@@ -108,7 +108,7 @@ export function AppSidebar() {
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
-          'app-sidebar flex h-full flex-col bg-sidebar border-sidebar-border border-r transition-all duration-300',
+          'app-sidebar tetrel-sidebar-accent flex h-full flex-col bg-sidebar border-sidebar-border border-r transition-all duration-300',
           isCollapsed ? 'w-16' : 'w-64'
         )}
       >
