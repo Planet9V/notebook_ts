@@ -8,7 +8,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Add Node.js 20.x LTS for building frontend
 # NOTE: gcc/g++/make removed - uv should download pre-built wheels. Add back if build fails.
 # NOTE: gcc/g++/make required for some python dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::BrokenProxy true;" >> /etc/apt/apt.conf.d/99custom && \
+    apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -60,7 +63,10 @@ FROM python:3.12-slim-bookworm AS runtime
 
 # Install only runtime system dependencies (no build tools)
 # Add Node.js 20.x LTS for running frontend
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::BrokenProxy true;" >> /etc/apt/apt.conf.d/99custom && \
+    apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     supervisor \
     curl \

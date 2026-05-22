@@ -287,7 +287,7 @@ export default function SourcesPage() {
     <AppShell>
       <div className="flex flex-col h-full w-full max-w-none px-6 py-6">
         <div className="mb-6 flex-shrink-0">
-          <h1 className="text-3xl font-bold">{t('sources.allSources')}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('sources.allSources')}</h1>
           <p className="mt-2 text-muted-foreground">
             {t('sources.allSourcesDesc')}
           </p>
@@ -307,7 +307,7 @@ export default function SourcesPage() {
               <col className="w-[100px]" />
               <col className="w-[100px]" />
             </colgroup>
-            <thead className="sticky top-0 bg-background z-10">
+            <thead className="sticky top-0 bg-background/95 backdrop-blur-sm z-10">
               <tr className="border-b bg-muted/50">
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   {t('common.type')}
@@ -352,9 +352,9 @@ export default function SourcesPage() {
                   onClick={() => handleRowClick(index, source.id)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={cn(
-                    "border-b transition-colors cursor-pointer",
+                    "border-b transition-all duration-200 cursor-pointer",
                     selectedIndex === index
-                      ? "bg-accent"
+                      ? "bg-accent border-l-2 border-l-primary"
                       : "hover:bg-muted/50"
                   )}
                 >

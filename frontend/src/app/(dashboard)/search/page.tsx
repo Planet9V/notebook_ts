@@ -158,8 +158,9 @@ export default function SearchPage() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6">
-        <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">{t('searchPage.askAndSearch')}</h1>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-6 py-6 pb-20">
+          <h1 className="text-2xl font-semibold tracking-tight mb-4 md:mb-6">{t('searchPage.askAndSearch')}</h1>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'ask' | 'search')} className="w-full space-y-6">
           <div className="space-y-2">
@@ -452,7 +453,7 @@ export default function SearchPage() {
                           const modalType = type === 'source_insight' ? 'insight' : type as 'source' | 'note' | 'insight'
 
                           return (
-                          <Card key={index}>
+                          <Card key={index} className="card-hover">
                             <CardContent className="pt-4">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
@@ -462,7 +463,7 @@ export default function SearchPage() {
                                   >
                                     {result.title}
                                   </button>
-                                  <Badge variant="secondary" className="ml-2">
+                                  <Badge variant="secondary" className="ml-2 tabular-nums font-mono text-xs">
                                     {result.final_score.toFixed(2)}
                                   </Badge>
                                 </div>
@@ -476,7 +477,7 @@ export default function SearchPage() {
                                   </CollapsibleTrigger>
                                   <CollapsibleContent className="mt-2 space-y-1">
                                     {result.matches.map((match, i) => (
-                                      <div key={i} className="text-sm pl-6 py-1 border-l-2 border-muted">
+                                      <div key={i} className="text-sm pl-6 py-1 border-l-2 border-primary/30">
                                         {match}
                                       </div>
                                     ))}
@@ -495,6 +496,7 @@ export default function SearchPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppShell>
+    </div>
+  </AppShell>
   )
 }

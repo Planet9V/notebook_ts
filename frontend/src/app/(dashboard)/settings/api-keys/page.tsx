@@ -515,7 +515,7 @@ function DiscoverModelsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             {t('models.discoverModels')} - {PROVIDER_DISPLAY_NAMES[credential.provider] || credential.provider}
@@ -526,16 +526,18 @@ function DiscoverModelsDialog({
         </DialogHeader>
 
         {discoverModels.isPending ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12 flex-1">
             <LoadingSpinner size="lg" />
           </div>
         ) : discoveryError ? (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{discoveryError}</AlertDescription>
-          </Alert>
+          <div className="flex-1 overflow-y-auto py-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{discoveryError}</AlertDescription>
+            </Alert>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 py-2 pr-1 space-y-4">
             {/* Model type selector */}
             <div className="space-y-2">
               <Label>{t('models.modelType')}</Label>
@@ -577,7 +579,7 @@ function DiscoverModelsDialog({
             )}
 
             {/* Model list */}
-            <div className="space-y-1 max-h-60 overflow-y-auto">
+            <div className="space-y-1">
               {filteredModels.map((model) => (
                 <label
                   key={model.name}
@@ -619,7 +621,7 @@ function DiscoverModelsDialog({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="pt-2 border-t mt-auto">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>

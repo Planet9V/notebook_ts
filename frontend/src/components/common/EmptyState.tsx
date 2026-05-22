@@ -9,10 +9,10 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="text-center py-12">
-      <Icon className="h-12 w-12 mx-auto text-muted-foreground/60 mb-4" />
-      <h3 className="text-lg font-medium text-foreground mb-2">{title}</h3>
-      <p className="text-muted-foreground mb-4">{description}</p>
+    <div className="tetrel-empty-state">
+      <Icon className="tetrel-empty-state-icon" />
+      <h3 className="tetrel-empty-state-title">{title}</h3>
+      <p className="tetrel-empty-state-desc">{description}</p>
       {action}
     </div>
   )

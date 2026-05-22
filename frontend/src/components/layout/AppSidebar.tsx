@@ -121,11 +121,11 @@ export function AppSidebar() {
           {isCollapsed ? (
             <div className="relative flex items-center justify-center w-full">
               <Image
-                src="/logo.svg"
-                alt="Open Notebook"
+                src="/tetrel-logo.png"
+                alt="Tetrel Security"
                 width={32}
                 height={32}
-                className="transition-opacity group-hover:opacity-0"
+                className="transition-opacity group-hover:opacity-0 object-contain"
               />
               <Button
                 variant="ghost"
@@ -138,11 +138,14 @@ export function AppSidebar() {
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <Image src="/logo.svg" alt={t('common.appName')} width={32} height={32} />
-                <span className="text-base font-medium text-sidebar-foreground">
-                  {t('common.appName')}
-                </span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Image src="/tetrel-logo.png" alt="Tetrel Security" width={109} height={32} className="object-contain" />
+                  <span className="sr-only">{t('common.appName')}</span>
+                </div>
+                <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/50 mt-0.5 font-medium">
+                  Securing systems, from the hardware up
+                </p>
               </div>
               <Button
                 variant="ghost"
