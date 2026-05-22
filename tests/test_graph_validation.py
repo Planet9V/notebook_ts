@@ -90,3 +90,52 @@ class TestGraphValidation:
         assert "edge-1" in data["violatedEdges"]
         assert "edge-2" in data["violatedEdges"]
         assert len(data["verifiedRequirements"]) == 0
+
+    def test_top_down_bypass_bidirectional(self, client):
+        """Test that a connection drawn from Level 4 down to Level 1 is correctly flagged as a threat path."""
+        payload = {
+            "nodes": [
+                {"id": "node-plc", "type": "plc", "purdueLevel": 1},
+                {"id": "node-switch-ops", "type": "switch", "purdueLevel": 3},
+                {"id": "node-switch-ent", "type": "switch", "purdueLevel": 4}
+            ],
+            "edges": [
+                # Edges drawn top-down: Level 4 to Level 3, and Level 3 to Level 1
+                {"id": "edge-1", "source": "node-switch-ent", "target": "node-switch-ops"},
+                {"id": "edge-2", "source": "node-switch-ops", "target": "node-plc"}
+            ]
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data["threatPaths"]) > 0
+        # Undirected search will find the unmediated path regardless of drawn direction
+        path = data["threatPaths"][0]
+        assert "node-plc" in path
+        assert "node-switch-ops" in path
+        assert "node-switch-ent" in path
+        
+        # Check that nodes and edges along the path are flagged
+        assert "node-plc" in data["violatedNodes"]
+        assert "node-switch-ops" in data["violatedNodes"]
+        assert "node-switch-ent" in data["violatedNodes"]
+        assert "edge-1" in data["violatedEdges"]
+        assert "edge-2" in data["violatedEdges"]
+        assert len(data["verifiedRequirements"]) == 0
+
+    def test_missing_endpoint_validation(self, client):
+        """Test that referencing non-existent node IDs in edges triggers a 400 Bad Request error."""
+        payload = {
+            "nodes": [
+                {"id": "node-plc", "type": "plc", "purdueLevel": 1}
+            ],
+            "edges": [
+                {"id": "edge-invalid", "source": "node-plc", "target": "node-nonexistent"}
+            ]
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 400
+        assert "references non-existent node" in response.json()["detail"]

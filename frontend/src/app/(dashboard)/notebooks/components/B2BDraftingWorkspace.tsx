@@ -224,14 +224,20 @@ function parseMarkdownToHtml(md: string): string {
   html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
   
-  // Replace Tables
+  // Replace Tables and Lists line-by-line
   const lines = html.split('\n');
   let inTable = false;
-  let tableHeaderParsed = false;
+  let inList = false;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
+    
+    // Handle table
     if (line.startsWith('|') && line.endsWith('|')) {
+      if (inList) {
+        inList = false;
+        lines[i] = '</ul>' + lines[i];
+      }
       if (!inTable) {
         inTable = true;
         lines[i] = '<table><thead>' + renderTableRow(line, true) + '</thead><tbody>';
@@ -241,18 +247,40 @@ function parseMarkdownToHtml(md: string): string {
       } else {
         lines[i] = renderTableRow(line, false);
       }
+      continue;
     } else {
       if (inTable) {
         inTable = false;
         lines[i] = '</tbody></table>' + lines[i];
       }
     }
+    
+    // Handle bullet list item
+    if (line.startsWith('* ') || line.startsWith('- ')) {
+      const content = line.substring(2).trim();
+      if (!inList) {
+        inList = true;
+        lines[i] = '<ul><li>' + content + '</li>';
+      } else {
+        lines[i] = '<li>' + content + '</li>';
+      }
+    } else {
+      if (inList) {
+        inList = false;
+        lines[i] = '</ul>' + lines[i];
+      }
+    }
   }
+  
+  // Close any active tags at the end of content
+  if (inTable) {
+    lines.push('</tbody></table>');
+  }
+  if (inList) {
+    lines.push('</ul>');
+  }
+  
   html = lines.join('\n');
-
-  // Replace bullet points
-  html = html.replace(/^\*\s+(.*$)/gim, '<li>$1</li>');
-  html = html.replace(/(<li>[\s\S]*<\/li>)/g, '<ul>$1</ul>');
   
   // Replace Bold
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');

@@ -66,3 +66,51 @@ class TestBuildEpisodeOutputDir:
         output_dir.mkdir(parents=True, exist_ok=True)
         assert output_dir.exists()
         assert output_dir.is_dir()
+
+
+class TestResolveAudioPath:
+    """Test standard and malicious inputs to the _resolve_audio_path helper."""
+
+    def test_resolve_safe_path(self):
+        """Paths inside DATA_FOLDER should be resolved and returned successfully."""
+        from open_notebook.config import DATA_FOLDER
+        from api.routers.podcasts import _resolve_audio_path
+
+        # Use a path under DATA_FOLDER
+        safe_rel_path = f"{DATA_FOLDER}/podcasts/episodes/test-file.mp3"
+        resolved = _resolve_audio_path(safe_rel_path)
+        assert resolved.name == "test-file.mp3"
+
+    def test_resolve_file_uri(self):
+        """Paths specified via file:// URI inside DATA_FOLDER should be resolved successfully."""
+        from open_notebook.config import DATA_FOLDER
+        from pathlib import Path
+        from api.routers.podcasts import _resolve_audio_path
+
+        base_dir_abs = Path(DATA_FOLDER).resolve()
+        safe_abs_path = base_dir_abs / "podcasts" / "episodes" / "test-uri.mp3"
+        file_uri = safe_abs_path.as_uri()
+
+        resolved = _resolve_audio_path(file_uri)
+        assert resolved == safe_abs_path
+
+    def test_path_traversal_throws_403(self):
+        """Path traversal outside DATA_FOLDER must raise 403 HTTPException."""
+        import pytest
+        from fastapi import HTTPException
+        from api.routers.podcasts import _resolve_audio_path
+        
+        traversal_paths = [
+            "../../etc/passwd",
+            "file:///etc/passwd",
+            "file:///../../etc/passwd",
+            "../secret.txt",
+            "/absolute/outside/path",
+        ]
+        
+        for bad_path in traversal_paths:
+            with pytest.raises(HTTPException) as excinfo:
+                _resolve_audio_path(bad_path)
+            assert excinfo.value.status_code == 403
+            assert "Path traversal attempt detected" in excinfo.value.detail
+

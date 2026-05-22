@@ -225,6 +225,12 @@ class PodcastEpisode(ObjectModel):
     command: Optional[Union[str, RecordID]] = Field(
         default=None, description="Link to surreal-commands job"
     )
+    notebook_id: Optional[str] = Field(
+        default=None, description="Notebook ID that this podcast belongs to"
+    )
+    briefing_suffix: Optional[str] = Field(
+        default=None, description="Briefing suffix used in generation"
+    )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

@@ -74,9 +74,34 @@ def _get_or_create_encryption_key() -> str:
 
     Raises:
         ValueError: If no encryption key is configured.
+        RuntimeError: If running in production mode and key is missing or insecure.
     """
+    is_production = os.environ.get("ENV") == "production" or os.environ.get("NODE_ENV") == "production"
+    
     # First check environment/Docker secrets
     key = get_secret_from_env("OPEN_NOTEBOOK_ENCRYPTION_KEY")
+    
+    if is_production:
+        if not key:
+            raise RuntimeError(
+                "CRITICAL SECURITY RISK: OPEN_NOTEBOOK_ENCRYPTION_KEY is not set in production! "
+                "You must explicitly configure a secure encryption key."
+            )
+        # Check if insecure
+        insecure_values = {
+            "change-me-to-a-secret-string", "my-secret", "default", "default-key",
+            "dev-key", "production-key", "secret", "password", "key", "123456",
+            "change-me", "changeme"
+        }
+        if key.strip().lower() in insecure_values or len(key) < 16:
+            raise RuntimeError(
+                "CRITICAL SECURITY RISK: The configured OPEN_NOTEBOOK_ENCRYPTION_KEY is insecure! "
+                "In production, the encryption key must not be a default value and must be at least 16 characters long."
+            )
+        return key
+
+
+
     if key:
         return key
 

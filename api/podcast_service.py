@@ -82,6 +82,7 @@ class PodcastService:
                 "episode_name": episode_name,
                 "content": str(content),
                 "briefing_suffix": briefing_suffix,
+                "notebook_id": notebook_id,
             }
 
             # Ensure command modules are imported before submitting

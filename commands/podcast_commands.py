@@ -54,6 +54,7 @@ class PodcastGenerationInput(CommandInput):
     episode_name: str
     content: str
     briefing_suffix: Optional[str] = None
+    notebook_id: Optional[str] = None
 
 
 class PodcastGenerationOutput(CommandOutput):
@@ -225,6 +226,8 @@ async def generate_podcast_command(
             audio_file=None,
             transcript=None,
             outline=None,
+            notebook_id=input_data.notebook_id,
+            briefing_suffix=input_data.briefing_suffix,
         )
         await episode.save()
 

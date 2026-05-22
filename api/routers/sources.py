@@ -87,7 +87,7 @@ async def save_uploaded_file(upload_file: UploadFile) -> str:
         logger.info(f"Saved uploaded file to: {file_path}")
         return file_path
     except Exception as e:
-        logger.error(f"Failed to save uploaded file: {e}")
+        logger.exception("Failed to save uploaded file")
         # Clean up partial file if it exists
         if os.path.exists(file_path):
             os.unlink(file_path)
@@ -124,7 +124,7 @@ def parse_source_form_data(
         try:
             notebooks_list = json.loads(notebooks)
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON in notebooks field: {notebooks}")
+            logger.exception(f"Invalid JSON in notebooks field: {notebooks}")
             raise ValueError("Invalid JSON in notebooks field")
 
     transformations_list = []
@@ -132,7 +132,7 @@ def parse_source_form_data(
         try:
             transformations_list = json.loads(transformations)
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON in transformations field: {transformations}")
+            logger.exception(f"Invalid JSON in transformations field: {transformations}")
             raise ValueError("Invalid JSON in transformations field")
 
     # Create SourceCreate instance
@@ -152,7 +152,7 @@ def parse_source_form_data(
         )
         pass  # SourceCreate instance created successfully
     except Exception as e:
-        logger.error(f"Failed to create SourceCreate instance: {e}")
+        logger.exception("Failed to create SourceCreate instance")
         raise
 
     return source_data, file
@@ -282,7 +282,7 @@ async def get_sources(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching sources: {str(e)}")
+        logger.exception("Error fetching sources")
         raise HTTPException(status_code=500, detail=f"Error fetching sources: {str(e)}")
 
 
@@ -312,7 +312,7 @@ async def create_source(
             try:
                 file_path = await save_uploaded_file(upload_file)
             except Exception as e:
-                logger.error(f"File upload failed: {e}")
+                logger.exception("File upload failed")
                 raise HTTPException(
                     status_code=400, detail=f"File upload failed: {str(e)}"
                 )
@@ -434,7 +434,7 @@ async def create_source(
                 )
 
             except Exception as e:
-                logger.error(f"Failed to submit async processing command: {e}")
+                logger.exception("Failed to submit async processing command")
                 # Clean up source record on command submission failure
                 try:
                     await source.delete()
@@ -541,7 +541,13 @@ async def create_source(
                 )
 
             except Exception as e:
-                logger.error(f"Sync processing failed: {e}")
+                logger.exception("Sync processing failed")
+                # Clean up source record
+                if "source" in locals():
+                    try:
+                        await source.delete()
+                    except Exception:
+                        pass
                 # Clean up uploaded file if we created it
                 if file_path and upload_file:
                     try:
@@ -567,7 +573,7 @@ async def create_source(
                 pass
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error creating source: {str(e)}")
+        logger.exception("Error creating source")
         # Clean up uploaded file on unexpected errors if we created it
         if file_path and upload_file:
             try:
@@ -594,10 +600,12 @@ async def _resolve_source_file(source_id: str) -> tuple[str, str]:
     if not file_path:
         raise HTTPException(status_code=404, detail="Source has no file to download")
 
-    safe_root = os.path.realpath(UPLOADS_FOLDER)
-    resolved_path = os.path.realpath(file_path)
+    safe_root = Path(UPLOADS_FOLDER).resolve()
+    resolved_path = Path(file_path).resolve()
 
-    if not resolved_path.startswith(safe_root):
+    try:
+        resolved_path.relative_to(safe_root)
+    except ValueError:
         logger.warning(
             f"Blocked download outside uploads directory for source {source_id}: {resolved_path}"
         )
@@ -615,10 +623,12 @@ def _is_source_file_available(source: Source) -> Optional[bool]:
         return None
 
     file_path = source.asset.file_path
-    safe_root = os.path.realpath(UPLOADS_FOLDER)
-    resolved_path = os.path.realpath(file_path)
+    safe_root = Path(UPLOADS_FOLDER).resolve()
+    resolved_path = Path(file_path).resolve()
 
-    if not resolved_path.startswith(safe_root):
+    try:
+        resolved_path.relative_to(safe_root)
+    except ValueError:
         return False
 
     return os.path.exists(resolved_path)
@@ -680,7 +690,7 @@ async def get_source(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching source {source_id}: {str(e)}")
+        logger.exception(f"Error fetching source {source_id}")
         raise HTTPException(status_code=500, detail=f"Error fetching source: {str(e)}")
 
 
@@ -693,7 +703,7 @@ async def check_source_file(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error checking file for source {source_id}: {str(e)}")
+        logger.exception(f"Error checking file for source {source_id}")
         raise HTTPException(status_code=500, detail="Failed to verify file")
 
 
@@ -710,7 +720,7 @@ async def download_source_file(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error downloading file for source {source_id}: {str(e)}")
+        logger.exception(f"Error downloading file for source {source_id}")
         raise HTTPException(status_code=500, detail="Failed to download source file")
 
 
@@ -770,7 +780,7 @@ async def get_source_status(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching status for source {source_id}: {str(e)}")
+        logger.exception(f"Error fetching status for source {source_id}")
         raise HTTPException(
             status_code=500, detail=f"Error fetching source status: {str(e)}"
         )
@@ -814,7 +824,7 @@ async def update_source(source_id: str, source_update: SourceUpdate):
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error updating source {source_id}: {str(e)}")
+        logger.exception(f"Error updating source {source_id}")
         raise HTTPException(status_code=500, detail=f"Error updating source: {str(e)}")
 
 
@@ -843,9 +853,9 @@ async def retry_source_processing(source_id: str):
                 # Continue with retry if we can't check status
 
         # Get notebooks that this source belongs to
-        query = "SELECT notebook FROM reference WHERE source = $source_id"
-        references = await repo_query(query, {"source_id": source_id})
-        notebook_ids = [str(ref["notebook"]) for ref in references]
+        query = "SELECT VALUE out FROM reference WHERE in = $source_id"
+        notebooks_query = await repo_query(query, {"source_id": ensure_record_id(source_id)})
+        notebook_ids = [str(nb_id) for nb_id in notebooks_query] if notebooks_query else []
 
         if not notebook_ids:
             raise HTTPException(
@@ -927,8 +937,8 @@ async def retry_source_processing(source_id: str):
             )
 
         except Exception as e:
-            logger.error(
-                f"Failed to submit retry processing command for source {source_id}: {e}"
+            logger.exception(
+                f"Failed to submit retry processing command for source {source_id}"
             )
             raise HTTPException(
                 status_code=500, detail=f"Failed to queue retry processing: {str(e)}"
@@ -937,7 +947,7 @@ async def retry_source_processing(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error retrying source processing for {source_id}: {str(e)}")
+        logger.exception(f"Error retrying source processing for {source_id}")
         raise HTTPException(
             status_code=500, detail=f"Error retrying source processing: {str(e)}"
         )
@@ -957,7 +967,7 @@ async def delete_source(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting source {source_id}: {str(e)}")
+        logger.exception(f"Error deleting source {source_id}")
         raise HTTPException(status_code=500, detail=f"Error deleting source: {str(e)}")
 
 
@@ -984,7 +994,7 @@ async def get_source_insights(source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching insights for source {source_id}: {str(e)}")
+        logger.exception(f"Error fetching insights for source {source_id}")
         raise HTTPException(
             status_code=500, detail=f"Error fetching insights: {str(e)}"
         )
@@ -1039,7 +1049,7 @@ async def create_source_insight(source_id: str, request: CreateSourceInsightRequ
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error starting insight generation for source {source_id}: {e}")
+        logger.exception(f"Error starting insight generation for source {source_id}")
         raise HTTPException(
             status_code=500, detail=f"Error starting insight generation: {str(e)}"
         )

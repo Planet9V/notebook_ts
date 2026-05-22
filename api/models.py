@@ -328,20 +328,13 @@ class SourceCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_notebook_fields(self):
-        # Ensure only one of notebook_id or notebooks is provided
-        if self.notebook_id is not None and self.notebooks is not None:
-            raise ValueError(
-                "Cannot specify both 'notebook_id' and 'notebooks'. Use 'notebooks' for multi-notebook support."
-            )
-
-        # Convert single notebook_id to notebooks array for internal processing
-        if self.notebook_id is not None:
-            self.notebooks = [self.notebook_id]
-            # Keep notebook_id for backward compatibility in response
-
-        # Set empty array if no notebooks specified (allow sources without notebooks)
+        # Gracefully merge notebook_id into notebooks if both are provided
         if self.notebooks is None:
             self.notebooks = []
+
+        if self.notebook_id is not None:
+            if self.notebook_id not in self.notebooks:
+                self.notebooks.append(self.notebook_id)
 
         return self
 
@@ -727,4 +720,26 @@ class PipelineRuleResponse(BaseModel):
     is_active: bool
     created: str
     updated: str
+
+
+# Graph Validation models
+class GraphNode(BaseModel):
+    id: str
+    type: str
+    purdueLevel: int
+
+class GraphEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+
+class GraphValidationRequest(BaseModel):
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
+
+class GraphValidationResponse(BaseModel):
+    violatedNodes: List[str]
+    violatedEdges: List[str]
+    threatPaths: List[List[str]]
+    verifiedRequirements: List[str]
 

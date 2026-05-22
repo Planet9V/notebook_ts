@@ -87,7 +87,7 @@ async def get_notebooks(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching notebooks: {str(e)}")
+        logger.exception("Error fetching notebooks")
         raise HTTPException(
             status_code=500, detail=f"Error fetching notebooks: {str(e)}"
         )
@@ -130,7 +130,7 @@ async def create_notebook(notebook: NotebookCreate):
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error creating notebook: {str(e)}")
+        logger.exception("Error creating notebook")
         raise HTTPException(
             status_code=500, detail=f"Error creating notebook: {str(e)}"
         )
@@ -158,7 +158,7 @@ async def get_notebook_delete_preview(notebook_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting delete preview for notebook {notebook_id}: {e}")
+        logger.exception(f"Error getting delete preview for notebook {notebook_id}")
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching notebook deletion preview: {str(e)}",
@@ -202,7 +202,7 @@ async def get_notebook(notebook_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching notebook {notebook_id}: {str(e)}")
+        logger.exception(f"Error fetching notebook {notebook_id}")
         raise HTTPException(
             status_code=500, detail=f"Error fetching notebook: {str(e)}"
         )
@@ -308,7 +308,7 @@ async def update_notebook(
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error updating notebook {notebook_id}: {str(e)}")
+        logger.exception("Error updating notebook")
         raise HTTPException(
             status_code=500, detail=f"Error updating notebook: {str(e)}"
         )
@@ -330,7 +330,7 @@ async def add_source_to_notebook(notebook_id: str, source_id: str):
 
         # Check if reference already exists (idempotency)
         existing_ref = await repo_query(
-            "SELECT * FROM reference WHERE out = $source_id AND in = $notebook_id",
+            "SELECT * FROM reference WHERE in = $source_id AND out = $notebook_id",
             {
                 "notebook_id": ensure_record_id(notebook_id),
                 "source_id": ensure_record_id(source_id),
@@ -351,9 +351,7 @@ async def add_source_to_notebook(notebook_id: str, source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"Error linking source {source_id} to notebook {notebook_id}: {str(e)}"
-        )
+        logger.exception("Error linking source to notebook")
         raise HTTPException(
             status_code=500, detail=f"Error linking source to notebook: {str(e)}"
         )
@@ -381,9 +379,7 @@ async def remove_source_from_notebook(notebook_id: str, source_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"Error removing source {source_id} from notebook {notebook_id}: {str(e)}"
-        )
+        logger.exception("Error removing source from notebook")
         raise HTTPException(
             status_code=500, detail=f"Error removing source from notebook: {str(e)}"
         )
@@ -420,34 +416,18 @@ async def delete_notebook(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting notebook {notebook_id}: {str(e)}")
+        logger.exception("Error deleting notebook")
         raise HTTPException(
             status_code=500, detail=f"Error deleting notebook: {str(e)}"
         )
 
 
-from pydantic import BaseModel
-from typing import List
-
-class GraphNode(BaseModel):
-    id: str
-    type: str
-    purdueLevel: int
-
-class GraphEdge(BaseModel):
-    id: str
-    source: str
-    target: str
-
-class GraphValidationRequest(BaseModel):
-    nodes: List[GraphNode]
-    edges: List[GraphEdge]
-
-class GraphValidationResponse(BaseModel):
-    violatedNodes: List[str]
-    violatedEdges: List[str]
-    threatPaths: List[List[str]]
-    verifiedRequirements: List[str]
+from api.models import (
+    GraphNode,
+    GraphEdge,
+    GraphValidationRequest,
+    GraphValidationResponse,
+)
 
 @router.post("/graph/validate", response_model=GraphValidationResponse)
 async def validate_graph(request: GraphValidationRequest):
@@ -458,6 +438,15 @@ async def validate_graph(request: GraphValidationRequest):
     """
     try:
         import networkx as nx
+
+        # Validate that all edge endpoints exist in the nodes list
+        node_ids = {n.id for n in request.nodes}
+        for e in request.edges:
+            if e.source not in node_ids or e.target not in node_ids:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Edge '{e.id}' references non-existent node: source='{e.source}', target='{e.target}'"
+                )
 
         G = nx.DiGraph()
         
@@ -476,7 +465,7 @@ async def validate_graph(request: GraphValidationRequest):
         violated_edges = set()
         threat_paths = []
         
-        # 1. Direct Zone Bypass Check
+        # 1. Direct Zone Bypass Check (Bidirectional)
         for u, v, data in G.edges(data=True):
             u_lvl = node_levels.get(u, 1)
             v_lvl = node_levels.get(v, 1)
@@ -492,25 +481,43 @@ async def validate_graph(request: GraphValidationRequest):
                     if edge_id:
                         violated_edges.add(edge_id)
                         
-        # 2. Firewall Mediation Check
-        lvl_1_2_nodes = [n_id for n_id, lvl in node_levels.items() if lvl <= 2]
-        lvl_4_nodes = [n_id for n_id, lvl in node_levels.items() if lvl == 4]
+        # 2. Firewall Mediation Check (Bidirectional reachability check via Undirected Graph)
+        U = G.to_undirected()
+        U_no_firewall = U.copy()
         
-        for src in lvl_1_2_nodes:
-            for tgt in lvl_4_nodes:
-                if nx.has_path(G, src, tgt):
-                    for path in nx.all_simple_paths(G, src, tgt):
-                        # Ensure a mediating firewall exists on the path
-                        has_firewall = any(node_types.get(node_id) == "firewall" for node_id in path)
-                        if not has_firewall:
+        # Remove firewall nodes to check for unmediated paths
+        firewall_nodes = [node_id for node_id, n_type in node_types.items() if n_type == "firewall"]
+        U_no_firewall.remove_nodes_from(firewall_nodes)
+        
+        # Run linear-time component reachability
+        for comp in list(nx.connected_components(U_no_firewall)):
+            comp_1_2 = [n for n in comp if node_levels.get(n, 1) <= 2]
+            comp_4 = [n for n in comp if node_levels.get(n, 1) == 4]
+            
+            if comp_1_2 and comp_4:
+                # There exists at least one unmediated path in this component.
+                # Find shortest path from each Level 1-2 source in this component
+                # to each Level 4 target in this component.
+                for src in comp_1_2:
+                    for tgt in comp_4:
+                        try:
+                            path = nx.shortest_path(U_no_firewall, src, tgt)
                             threat_paths.append(path)
                             # Flag all nodes and edges along the threat vector
                             for node_id in path:
                                 violated_nodes.add(node_id)
                             for i in range(len(path) - 1):
-                                edge_data = G.get_edge_data(path[i], path[i+1])
+                                n1, n2 = path[i], path[i+1]
+                                # Check directed edge in original graph G (either direction)
+                                edge_data = G.get_edge_data(n1, n2)
                                 if edge_data and "id" in edge_data:
                                     violated_edges.add(edge_data["id"])
+                                else:
+                                    edge_data = G.get_edge_data(n2, n1)
+                                    if edge_data and "id" in edge_data:
+                                        violated_edges.add(edge_data["id"])
+                        except nx.NetworkXNoPath:
+                            continue
                                     
         # Return verified requirements if topology is clean and secure
         verified_requirements = []
@@ -533,8 +540,10 @@ async def validate_graph(request: GraphValidationRequest):
             threatPaths=threat_paths,
             verifiedRequirements=verified_requirements
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error in graph validation: {str(e)}")
+        logger.exception("Error in graph validation")
         raise HTTPException(
             status_code=500, detail=f"Error performing graph audit: {str(e)}"
         )

@@ -36,5 +36,15 @@
 - Pipeline rules router: `api/routers/pipeline.py`
 - Pipeline tests: `tests/test_pipeline.py`
 
+## CSET OT Network Canvas Integration
+- **Interactive drawing canvas**: Built a gorgeous, responsive React Flow drawing canvas at `/notebooks` inside the B2B workspace. Mapped standard Purdue model swimlanes (Level 4, Level 3, Level 1-2) with visual backgrounds.
+- **ELKjs Manhattan Routing**: Integrated ELKjs for obstacle-aware, right-angled Manhattan orthogonal line routing to avoid overlaps and mimic industrial standards.
+- **FastAPI NetworkX Audits**: Connected the canvas to real-time backend zone validation using NetworkX. Direct zone bypasses (e.g. L1 to L4 without a firewall) trigger pulsating threat paths and dynamically flag compliance sidebar alerts.
+- **Local Dev Server Status**: Cleanly started all services in local dev mode (`make start-all`):
+  - **SurrealDB**: Running in Docker at port `8000`.
+  - **API Backend**: Running at `http://localhost:5055`.
+  - **Background Worker**: Running and listening to database command queues.
+  - **Next.js Frontend**: Running via dev server at `http://localhost:3000`.
+
 *Update this file after every 2 view/browser/search operations*
 *This prevents visual information from being lost*

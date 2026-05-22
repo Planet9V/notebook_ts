@@ -422,6 +422,17 @@ function CSETNetworkCanvasContent({ onValidationSuccess }: CSETNetworkCanvasProp
     }
   }, [setNodes, setEdges, onValidationSuccess])
 
+  // Calculate a memoized topology signature representing the structure and relevant properties of the graph
+  const topologySignature = useMemo(() => {
+    const deviceNodes = nodes.filter(n => n.type === 'deviceNode')
+    const nodePart = deviceNodes
+      .map(n => `${n.id}:${n.data?.purdueLevel}:${n.data?.deviceType}:${n.data?.label}`)
+      .sort()
+      .join('|')
+    const edgePart = edges.map(e => `${e.source}->${e.target}`).sort().join('|')
+    return `${nodePart}#${edgePart}`
+  }, [nodes, edges])
+
   // Trigger validation on canvas topology changes
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -429,7 +440,7 @@ function CSETNetworkCanvasContent({ onValidationSuccess }: CSETNetworkCanvasProp
     }, 400) // Debounce validation calls to prevent API flooding
 
     return () => clearTimeout(timer)
-  }, [nodes.length, edges.length, triggerValidation])
+  }, [topologySignature, triggerValidation])
 
   // 3. Connect Nodes handler
   const onConnect = useCallback(
