@@ -7,6 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class NotebookCreate(BaseModel):
     name: str = Field(..., description="Name of the notebook")
     description: str = Field(default="", description="Description of the notebook")
+    stage: Optional[str] = Field("lead", description="Sales pipeline stage")
+    client_name: Optional[str] = Field("", description="B2B Client target name")
+    estimated_value: Optional[float] = Field(0.0, description="Estimated deal value in USD")
+    prospect_website: Optional[str] = Field("", description="Prospect company website URL")
+    contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Stakeholder contacts list")
+    crawl_failed: Optional[bool] = Field(False, description="Whether the last crawl failed")
+    suggested_contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Stakeholder suggested contacts list")
 
 
 class NotebookUpdate(BaseModel):
@@ -15,6 +22,13 @@ class NotebookUpdate(BaseModel):
     archived: Optional[bool] = Field(
         None, description="Whether the notebook is archived"
     )
+    stage: Optional[str] = Field(None, description="Sales pipeline stage")
+    client_name: Optional[str] = Field(None, description="B2B Client target name")
+    estimated_value: Optional[float] = Field(None, description="Estimated deal value in USD")
+    prospect_website: Optional[str] = Field(None, description="Prospect company website URL")
+    contacts: Optional[List[Dict[str, str]]] = Field(None, description="Stakeholder contacts list")
+    crawl_failed: Optional[bool] = Field(None, description="Whether the last crawl failed")
+    suggested_contacts: Optional[List[Dict[str, str]]] = Field(None, description="Stakeholder suggested contacts list")
 
 
 class NotebookResponse(BaseModel):
@@ -26,6 +40,13 @@ class NotebookResponse(BaseModel):
     updated: str
     source_count: int
     note_count: int
+    stage: str
+    client_name: str
+    estimated_value: float
+    prospect_website: str
+    contacts: List[Dict[str, str]]
+    crawl_failed: bool
+    suggested_contacts: List[Dict[str, str]]
 
 
 # Search models
@@ -684,3 +705,26 @@ class NotebookDeleteResponse(BaseModel):
     unlinked_sources: int = Field(
         ..., description="Number of sources unlinked from notebook"
     )
+
+
+# Pipeline Rule models
+class PipelineRuleCreate(BaseModel):
+    stage: str = Field(..., description="Target Kanban stage")
+    action_type: Literal["crawl", "search"] = Field(..., description="Action type: crawl or search")
+    prompt: str = Field(..., description="AI instruction prompt")
+    query_template: Optional[str] = Field("", description="Query template for search engine")
+    model_override: Optional[str] = Field(None, description="Optional specific model ID to use")
+    is_active: bool = Field(True, description="Whether this automation rule is active")
+
+
+class PipelineRuleResponse(BaseModel):
+    id: str
+    stage: str
+    action_type: str
+    prompt: str
+    query_template: str
+    model_override: Optional[str] = None
+    is_active: bool
+    created: str
+    updated: str
+

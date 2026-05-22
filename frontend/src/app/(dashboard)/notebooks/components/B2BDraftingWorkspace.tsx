@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,12 +20,15 @@ import {
   FolderOpen
 } from 'lucide-react'
 import { SourceListResponse } from '@/lib/types/api'
+import { B2BComplianceChecklist, ComplianceCheck } from './B2BComplianceChecklist'
+import { CSETNetworkCanvas } from './CSETNetworkCanvas'
 
 interface B2BDraftingWorkspaceProps {
   notebookId: string
   notebookName: string
   notebookDescription?: string
   sources: SourceListResponse[]
+  contacts?: Array<Record<string, string>>
 }
 
 interface ParameterState {
@@ -48,7 +51,13 @@ interface ChecklistState {
 // Default Professional B2B Templates
 // ---------------------------------------------------------
 
-const getSiliconAuditTemplate = (params: ParameterState) => `
+const getSiliconAuditTemplate = (params: ParameterState, contacts: Array<Record<string, string>> = []) => {
+  const primaryContact = contacts[0] || null
+  const signatoryName = primaryContact ? primaryContact.name : "__________________________"
+  const signatoryTitle = primaryContact ? primaryContact.title : "__________________________"
+  const signatoryEmail = primaryContact ? ` (${primaryContact.email})` : ""
+
+  return `
 # STATEMENT OF WORK (SOW)
 ## HARDWARE CRYPTOGRAPHIC SILICON SECURITY AUDIT
 
@@ -65,6 +74,8 @@ Tetrel will perform the following physical and cryptographic assessments:
 
 ### 3. HARDWARE SPEC SHEET ALIGNMENT
 This audit incorporates compliance checks against **Tetrel HS-50 Silicon Cryptographic Auditing** specifications.
+
+\${complianceMatrix}
 
 ### 4. TIMELINES & DELIVERABLES
 The total estimated engagement duration is **${params.duration}**.
@@ -88,12 +99,19 @@ Title: VP of Hardware Security
 Date: __________________________
 
 **FOR ${params.clientName.toUpperCase()}**
-Name: __________________________
-Title: __________________________
+Name: ${signatoryName}
+Title: ${signatoryTitle}${signatoryEmail}
 Date: __________________________
 `
+}
 
-const getDatacenterAITemplate = (params: ParameterState) => `
+const getDatacenterAITemplate = (params: ParameterState, contacts: Array<Record<string, string>> = []) => {
+  const primaryContact = contacts[0] || null
+  const signatoryName = primaryContact ? primaryContact.name : "__________________________"
+  const signatoryTitle = primaryContact ? primaryContact.title : "__________________________"
+  const signatoryEmail = primaryContact ? ` (${primaryContact.email})` : ""
+
+  return `
 # STATEMENT OF WORK (SOW)
 ## DATACENTER AI GPU CLUSTER SECURITY REVIEW
 
@@ -110,6 +128,8 @@ Tetrel will perform the following high-performance compute audits:
 
 ### 3. HARDWARE SPEC SHEET ALIGNMENT
 This audit incorporates compliance checks against **Tetrel DT-200 Datacenter Guard** specifications.
+
+\${complianceMatrix}
 
 ### 4. TIMELINES & DELIVERABLES
 The total estimated engagement duration is **${params.duration}**.
@@ -133,12 +153,19 @@ Title: Principal AI Systems Architect
 Date: __________________________
 
 **FOR ${params.clientName.toUpperCase()}**
-Name: __________________________
-Title: __________________________
+Name: ${signatoryName}
+Title: ${signatoryTitle}${signatoryEmail}
 Date: __________________________
 `
+}
 
-const getISO26262Template = (params: ParameterState) => `
+const getISO26262Template = (params: ParameterState, contacts: Array<Record<string, string>> = []) => {
+  const primaryContact = contacts[0] || null
+  const signatoryName = primaryContact ? primaryContact.name : "__________________________"
+  const signatoryTitle = primaryContact ? primaryContact.title : "__________________________"
+  const signatoryEmail = primaryContact ? ` (${primaryContact.email})` : ""
+
+  return `
 # STATEMENT OF WORK (SOW)
 ## AUTOMOTIVE ISO 26262 COMPLIANCE & SAFETY REVIEW
 
@@ -155,6 +182,8 @@ Tetrel will conduct functional safety audits and hardware diagnostic analysis:
 
 ### 3. HARDWARE SPEC SHEET ALIGNMENT
 This audit incorporates compliance checks against **ISO-26262 Automotive Hardware Verification Manual**.
+
+\${complianceMatrix}
 
 ### 4. TIMELINES & DELIVERABLES
 The total estimated engagement duration is **${params.duration}**.
@@ -178,10 +207,11 @@ Title: Director of Functional Safety
 Date: __________________________
 
 **FOR ${params.clientName.toUpperCase()}**
-Name: __________________________
-Title: __________________________
+Name: ${signatoryName}
+Title: ${signatoryTitle}${signatoryEmail}
 Date: __________________________
 `
+}
 
 // ---------------------------------------------------------
 // Simple Markdown to HTML Parser
@@ -240,11 +270,93 @@ function renderTableRow(markdownLine: string, isHeader: boolean): string {
   return `<tr>${rowHtml}</tr>`;
 }
 
+const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> = {
+  'HS-50': [
+    {
+      id: 'hs50-dema',
+      title: 'Power & EM Differential Analysis Resilience',
+      description: 'Verify key-exchange block electromagnetic emission profiles against Tetrel\'s physical DEMA reference templates.',
+      badge: 'HS-50 DEMA Compliant',
+      specSource: 'HS-50 Hardware Audit Manual, Section 4.2',
+      referenceText: 'All hardware key-exchange modules must undergo differential electromagnetic auditing to isolate leakages below -110dBm.'
+    },
+    {
+      id: 'hs50-glitch',
+      title: 'Glitch Injection step-lock verification',
+      description: 'Laser voltage injection tests on memory boundaries to guarantee functional step-lock isolation.',
+      badge: 'Laser Resistant',
+      specSource: 'HS-50 Hardware Audit Manual, Section 5.9',
+      referenceText: 'Step-lock registers must implement auto-recovery thresholds within 3 clock cycles of fault detection.'
+    },
+    {
+      id: 'hs50-timing',
+      title: 'Side-Channel Leakage Minimization',
+      description: 'Confirm AES-256 block timing leakage metrics remain within acceptable noise floor tolerances.',
+      badge: 'AES-Timing Clear',
+      specSource: 'HS-50 Technical Spec Sheet, Page 12',
+      referenceText: 'Timing deviations across cryptographic executions must not exceed 0.05% under high-concurrency threads.'
+    }
+  ],
+  'DT-200': [
+    {
+      id: 'dt200-rdma',
+      title: 'RDMA Context-Bleeding Separation',
+      description: 'Inspect RDMA networking configuration to ensure absolute memory context isolation between GPU slices.',
+      badge: 'RDMA Segment Active',
+      specSource: 'DT-200 Security Architecture, Page 8',
+      referenceText: 'Multi-node GPU architectures must enforce absolute address segregation across network-attached storage buffers.'
+    },
+    {
+      id: 'dt200-tamper',
+      title: 'Tamper-Proof Ingest Verification',
+      description: 'Cryptographically sign model-weight uploads at target checkpoints to prevent poison payload execution.',
+      badge: 'Payload Signed',
+      specSource: 'DT-200 Ingest Guideline, Section 3.1',
+      referenceText: 'SHA-512 hashes of baseline datasets must be validated at every epoch change to guarantee weight purity.'
+    },
+    {
+      id: 'dt200-quant',
+      title: 'Quantization Side-Channel Defense',
+      description: 'Mitigate hardware timing side-channels during model quantization layer execution.',
+      badge: 'Quantization Masked',
+      specSource: 'DT-200 Core Blueprint, Section 7.4',
+      referenceText: 'Layer-wise activation timing must be masked with random delay insertions (1-5µs) to prevent weights reconstruction.'
+    }
+  ],
+  'ISO-26262': [
+    {
+      id: 'iso-spfm',
+      title: 'ASIL-D Single-Point Fault Metric (SPFM)',
+      description: 'Ensure hardware design achieves >99% diagnostic coverage for single-point faults.',
+      badge: 'ASIL-D SPFM Validated',
+      specSource: 'ISO-26262 Safety Standard, Part 5',
+      referenceText: 'Critical logic pathways in automotive semiconductors require concurrent monitoring to exceed the 99% SPFM threshold.'
+    },
+    {
+      id: 'iso-ecc',
+      title: 'Error-Correcting Codes (ECC) Diagnostic Coverage',
+      description: 'Verify double-bit error detection and single-bit correction coverage on SRAM cells.',
+      badge: 'ECC Diagnostic Active',
+      specSource: 'Automotive Safety Manual, Section 8.3',
+      referenceText: 'ECC diagnostic coverage must be evaluated through simulated fault-injection sweeps at minimum and maximum temperatures.'
+    },
+    {
+      id: 'iso-lfm',
+      title: 'Latent Fault Metric (LFM) Boundary Checks',
+      description: 'Validate that latent faults in safety-critical registers do not propagate to the primary system bus.',
+      badge: 'LFM Boundary Verified',
+      specSource: 'ISO-26262 safety guidelines, Page 34',
+      referenceText: 'Self-test routines executed at power-on must test latent fault conditions in all redundant logic gates.'
+    }
+  ]
+}
+
 export function B2BDraftingWorkspace({
   notebookId,
   notebookName,
   notebookDescription = '',
-  sources
+  sources,
+  contacts = []
 }: B2BDraftingWorkspaceProps) {
   // 1. Initial State Definition
   const [params, setParams] = useState<ParameterState>({
@@ -273,20 +385,119 @@ export function B2BDraftingWorkspace({
     'ISO-26262': false
   })
 
+  // Compliance checklist states
+  const [checkedChecks, setCheckedChecks] = useState<Record<string, boolean>>({
+    'hs50-dema': true,
+    'hs50-glitch': false,
+    'hs50-timing': false,
+    'dt200-rdma': false,
+    'dt200-tamper': false,
+    'dt200-quant': false,
+    'iso-spfm': false,
+    'iso-ecc': false,
+    'iso-lfm': false
+  })
+
+  const [selectedCheck, setSelectedCheck] = useState<ComplianceCheck | null>(null)
+  const [activeTab, setActiveTab] = useState<'editor' | 'canvas'>('editor')
+
+  const handleValidationSuccess = useCallback((verifiedIds: string[]) => {
+    setCheckedChecks(prev => {
+      const next = { ...prev }
+      const networkDriven = [
+        'hs50-dema',
+        'hs50-glitch',
+        'hs50-timing',
+        'dt200-rdma',
+        'dt200-tamper',
+        'dt200-quant',
+        'iso-spfm',
+        'iso-ecc',
+        'iso-lfm'
+      ]
+      networkDriven.forEach(id => {
+        next[id] = verifiedIds.includes(id)
+      })
+      return next
+    })
+  }, [])
+
+  // Dynamically assemble active compliance checks based on pinned specs
+  const activeChecks: ComplianceCheck[] = []
+  Object.keys(pinnedSpecs).forEach(specKey => {
+    if (pinnedSpecs[specKey] && ALL_COMPLIANCE_CHECKS[specKey]) {
+      ALL_COMPLIANCE_CHECKS[specKey].forEach(check => {
+        activeChecks.push({
+          ...check,
+          checked: !!checkedChecks[check.id]
+        })
+      })
+    }
+  })
+
+  // Keep selectedCheck in sync or reset if it is unpinned
+  useEffect(() => {
+    if (selectedCheck) {
+      const stillActive = activeChecks.some(c => c.id === selectedCheck.id)
+      if (!stillActive) {
+        setSelectedCheck(activeChecks[0] || null)
+      } else {
+        const currentCheck = activeChecks.find(c => c.id === selectedCheck.id)
+        if (currentCheck && currentCheck.checked !== selectedCheck.checked) {
+          setSelectedCheck(currentCheck)
+        }
+      }
+    } else if (activeChecks.length > 0) {
+      setSelectedCheck(activeChecks[0])
+    }
+  }, [pinnedSpecs, checkedChecks])
+
+  const handleToggleCheck = (id: string) => {
+    setCheckedChecks(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }))
+  }
+
   // 2. Blueprint loading / parameter interpolation hook
   useEffect(() => {
     let updatedContent = ''
     if (activeBlueprint === 'silicon') {
-      updatedContent = getSiliconAuditTemplate(params)
+      updatedContent = getSiliconAuditTemplate(params, contacts)
     } else if (activeBlueprint === 'datacenter') {
-      updatedContent = getDatacenterAITemplate(params)
+      updatedContent = getDatacenterAITemplate(params, contacts)
     } else if (activeBlueprint === 'iso26262') {
-      updatedContent = getISO26262Template(params)
+      updatedContent = getISO26262Template(params, contacts)
     }
+
+    // Compile Verified Compliance Matrix Table
+    const verifiedChecks = activeChecks.filter(c => c.checked)
+    let complianceMatrix = ''
+    if (verifiedChecks.length > 0) {
+      complianceMatrix = `
+### 3.5 AI-VERIFIED SOW COMPLIANCE MATRIX
+The following hardware safety and compliance requirements have been formally audited and verified against Tetrel's product catalog:
+
+| Requirement / Standard | Verification Audit Method | Reference Spec Sheet | Status |
+| :--- | :--- | :--- | :--- |
+${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource}* | **VERIFIED** |`).join('\n')}
+`
+    } else {
+      complianceMatrix = `
+### 3.5 AI-VERIFIED SOW COMPLIANCE MATRIX
+*No safety specifications or product catalog standards have been verified for this proposal draft yet.*
+`
+    }
+
+    // Inject complianceMatrix placeholder into SOW template
+    updatedContent = updatedContent.replace('${complianceMatrix}', complianceMatrix)
 
     // Apply high-contrast span highlights to key parameters in the document
     const highlight = (val: string, keyName: string) => 
       `<span class="bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded font-mono text-xs font-semibold" title="AI Parameter: ${keyName}">${val}</span>`
+
+    const highlightGreen = (val: string, keyName: string) => 
+      `<span class="bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono text-xs font-semibold" title="CRM Dossier: ${keyName}">${val}</span>`
 
     let highlightedContent = updatedContent
       .replace(new RegExp(escapeRegExp(params.clientName), 'g'), highlight(params.clientName, 'Client Name'))
@@ -295,8 +506,19 @@ export function B2BDraftingWorkspace({
       .replace(new RegExp(escapeRegExp(params.startDate), 'g'), highlight(params.startDate, 'Start Date'))
       .replace(new RegExp(escapeRegExp(params.systemTarget), 'g'), highlight(params.systemTarget, 'System Target'))
 
+    // Highlight contacts/signatory values if injected
+    const primaryContact = contacts[0]
+    if (primaryContact) {
+      if (primaryContact.name) {
+        highlightedContent = highlightedContent.replace(new RegExp(escapeRegExp(primaryContact.name), 'g'), highlightGreen(primaryContact.name, 'Signatory Name'))
+      }
+      if (primaryContact.title) {
+        highlightedContent = highlightedContent.replace(new RegExp(escapeRegExp(primaryContact.title), 'g'), highlightGreen(primaryContact.title, 'Signatory Title'))
+      }
+    }
+
     setDocumentContent(highlightedContent)
-  }, [activeBlueprint, params])
+  }, [activeBlueprint, params, contacts, checkedChecks, pinnedSpecs])
 
   // Helper to escape regex special characters
   function escapeRegExp(string: string) {
@@ -371,8 +593,8 @@ export function B2BDraftingWorkspace({
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1 p-1">
-      {/* 1. LEFT PANEL: Controls, blue prints, and parameter verification (5 columns) */}
-      <div className="xl:col-span-5 flex flex-col gap-6 overflow-y-auto pr-1">
+      {/* 1. LEFT PANEL: Controls, blueprints, and parameter verification (3 columns) */}
+      <div className="xl:col-span-3 flex flex-col gap-6 overflow-y-auto pr-1">
         
         {/* WARNING DISCLAIMER BANNER */}
         <Card className="border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 shadow-sm">
@@ -638,17 +860,53 @@ export function B2BDraftingWorkspace({
         </Card>
       </div>
 
-      {/* 2. RIGHT PANEL: Split-screen drafting canvas (7 columns) */}
-      <div className="xl:col-span-7 flex flex-col h-full min-h-0 border rounded-lg bg-card shadow-sm overflow-hidden">
+      {/* 2. MIDDLE PANEL: Compliance Auditing Checklist (4 columns) */}
+      <div className="xl:col-span-4 h-full min-h-0 flex flex-col">
+        <B2BComplianceChecklist
+          checks={activeChecks}
+          onToggleCheck={handleToggleCheck}
+          selectedCheck={selectedCheck}
+          onSelectCheck={setSelectedCheck}
+        />
+      </div>
+
+      {/* 3. RIGHT PANEL: Split-screen drafting canvas (5 columns) */}
+      <div className="xl:col-span-5 flex flex-col h-full min-h-0 border rounded-lg bg-card shadow-sm overflow-hidden">
         
         {/* Editor controls and actions panel */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/40">
-          <div className="flex items-center gap-2">
-            <FolderOpen className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Interactive SOW Draftsman</h3>
-            <Badge variant="secondary" className="text-[9px] uppercase tracking-wider tabular-nums font-mono font-semibold">
-              Live Preview
-            </Badge>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Interactive SOW Draftsman</h3>
+            </div>
+            
+            {/* Styled Toggle Tab Switcher */}
+            <div className="flex items-center bg-muted/80 p-0.5 rounded-lg border border-border/40">
+              <button
+                type="button"
+                onClick={() => setActiveTab('editor')}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  activeTab === 'editor'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                SOW Editor
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('canvas')}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  activeTab === 'canvas'
+                    ? 'bg-background text-cyan-500 shadow-sm border border-cyan-500/10'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Network className="h-3.5 w-3.5" />
+                OT Network Canvas
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -690,17 +948,23 @@ export function B2BDraftingWorkspace({
           </div>
         )}
 
-        {/* Full-featured Markdown Editor Container */}
-        <div className="flex-1 overflow-y-auto p-4 [&_.w-md-editor]:!static [&_.w-md-editor]:!w-full [&_.w-md-editor]:!h-full [&_.w-md-editor-content]:overflow-y-auto">
-          <MarkdownEditor
-            value={documentContent}
-            onChange={(val) => setDocumentContent(val || '')}
-            height={720}
-            preview="live"
-            placeholder="Loading corporate SOW blueprint..."
-            className="w-full h-full min-h-[500px]"
-          />
-        </div>
+        {/* Switched view container */}
+        {activeTab === 'editor' ? (
+          <div className="flex-1 overflow-y-auto p-4 [&_.w-md-editor]:!static [&_.w-md-editor]:!w-full [&_.w-md-editor]:!h-full [&_.w-md-editor-content]:overflow-y-auto">
+            <MarkdownEditor
+              value={documentContent}
+              onChange={(val) => setDocumentContent(val || '')}
+              height={720}
+              preview="live"
+              placeholder="Loading corporate SOW blueprint..."
+              className="w-full h-full min-h-[500px]"
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-[500px]">
+            <CSETNetworkCanvas onValidationSuccess={handleValidationSuccess} />
+          </div>
+        )}
       </div>
     </div>
   )

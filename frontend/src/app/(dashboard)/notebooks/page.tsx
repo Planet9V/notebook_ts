@@ -50,7 +50,7 @@ export default function NotebooksPage() {
   return (
     <AppShell>
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 pb-24">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-semibold tracking-tight">{t('notebooks.title')}</h1>

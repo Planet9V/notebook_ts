@@ -131,6 +131,11 @@ export function useNotebookChat({ notebookId, sources, notes, contextSelections 
 
   // Build context from sources and notes based on user selections
   const buildContext = useCallback(async () => {
+    // Guard: skip context build if no valid notebook ID is available
+    if (!notebookId) {
+      return { sources: [], notes: [] }
+    }
+
     // Build context_config mapping IDs to selection modes
     const context_config: { sources: Record<string, string>, notes: Record<string, string> } = {
       sources: {},
@@ -289,6 +294,9 @@ export function useNotebookChat({ notebookId, sources, notes, contextSelections 
 
   // Update token/char counts when context selections change
   useEffect(() => {
+    // Skip context building when no valid notebook ID is present
+    if (!notebookId) return
+
     const updateContextCounts = async () => {
       try {
         await buildContext()
@@ -297,7 +305,7 @@ export function useNotebookChat({ notebookId, sources, notes, contextSelections 
       }
     }
     updateContextCounts()
-  }, [buildContext])
+  }, [notebookId, buildContext])
 
   return {
     // State

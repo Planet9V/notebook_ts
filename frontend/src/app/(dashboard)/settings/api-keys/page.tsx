@@ -39,6 +39,9 @@ import {
   Bot,
 } from 'lucide-react'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { useModels, useDeleteModel, useModelDefaults, useUpdateModelDefaults, useAutoAssignDefaults, useTestModel } from '@/lib/hooks/use-models'
 import {
   useCredentials,
@@ -1291,6 +1294,13 @@ function DefaultModelSelectors({
 
 export default function ApiKeysPage() {
   const { t } = useTranslation()
+  const pathname = usePathname()
+
+  const tabs = [
+    { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },
+    { name: t('settings.tabApiKeys', 'API Keys & Models'), href: '/settings/api-keys' },
+    { name: t('settings.tabPipeline', 'Pipeline Automations'), href: '/settings/pipeline' },
+  ]
 
   // Data
   const { data: credentials, isLoading: credentialsLoading } = useCredentials()
@@ -1360,6 +1370,27 @@ export default function ApiKeysPage() {
               {t('apiKeys.title')}
             </h1>
             <p className="text-muted-foreground mt-1">{t('apiKeys.description')}</p>
+          </div>
+
+          {/* Sub Navigation Tabs */}
+          <div className="flex items-center gap-1 border-b border-sidebar-border/20">
+            {tabs.map((tab) => {
+              const active = pathname === tab.href
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 -mb-[2px]",
+                    active
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {tab.name}
+                </Link>
+              )
+            })}
           </div>
 
           {/* Encryption warning */}

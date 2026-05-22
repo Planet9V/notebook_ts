@@ -149,6 +149,7 @@ export default function NotebookPage() {
               notebookName={notebook.name}
               notebookDescription={notebook.description || ''}
               sources={sources || []}
+              contacts={notebook.contacts || []}
             />
           ) : (
             <>

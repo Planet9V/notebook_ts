@@ -18,6 +18,13 @@ class Notebook(ObjectModel):
     name: str
     description: str
     archived: Optional[bool] = False
+    stage: Optional[str] = "lead"
+    client_name: Optional[str] = ""
+    estimated_value: Optional[float] = 0.0
+    prospect_website: Optional[str] = ""
+    contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list)
+    crawl_failed: Optional[bool] = False
+    suggested_contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod

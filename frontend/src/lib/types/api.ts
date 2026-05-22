@@ -7,6 +7,13 @@ export interface NotebookResponse {
   updated: string
   source_count: number
   note_count: number
+  stage?: string
+  client_name?: string
+  estimated_value?: number
+  contacts?: Array<Record<string, string>>
+  crawl_failed?: boolean
+  suggested_contacts?: Array<Record<string, string>>
+  prospect_website?: string
 }
 
 export interface NoteResponse {
@@ -63,12 +70,26 @@ export interface SettingsResponse {
 export interface CreateNotebookRequest {
   name: string
   description?: string
+  stage?: string
+  client_name?: string
+  estimated_value?: number
+  contacts?: Array<Record<string, string>>
+  crawl_failed?: boolean
+  suggested_contacts?: Array<Record<string, string>>
+  prospect_website?: string
 }
 
 export interface UpdateNotebookRequest {
   name?: string
   description?: string
   archived?: boolean
+  stage?: string
+  client_name?: string
+  estimated_value?: number
+  contacts?: Array<Record<string, string>>
+  crawl_failed?: boolean
+  suggested_contacts?: Array<Record<string, string>>
+  prospect_website?: string
 }
 
 export interface NotebookDeletePreview {

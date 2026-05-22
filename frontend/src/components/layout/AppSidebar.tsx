@@ -41,6 +41,7 @@ import {
   Plus,
   Wrench,
   Command,
+  TrendingUp,
 } from 'lucide-react'
 
 const getNavigation = (t: TFunction) => [
@@ -55,6 +56,7 @@ const getNavigation = (t: TFunction) => [
     items: [
       { name: t('navigation.notebooks'), href: '/notebooks', icon: Book },
       { name: t('navigation.askAndSearch'), href: '/search', icon: Search },
+      { name: t('navigation.pipeline', 'Sales Pipeline'), href: '/pipeline', icon: TrendingUp },
     ],
   },
   {
@@ -162,7 +164,7 @@ export function AppSidebar() {
 
         <nav
           className={cn(
-            'flex-1 space-y-1 py-4',
+            'flex-1 space-y-1 py-4 overflow-y-auto',
             isCollapsed ? 'px-2' : 'px-3'
           )}
         >

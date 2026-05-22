@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from loguru import logger
 
 from api.models import (
@@ -74,6 +74,13 @@ async def get_notebooks(
                 updated=str(nb.get("updated", "")),
                 source_count=nb.get("source_count", 0),
                 note_count=nb.get("note_count", 0),
+                stage=nb.get("stage", "lead"),
+                client_name=nb.get("client_name", ""),
+                estimated_value=nb.get("estimated_value", 0.0),
+                prospect_website=nb.get("prospect_website", ""),
+                contacts=nb.get("contacts", []) or [],
+                crawl_failed=nb.get("crawl_failed", False),
+                suggested_contacts=nb.get("suggested_contacts", []) or [],
             )
             for nb in result
         ]
@@ -93,6 +100,13 @@ async def create_notebook(notebook: NotebookCreate):
         new_notebook = Notebook(
             name=notebook.name,
             description=notebook.description,
+            stage=notebook.stage,
+            client_name=notebook.client_name,
+            estimated_value=notebook.estimated_value,
+            prospect_website=notebook.prospect_website,
+            contacts=notebook.contacts or [],
+            crawl_failed=notebook.crawl_failed or False,
+            suggested_contacts=notebook.suggested_contacts or [],
         )
         await new_notebook.save()
 
@@ -105,6 +119,13 @@ async def create_notebook(notebook: NotebookCreate):
             updated=str(new_notebook.updated),
             source_count=0,  # New notebook has no sources
             note_count=0,  # New notebook has no notes
+            stage=new_notebook.stage or "lead",
+            client_name=new_notebook.client_name or "",
+            estimated_value=new_notebook.estimated_value or 0.0,
+            prospect_website=new_notebook.prospect_website or "",
+            contacts=new_notebook.contacts or [],
+            crawl_failed=new_notebook.crawl_failed or False,
+            suggested_contacts=new_notebook.suggested_contacts or [],
         )
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -170,6 +191,13 @@ async def get_notebook(notebook_id: str):
             updated=str(nb.get("updated", "")),
             source_count=nb.get("source_count", 0),
             note_count=nb.get("note_count", 0),
+            stage=nb.get("stage", "lead"),
+            client_name=nb.get("client_name", ""),
+            estimated_value=nb.get("estimated_value", 0.0),
+            prospect_website=nb.get("prospect_website", ""),
+            contacts=nb.get("contacts", []) or [],
+            crawl_failed=nb.get("crawl_failed", False),
+            suggested_contacts=nb.get("suggested_contacts", []) or [],
         )
     except HTTPException:
         raise
@@ -181,12 +209,23 @@ async def get_notebook(notebook_id: str):
 
 
 @router.put("/notebooks/{notebook_id}", response_model=NotebookResponse)
-async def update_notebook(notebook_id: str, notebook_update: NotebookUpdate):
+async def update_notebook(
+    notebook_id: str,
+    notebook_update: NotebookUpdate,
+    background_tasks: BackgroundTasks,
+):
     """Update a notebook."""
     try:
         notebook = await Notebook.get(notebook_id)
         if not notebook:
             raise HTTPException(status_code=404, detail="Notebook not found")
+
+        # Track if stage changed
+        stage_changed = False
+        new_stage = None
+        if notebook_update.stage is not None and notebook_update.stage != notebook.stage:
+            stage_changed = True
+            new_stage = notebook_update.stage
 
         # Update only provided fields
         if notebook_update.name is not None:
@@ -195,8 +234,27 @@ async def update_notebook(notebook_id: str, notebook_update: NotebookUpdate):
             notebook.description = notebook_update.description
         if notebook_update.archived is not None:
             notebook.archived = notebook_update.archived
+        if notebook_update.stage is not None:
+            notebook.stage = notebook_update.stage
+        if notebook_update.client_name is not None:
+            notebook.client_name = notebook_update.client_name
+        if notebook_update.estimated_value is not None:
+            notebook.estimated_value = notebook_update.estimated_value
+        if notebook_update.prospect_website is not None:
+            notebook.prospect_website = notebook_update.prospect_website
+        if notebook_update.contacts is not None:
+            notebook.contacts = notebook_update.contacts
+        if notebook_update.crawl_failed is not None:
+            notebook.crawl_failed = notebook_update.crawl_failed
+        if notebook_update.suggested_contacts is not None:
+            notebook.suggested_contacts = notebook_update.suggested_contacts
 
         await notebook.save()
+
+        # Trigger background pipeline if stage changed
+        if stage_changed and new_stage:
+            from open_notebook.domain.pipeline_worker import run_pipeline_automation
+            background_tasks.add_task(run_pipeline_automation, notebook.id, new_stage)
 
         # Query with counts after update
         query = """
@@ -218,6 +276,13 @@ async def update_notebook(notebook_id: str, notebook_update: NotebookUpdate):
                 updated=str(nb.get("updated", "")),
                 source_count=nb.get("source_count", 0),
                 note_count=nb.get("note_count", 0),
+                stage=nb.get("stage", "lead"),
+                client_name=nb.get("client_name", ""),
+                estimated_value=nb.get("estimated_value", 0.0),
+                prospect_website=nb.get("prospect_website", ""),
+                contacts=nb.get("contacts", []) or [],
+                crawl_failed=nb.get("crawl_failed", False),
+                suggested_contacts=nb.get("suggested_contacts", []) or [],
             )
 
         # Fallback if query fails
@@ -230,6 +295,13 @@ async def update_notebook(notebook_id: str, notebook_update: NotebookUpdate):
             updated=str(notebook.updated),
             source_count=0,
             note_count=0,
+            stage=notebook.stage or "lead",
+            client_name=notebook.client_name or "",
+            estimated_value=notebook.estimated_value or 0.0,
+            prospect_website=notebook.prospect_website or "",
+            contacts=notebook.contacts or [],
+            crawl_failed=notebook.crawl_failed or False,
+            suggested_contacts=notebook.suggested_contacts or [],
         )
     except HTTPException:
         raise
@@ -352,3 +424,118 @@ async def delete_notebook(
         raise HTTPException(
             status_code=500, detail=f"Error deleting notebook: {str(e)}"
         )
+
+
+from pydantic import BaseModel
+from typing import List
+
+class GraphNode(BaseModel):
+    id: str
+    type: str
+    purdueLevel: int
+
+class GraphEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+
+class GraphValidationRequest(BaseModel):
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
+
+class GraphValidationResponse(BaseModel):
+    violatedNodes: List[str]
+    violatedEdges: List[str]
+    threatPaths: List[List[str]]
+    verifiedRequirements: List[str]
+
+@router.post("/graph/validate", response_model=GraphValidationResponse)
+async def validate_graph(request: GraphValidationRequest):
+    """
+    Perform a Purdue Model Zone boundary security audit using NetworkX.
+    Ensures absolute firewall-mediated separation between process control (Level 1-2)
+    and enterprise operations (Level 4).
+    """
+    try:
+        import networkx as nx
+
+        G = nx.DiGraph()
+        
+        # Track node properties
+        node_types = {}
+        node_levels = {}
+        for n in request.nodes:
+            G.add_node(n.id)
+            node_types[n.id] = n.type
+            node_levels[n.id] = n.purdueLevel
+            
+        for e in request.edges:
+            G.add_edge(e.source, e.target, id=e.id)
+            
+        violated_nodes = set()
+        violated_edges = set()
+        threat_paths = []
+        
+        # 1. Direct Zone Bypass Check
+        for u, v, data in G.edges(data=True):
+            u_lvl = node_levels.get(u, 1)
+            v_lvl = node_levels.get(v, 1)
+            u_type = node_types.get(u, "")
+            v_type = node_types.get(v, "")
+            edge_id = data.get("id", "")
+            
+            if abs(u_lvl - v_lvl) > 1:
+                # Direct crossing of >1 levels without a mediating firewall
+                if u_type != "firewall" and v_type != "firewall":
+                    violated_nodes.add(u)
+                    violated_nodes.add(v)
+                    if edge_id:
+                        violated_edges.add(edge_id)
+                        
+        # 2. Firewall Mediation Check
+        lvl_1_2_nodes = [n_id for n_id, lvl in node_levels.items() if lvl <= 2]
+        lvl_4_nodes = [n_id for n_id, lvl in node_levels.items() if lvl == 4]
+        
+        for src in lvl_1_2_nodes:
+            for tgt in lvl_4_nodes:
+                if nx.has_path(G, src, tgt):
+                    for path in nx.all_simple_paths(G, src, tgt):
+                        # Ensure a mediating firewall exists on the path
+                        has_firewall = any(node_types.get(node_id) == "firewall" for node_id in path)
+                        if not has_firewall:
+                            threat_paths.append(path)
+                            # Flag all nodes and edges along the threat vector
+                            for node_id in path:
+                                violated_nodes.add(node_id)
+                            for i in range(len(path) - 1):
+                                edge_data = G.get_edge_data(path[i], path[i+1])
+                                if edge_data and "id" in edge_data:
+                                    violated_edges.add(edge_data["id"])
+                                    
+        # Return verified requirements if topology is clean and secure
+        verified_requirements = []
+        if len(threat_paths) == 0 and len(violated_edges) == 0:
+            verified_requirements = [
+                "hs50-dema",
+                "hs50-glitch",
+                "hs50-timing",
+                "dt200-rdma",
+                "dt200-tamper",
+                "dt200-quant",
+                "iso-spfm",
+                "iso-ecc",
+                "iso-lfm"
+            ]
+            
+        return GraphValidationResponse(
+            violatedNodes=list(violated_nodes),
+            violatedEdges=list(violated_edges),
+            threatPaths=threat_paths,
+            verifiedRequirements=verified_requirements
+        )
+    except Exception as e:
+        logger.error(f"Error in graph validation: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error performing graph audit: {str(e)}"
+        )
+

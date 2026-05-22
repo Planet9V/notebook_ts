@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="fw-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF5D48" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF9E00" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="fw-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background glass container -->
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#14151B" stroke="#FF5D48" stroke-width="1.5" stroke-opacity="0.4" />
+  <!-- Glowing core icon -->
+  <g filter="url(#fw-glow)">
+    <!-- Shield Outline -->
+    <path d="M32 12C32 12 18 16 18 26C18 38 32 48 32 48C32 48 46 38 46 26C46 16 32 12 32 12Z" fill="url(#fw-grad)" stroke="#FF5D48" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Brick pattern lines inside shield -->
+    <path d="M24 24H40M22 30H42M25 36H39M32 13V47M28 24V30M36 24V30M32 30V36M28 36V42M36 36V42" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.7" />
+  </g>
+</svg>

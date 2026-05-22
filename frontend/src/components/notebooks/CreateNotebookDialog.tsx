@@ -30,9 +30,10 @@ type CreateNotebookFormData = z.infer<typeof createNotebookSchema>
 interface CreateNotebookDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  defaultStage?: string
 }
 
-export function CreateNotebookDialog({ open, onOpenChange }: CreateNotebookDialogProps) {
+export function CreateNotebookDialog({ open, onOpenChange, defaultStage }: CreateNotebookDialogProps) {
   const { t } = useTranslation()
   const createNotebook = useCreateNotebook()
   const {
@@ -52,7 +53,10 @@ export function CreateNotebookDialog({ open, onOpenChange }: CreateNotebookDialo
   const closeDialog = () => onOpenChange(false)
 
   const onSubmit = async (data: CreateNotebookFormData) => {
-    await createNotebook.mutateAsync(data)
+    await createNotebook.mutateAsync({
+      ...data,
+      stage: defaultStage,
+    })
     closeDialog()
     reset()
   }
