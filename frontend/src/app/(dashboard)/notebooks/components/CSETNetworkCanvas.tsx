@@ -6,6 +6,7 @@ import {
   MiniMap,
   Controls,
   Background,
+  BackgroundVariant,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -117,24 +118,38 @@ export function SwimlaneNode({ data }: NodeProps) {
 }
 
 // ==========================================
-// 2. CUSTOM NODE: OT DEVICE
+// 2. CUSTOM NODE: OT DEVICE & WORKFLOW SCANS CONTEXT
 // ==========================================
-export function CustomDeviceNode({ data, selected }: NodeProps) {
+export const NetworkCanvasContext = React.createContext<{
+  currentlyAuditedNodes?: string[]
+  activeThreatPaths?: string[][]
+}>({})
+
+export function CustomDeviceNode({ id, data, selected }: NodeProps) {
   const d = data as any
   const iconSrc = `/assets/devices/${d.deviceType}.svg`
   const isViolated = d.violated
   
+  const { currentlyAuditedNodes = [], activeThreatPaths = [] } = React.useContext(NetworkCanvasContext)
+  const isAudited = currentlyAuditedNodes.includes(id)
+  const isThreat = activeThreatPaths.some(path => path.includes(id))
+
+  let borderStyle = 'border-border/60 hover:border-cyan-500/40 shadow-black/20'
+  if (selected) {
+    borderStyle = 'border-cyan-500 ring-2 ring-cyan-500/20 shadow-cyan-500/10'
+  } else if (isThreat) {
+    borderStyle = 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.5)] border-2 animate-bounce'
+  } else if (isAudited) {
+    borderStyle = 'border-cyan-500 shadow-[0_0_15px_rgba(14,165,233,0.4)] border-2 scale-105 animate-pulse'
+  } else if (isViolated) {
+    borderStyle = 'border-red-500 shadow-red-500/10 animate-pulse'
+  }
+
   return (
-    <div className={`relative px-4 py-3 rounded-xl border bg-card/85 backdrop-blur-md transition-all flex items-center gap-3 w-48 shadow-lg ${
-      selected 
-        ? 'border-cyan-500 ring-2 ring-cyan-500/20 shadow-cyan-500/10' 
-        : isViolated 
-          ? 'border-red-500 shadow-red-500/10 animate-pulse' 
-          : 'border-border/60 hover:border-cyan-500/40 shadow-black/20'
-    }`}>
+    <div className={`relative px-4 py-3 rounded-xl border bg-card/85 backdrop-blur-md transition-all flex items-center gap-3 w-48 shadow-lg ${borderStyle}`}>
       {/* Glow background */}
       <div className={`absolute inset-0 rounded-xl opacity-10 transition-opacity ${
-        selected ? 'bg-cyan-500' : isViolated ? 'bg-red-500' : 'bg-transparent'
+        selected ? 'bg-cyan-500' : isThreat ? 'bg-orange-500' : isAudited ? 'bg-cyan-500' : isViolated ? 'bg-red-500' : 'bg-transparent'
       }`} />
       
       {/* Node contents */}
@@ -161,8 +176,10 @@ export function CustomDeviceNode({ data, selected }: NodeProps) {
         </p>
       </div>
 
-      {isViolated && (
-        <div className="absolute -top-1.5 -right-1.5 z-20 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-600 border border-red-500 shadow-md">
+      {(isViolated || isThreat) && (
+        <div className={`absolute -top-1.5 -right-1.5 z-20 flex h-4.5 w-4.5 items-center justify-center rounded-full border shadow-md ${
+          isThreat ? 'bg-orange-600 border-orange-500' : 'bg-red-600 border-red-500'
+        }`}>
           <AlertTriangle className="h-2.5 w-2.5 text-white" />
         </div>
       )}
@@ -260,10 +277,18 @@ const edgeTypes = {
 }
 
 interface CSETNetworkCanvasProps {
-  onValidationSuccess?: (verifiedIds: string[]) => void
+  onValidationSuccess?: (verifiedIds: string[], threatPaths: string[][], rawPayload?: any) => void
+  currentlyAuditedNodes?: string[]
+  activeThreatPaths?: string[][]
+  selectedNodeId?: string | null
 }
 
-function CSETNetworkCanvasContent({ onValidationSuccess }: CSETNetworkCanvasProps) {
+function CSETNetworkCanvasContent({
+  onValidationSuccess,
+  currentlyAuditedNodes = [],
+  activeThreatPaths = [],
+  selectedNodeId = null
+}: CSETNetworkCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
 
   // 1. Initial background swimlane nodes
@@ -353,6 +378,37 @@ function CSETNetworkCanvasContent({ onValidationSuccess }: CSETNetworkCanvasProp
   const [threatPaths, setThreatPaths] = useState<string[][]>([])
   const [isValidating, setIsValidating] = useState<boolean>(false)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false)
+
+  // Sync open state with selection
+  useEffect(() => {
+    if (selectedNode) {
+      setIsDrawerOpen(true)
+    }
+  }, [selectedNode])
+
+  // Sync open state with new threat path alerts
+  useEffect(() => {
+    if (threatPaths.length > 0) {
+      setIsDrawerOpen(true)
+    }
+  }, [threatPaths])
+
+  // Handle selectedNodeId external updates
+  useEffect(() => {
+    if (selectedNodeId) {
+      const node = nodes.find(n => n.id === selectedNodeId)
+      if (node) {
+        setSelectedNode(node)
+        setNodes(prev => prev.map(n => ({ ...n, selected: n.id === selectedNodeId })))
+      }
+    }
+  }, [selectedNodeId, setNodes])
+
+  const handleCloseDrawer = () => {
+    setSelectedNode(null)
+    setIsDrawerOpen(false)
+  }
 
   // 2. Perform graph security validation with FastAPI NetworkX
   const triggerValidation = useCallback(async (currentNodes: Node[], currentEdges: Edge[]) => {
@@ -411,7 +467,7 @@ function CSETNetworkCanvasContent({ onValidationSuccess }: CSETNetworkCanvasProp
 
       // Invoke success handler to sync checklist
       if (onValidationSuccess && data.verifiedRequirements) {
-        onValidationSuccess(data.verifiedRequirements)
+        onValidationSuccess(data.verifiedRequirements, data.threatPaths || [], payload)
       }
 
     } catch (err: any) {
@@ -609,211 +665,221 @@ function CSETNetworkCanvasContent({ onValidationSuccess }: CSETNetworkCanvasProp
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-background/55 text-foreground relative overflow-hidden">
-      
-      {/* Top Header and Control Bar */}
-      <div className="flex flex-wrap items-center justify-between px-6 py-3 border-b bg-card/40 backdrop-blur-md z-15 gap-4">
-        <div className="flex items-center gap-2.5">
-          <Network className="h-4.5 w-4.5 text-cyan-500" />
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">OT Network Boundary Architect</h4>
-            <p className="text-[10px] text-muted-foreground">Purdue Model Zone compliance validation powered by NetworkX</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* ELK Auto-Layout Button */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleAutoLayout}
-            className="h-8 text-xs font-semibold hover:border-cyan-500/40 hover:bg-cyan-500/5 active:scale-[0.98]"
-          >
-            <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-cyan-500" />
-            Auto-Layout ELK
-          </Button>
-
-          {/* Reset Button */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleResetCanvas}
-            className="h-8 text-xs font-semibold hover:border-red-500/30 hover:bg-red-500/5 text-muted-foreground active:scale-[0.98]"
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            Reset Topology
-          </Button>
-
-          <Badge 
-            variant="outline" 
-            className={`font-mono text-[9px] font-bold ${
-              isValidating 
-                ? 'border-cyan-500/30 text-cyan-500 bg-cyan-500/5 animate-pulse' 
-                : validationError 
-                  ? 'border-red-500/30 text-red-500 bg-red-500/5' 
-                  : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5'
-            }`}
-          >
-            {isValidating ? 'COMPUTING PATHS...' : validationError ? 'AUDIT FAIL' : 'SECURE SEC-AUDIT'}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Main Canvas + Side Toolboxes panel */}
-      <div className="flex-1 flex min-h-0 relative">
+    <NetworkCanvasContext.Provider value={{ currentlyAuditedNodes, activeThreatPaths }}>
+      <div className="flex flex-col h-full min-h-0 bg-background/55 text-foreground relative overflow-hidden">
         
-        {/* LEFT FLOATING TRAY: Device items catalog */}
-        <div className="absolute left-4 top-4 z-10 w-44 p-3 border rounded-xl bg-card/90 backdrop-blur-md shadow-xl flex flex-col gap-2.5">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-            <Plus className="h-3 w-3 text-cyan-500" />
-            OT Device Library
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {DEVICE_TYPES.map((d) => (
-              <button
-                key={d.type}
-                onClick={() => handleAddDevice(d.type)}
-                className="w-full px-2.5 py-1.5 rounded-lg border text-left bg-muted/20 hover:bg-cyan-500/5 hover:border-cyan-500/30 text-[11px] font-semibold text-foreground/80 flex items-center justify-between group transition-all"
+        {/* Top Header and Control Bar */}
+        <div className="flex flex-wrap items-center justify-between px-6 py-3 border-b bg-card/40 backdrop-blur-md z-15 gap-4">
+          <div className="flex items-center gap-2.5">
+            <Network className="h-4.5 w-4.5 text-cyan-500" />
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">OT Network Boundary Architect</h4>
+              <p className="text-[10px] text-muted-foreground">Purdue Model Zone compliance validation powered by NetworkX</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* ELK Auto-Layout Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAutoLayout}
+              className="h-8 text-xs font-semibold hover:border-cyan-500/40 hover:bg-cyan-500/5 active:scale-[0.98]"
+            >
+              <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-cyan-500" />
+              Auto-Layout ELK
+            </Button>
+
+            {/* Reset Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResetCanvas}
+              className="h-8 text-xs font-semibold hover:border-red-500/30 hover:bg-red-500/5 text-muted-foreground active:scale-[0.98]"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Reset Topology
+            </Button>
+
+            <Badge 
+              variant="outline" 
+              className={`font-mono text-[9px] font-bold ${
+                isValidating 
+                  ? 'border-cyan-500/30 text-cyan-500 bg-cyan-500/5 animate-pulse' 
+                  : validationError 
+                    ? 'border-red-500/30 text-red-500 bg-red-500/5' 
+                    : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5'
+              }`}
+            >
+              {isValidating ? 'COMPUTING PATHS...' : validationError ? 'AUDIT FAIL' : 'SECURE SEC-AUDIT'}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Main Canvas + Side Toolboxes panel */}
+        <div className="flex-1 flex min-h-0 relative">
+          
+          {/* LEFT FLOATING TRAY: Device items catalog */}
+          <div className="absolute left-4 top-4 z-10 w-48 p-3 border rounded-xl border-white/5 bg-slate-950/85 backdrop-blur-md shadow-2xl flex flex-col gap-2.5">
+            <p className="text-[10px] font-bold text-cyan-400 font-mono uppercase tracking-widest flex items-center gap-1.5">
+              <Plus className="h-3.5 w-3.5 text-cyan-500" />
+              OT Device Library
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {DEVICE_TYPES.map((d) => (
+                <button
+                  key={d.type}
+                  type="button"
+                  onClick={() => handleAddDevice(d.type)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-white/5 bg-slate-900/40 hover:bg-cyan-500/10 hover:border-cyan-500/30 text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground hover:text-cyan-400 flex items-center justify-between group transition-all"
+                >
+                  <span>{d.label.split(' (')[0]}</span>
+                  <span className="text-[8px] font-mono border border-white/10 rounded px-1 group-hover:border-cyan-500/30">L{d.defaultLevel}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* REACT FLOW DIAGRAM CONTAINER */}
+          <div className="flex-1 h-full min-h-[480px]">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              minZoom={0.2}
+              maxZoom={1.5}
+              defaultViewport={{ x: 100, y: 50, zoom: 0.7 }}
+            >
+              <Background variant={BackgroundVariant.Lines} color="#0ea5e9" size={12} style={{ opacity: 0.08 }} />
+              <Controls className="!bg-card !border-border !rounded-lg" />
+              <MiniMap 
+                className="!bg-card/90 !border-border !rounded-lg overflow-hidden" 
+                nodeColor={(n) => {
+                  if (n.type === 'swimlaneNode') return 'transparent'
+                  return (n.data as any).violated ? '#EF4444' : '#06B6D4'
+                }}
+                maskColor="rgba(0, 0, 0, 0.4)"
+              />
+            </ReactFlow>
+          </div>
+
+          {/* RIGHT INSPECTOR PANEL: Selected node details & network threats */}
+          <div className={`absolute right-0 top-0 bottom-0 w-80 border-l border-white/10 bg-slate-950/95 backdrop-blur-md flex flex-col h-full min-h-0 transition-transform duration-300 ease-in-out z-20 shadow-2xl ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="p-4 border-b bg-muted/20 flex items-center justify-between">
+              <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <Settings className="h-3.5 w-3.5 text-cyan-500" />
+                Property Inspector
+              </h5>
+              <button 
+                type="button" 
+                onClick={handleCloseDrawer}
+                className="text-[9px] font-mono font-bold text-muted-foreground hover:text-red-400 uppercase tracking-widest px-1.5 py-0.5 rounded border border-white/5 hover:border-red-500/20 bg-slate-950/40 transition-colors"
               >
-                <span>{d.label.split(' (')[0]}</span>
-                <span className="text-[8px] font-mono border rounded px-1 group-hover:border-cyan-500/30">L{d.defaultLevel}</span>
+                [Close]
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* REACT FLOW DIAGRAM CONTAINER */}
-        <div className="flex-1 h-full min-h-[480px]">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            fitView
-            minZoom={0.2}
-            maxZoom={1.5}
-            defaultViewport={{ x: 100, y: 50, zoom: 0.7 }}
-          >
-            <Background color="#22D3EE" gap={16} size={1} style={{ opacity: 0.06 }} />
-            <Controls className="!bg-card !border-border !rounded-lg" />
-            <MiniMap 
-              className="!bg-card/90 !border-border !rounded-lg overflow-hidden" 
-              nodeColor={(n) => {
-                if (n.type === 'swimlaneNode') return 'transparent'
-                return (n.data as any).violated ? '#EF4444' : '#06B6D4'
-              }}
-              maskColor="rgba(0, 0, 0, 0.4)"
-            />
-          </ReactFlow>
-        </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {selectedNode ? (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Device Name</label>
+                    <input
+                      type="text"
+                      value={selectedNode.data.label}
+                      onChange={(e) => handleUpdateNodeProperty('label', e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs rounded border border-border/80 bg-background/50 text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
+                  </div>
 
-        {/* RIGHT INSPECTOR PANEL: Selected node details & network threats */}
-        <div className="w-64 border-l border-border bg-card/45 backdrop-blur-md flex flex-col h-full min-h-0 z-10">
-          <div className="p-4 border-b bg-muted/20">
-            <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <Settings className="h-3.5 w-3.5 text-cyan-500" />
-              Property Inspector
-            </h5>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {selectedNode ? (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Device Name</label>
-                  <input
-                    type="text"
-                    value={selectedNode.data.label}
-                    onChange={(e) => handleUpdateNodeProperty('label', e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded border border-border/80 bg-background/50 text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Purdue model level</label>
-                  <select
-                    value={selectedNode.data.purdueLevel}
-                    onChange={(e) => handleUpdateNodeProperty('purdueLevel', parseInt(e.target.value))}
-                    className="w-full px-3 py-1.5 text-xs rounded border border-border/80 bg-background/50 text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500 capitalize"
-                  >
-                    <option value={4}>Level 4 (Enterprise)</option>
-                    <option value={3}>Level 3 (Operations Control)</option>
-                    <option value={1}>Level 1-2 (Process Control)</option>
-                  </select>
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleDeleteSelected}
-                    className="w-full text-xs hover:bg-red-500/5 hover:border-red-500/30 text-red-500"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                    Delete Asset
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground/60 space-y-2">
-                <Shield className="h-8 w-8 mx-auto text-muted-foreground/30" />
-                <p className="text-[10.5px] font-medium">No asset selected</p>
-                <p className="text-[9px] text-muted-foreground/80 max-w-[160px] mx-auto leading-relaxed">
-                  Select a device node inside the drawing grid to inspect details and properties.
-                </p>
-              </div>
-            )}
-
-            {/* Path Threat Detection Section */}
-            {threatPaths.length > 0 && (
-              <div className="pt-4 border-t border-dashed border-border/60 space-y-3">
-                <h6 className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
-                  <AlertTriangle className="h-3.5 w-3.5 animate-bounce" />
-                  Purdue Isolation Threat
-                </h6>
-                <div className="space-y-2">
-                  {threatPaths.map((path, idx) => (
-                    <div 
-                      key={idx}
-                      className="p-2.5 border border-red-500/20 bg-red-500/5 rounded text-[9.5px] text-red-600 dark:text-red-400 font-medium leading-relaxed"
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Purdue model level</label>
+                    <select
+                      value={selectedNode.data.purdueLevel}
+                      onChange={(e) => handleUpdateNodeProperty('purdueLevel', parseInt(e.target.value))}
+                      className="w-full px-3 py-1.5 text-xs rounded border border-border/80 bg-background/50 text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500 capitalize"
                     >
-                      <p className="font-bold mb-1">Unmediated Level 1 to 4 Path:</p>
-                      <div className="flex flex-wrap items-center gap-1 text-[8.5px] font-mono mt-1">
-                        {path.map((nodeId, nodeIdx) => {
-                          const node = nodes.find(n => n.id === nodeId)
-                          const label = node ? (node.data as any).label : nodeId
-                          return (
-                            <React.Fragment key={nodeId}>
-                              {nodeIdx > 0 && <span>➔</span>}
-                              <span className="bg-red-500/10 border border-red-500/25 px-1 py-0.5 rounded truncate max-w-[70px]">{label}</span>
-                            </React.Fragment>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                      <option value={4}>Level 4 (Enterprise)</option>
+                      <option value={3}>Level 3 (Operations Control)</option>
+                      <option value={1}>Level 1-2 (Process Control)</option>
+                    </select>
+                  </div>
 
-            {/* Zero-violation success feedback */}
-            {threatPaths.length === 0 && (
-              <div className="pt-4 border-t border-dashed border-border/60 text-center py-2 space-y-1">
-                <CheckCircle2 className="h-7 w-7 mx-auto text-emerald-500" />
-                <p className="text-[9.5px] font-bold text-emerald-500 uppercase tracking-wider">Topology Secure</p>
-                <p className="text-[8.5px] text-muted-foreground leading-relaxed px-1">
-                  All Level 1-2 paths traversing to Level 4 are mediated via high-availability security gates.
-                </p>
-              </div>
-            )}
+                  <div className="pt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDeleteSelected}
+                      className="w-full text-xs hover:bg-red-500/5 hover:border-red-500/30 text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Delete Asset
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground/60 space-y-2">
+                  <Shield className="h-8 w-8 mx-auto text-muted-foreground/30" />
+                  <p className="text-[10.5px] font-medium">No asset selected</p>
+                  <p className="text-[9px] text-muted-foreground/80 max-w-[160px] mx-auto leading-relaxed">
+                    Select a device node inside the drawing grid to inspect details and properties.
+                  </p>
+                </div>
+              )}
+
+              {/* Path Threat Detection Section */}
+              {threatPaths.length > 0 && (
+                <div className="pt-4 border-t border-dashed border-border/60 space-y-3">
+                  <h6 className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5 animate-bounce" />
+                    Purdue Isolation Threat
+                  </h6>
+                  <div className="space-y-2">
+                    {threatPaths.map((path, idx) => (
+                      <div 
+                        key={idx}
+                        className="p-2.5 border border-red-500/20 bg-red-500/5 rounded text-[9.5px] text-red-600 dark:text-red-400 font-medium leading-relaxed"
+                      >
+                        <p className="font-bold mb-1">Unmediated Level 1 to 4 Path:</p>
+                        <div className="flex flex-wrap items-center gap-1 text-[8.5px] font-mono mt-1">
+                          {path.map((nodeId, nodeIdx) => {
+                            const node = nodes.find(n => n.id === nodeId)
+                            const label = node ? (node.data as any).label : nodeId
+                            return (
+                              <React.Fragment key={nodeId}>
+                                {nodeIdx > 0 && <span className="text-red-500/60 font-mono">{"->"}</span>}
+                                <span className="bg-red-500/10 border border-red-500/25 px-1 py-0.5 rounded truncate max-w-[70px]">{label}</span>
+                              </React.Fragment>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Zero-violation success feedback */}
+              {threatPaths.length === 0 && (
+                <div className="pt-4 border-t border-dashed border-border/60 text-center py-2 space-y-1">
+                  <CheckCircle2 className="h-7 w-7 mx-auto text-emerald-500" />
+                  <p className="text-[9.5px] font-bold text-emerald-500 uppercase tracking-wider">Topology Secure</p>
+                  <p className="text-[8.5px] text-muted-foreground leading-relaxed px-1">
+                    All Level 1-2 paths traversing to Level 4 are mediated via high-availability security gates.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </NetworkCanvasContext.Provider>
   )
 }
 

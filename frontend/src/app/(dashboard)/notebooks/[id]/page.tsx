@@ -141,7 +141,7 @@ export default function NotebookPage() {
           />
         </div>
 
-        <div className="flex-1 p-6 pt-6 overflow-x-auto flex flex-col">
+        <div className="flex-1 p-6 pt-2 overflow-hidden flex flex-col min-h-0">
           {/* If B2B Drafting Workspace is active, override both mobile & desktop column views with the unified drafting workspace */}
           {isB2BMode ? (
             <B2BDraftingWorkspace

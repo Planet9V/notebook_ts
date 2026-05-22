@@ -46,7 +46,7 @@ export default function TestCanvasPage() {
               ))}
             </div>
           ) : (
-            <span className="text-[9.5px] italic text-muted-foreground">None (Build a secure path L1 ➔ L3 ➔ L4 to verify IEC 62443)</span>
+            <span className="text-[9.5px] italic text-muted-foreground">None (Build a secure path L1 {"->"} L3 {"->"} L4 to verify IEC 62443)</span>
           )}
         </div>
       </div>
