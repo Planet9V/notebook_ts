@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { NotebookResponse } from '@/lib/types/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Archive, ArchiveRestore, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Trash2, Briefcase, BookOpen } from 'lucide-react'
 import { useUpdateNotebook } from '@/lib/hooks/use-notebooks'
 import { NotebookDeleteDialog } from './NotebookDeleteDialog'
 import { formatDistanceToNow } from 'date-fns'
@@ -14,9 +14,11 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 
 interface NotebookHeaderProps {
   notebook: NotebookResponse
+  isB2BMode?: boolean
+  onToggleB2BMode?: () => void
 }
 
-export function NotebookHeader({ notebook }: NotebookHeaderProps) {
+export function NotebookHeader({ notebook, isB2BMode, onToggleB2BMode }: NotebookHeaderProps) {
   const { t, language } = useTranslation()
   const dfLocale = getDateLocale(language)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -68,6 +70,26 @@ export function NotebookHeader({ notebook }: NotebookHeaderProps) {
               )}
             </div>
             <div className="flex gap-2">
+              {onToggleB2BMode && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={onToggleB2BMode}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white border-0 shadow-sm transition-all duration-200"
+                >
+                  {isB2BMode ? (
+                    <>
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Research Notebook
+                    </>
+                  ) : (
+                    <>
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      B2B Proposal Workspace
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
