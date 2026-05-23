@@ -1,0 +1,100 @@
+{
+  "id": "NERC_CIP_009",
+  "name": "NERC CIP-009-6",
+  "fullName": "Recovery Plans for BES Cyber Systems",
+  "description": "Requires disaster recovery plans, backup strategies, and annual simulation tests for substation systems.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R1_1",
+      "standardCode": "CIP009-CIP-009-R1.1",
+      "name": "NERC CIP-009-6 - Disaster Recovery Plan Document Vetting",
+      "text": "Is a Bulk Electric System cyber disaster recovery plan documented and active (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery",
+      "purdueLevel": 4,
+      "description": "Review disaster recovery plans, check offsite storage registers, and inspect procedures.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R1_2",
+      "standardCode": "CIP009-CIP-009-R1.2",
+      "name": "NERC CIP-009-6 - Substation Active Failover Guides",
+      "text": "Are step-by-step substation manual control procedures documented for emergency use (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery",
+      "purdueLevel": 3,
+      "description": "Validate documented emergency guides, local switch layouts, and operator desk instructions.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R2_1",
+      "standardCode": "CIP009-CIP-009-R2.1",
+      "name": "NERC CIP-009-6 - Backup Recovery Logic Integrity",
+      "text": "Are backup files containing PLC and HMI software versions verified for integrity?",
+      "category": "Backup Verification",
+      "purdueLevel": 3,
+      "description": "Verify backup checksum logs, inspect SHA-256 databases, and review backup directories.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the backup verification configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R2_2",
+      "standardCode": "CIP009-CIP-009-R2.2",
+      "name": "NERC CIP-009-6 - Weekly Logic Backup Frequency",
+      "text": "Are backups of critical SCADA software and configurations executed weekly?",
+      "category": "Backup Verification",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify automated update schedules, and check backup success registries.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the backup verification configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R3_1",
+      "standardCode": "CIP009-CIP-009-R3.1",
+      "name": "NERC CIP-009-6 - Disaster Recovery Simulation Testing",
+      "text": "Are active disaster recovery failover tests executed at least once every 15 calendar months (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Recovery Testing",
+      "purdueLevel": 4,
+      "description": "Review simulation logs, check failover test schedules, and verify participant registers.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the recovery testing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R3_2",
+      "standardCode": "CIP009-CIP-009-R3.2",
+      "name": "NERC CIP-009-6 - Simulation Execution Feedback Logs",
+      "text": "Are post-test disaster recovery remediation logs created and tracked (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Recovery Testing",
+      "purdueLevel": 4,
+      "description": "Verify action item registers, check implementation timelines, and verify manager signatures.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the recovery testing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R4_1",
+      "standardCode": "CIP009-CIP-009-R4.1",
+      "name": "NERC CIP-009-6 - Backup Recovery Key Enclave Storage",
+      "text": "Are critical backups stored in an isolated offline or write-once secure environment?",
+      "category": "Backup Isolation",
+      "purdueLevel": 3,
+      "description": "Verify replica storage isolation, check network separation rules, and review backup encryption logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the backup isolation configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R4_2",
+      "standardCode": "CIP009-CIP-009-R4.2",
+      "name": "NERC CIP-009-6 - Substation Recovery Media Sanitization",
+      "text": "Is media containing backup configurations securely sanitized before disposal?",
+      "category": "Backup Isolation",
+      "purdueLevel": 2,
+      "description": "Review media sanitization and degaussing procedures, inspect disposal logs, and check certificates.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the backup isolation configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R5_1",
+      "standardCode": "CIP009-CIP-009-R5.1",
+      "name": "NERC CIP-009-6 - Critical HMI Image Recovery",
+      "text": "Are raw disk images of operational HMI nodes updated and archived monthly (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Substation Recovery",
+      "purdueLevel": 3,
+      "description": "Verify HMI image archive directories, backup schedules, and image integrity verification logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the substation recovery configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_009_CIP009_CIP_009_R5_2",
+      "standardCode": "CIP009-CIP-009-R5.2",
+      "name": "NERC CIP-009-6 - Vendor Disaster Recovery Alignments",
+      "text": "Are vendor software recovery templates integrated into the backup framework?",
+      "category": "Vendor Alignment",
+      "purdueLevel": 4,
+      "description": "Check vendor agreement folders, review recovery procedures, and check license registers.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the vendor alignment configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

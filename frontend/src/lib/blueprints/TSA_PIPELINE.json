@@ -1,0 +1,901 @@
+{
+  "id": "TSA_PIPELINE",
+  "name": "TSA Pipeline Directive 2C",
+  "fullName": "TSA Pipeline Cybersecurity Directives",
+  "description": "Mandatory directives focusing on security segmentation, access controls, and boundary mitigation for pipeline operators.",
+  "category": "Transportation",
+  "sector": "Transport",
+  "questions": [
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C3",
+      "standardCode": "TSA-IR-3F.C3",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C3",
+      "text": "Segregating (removing from the network) the infected device(s)?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Segregating (removing from the network) the infected device(s)?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C4",
+      "standardCode": "TSA-IR-3F.C4",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C4",
+      "text": "Segregating any other devices that shared a network with the infected device(s)?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Segregating any other devices that shared a network with the infected device(s)?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C5",
+      "standardCode": "TSA-IR-3F.C5",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C5",
+      "text": "Preserving volatile memory by collecting a forensic memory image of affected device(s) before powering off or moving?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Preserving volatile memory by collecting a forensic memory image of affected device(s) before powering off or moving?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C6",
+      "standardCode": "TSA-IR-3F.C6",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C6",
+      "text": "Isolating and securing all infected and potentially infected devices, making sure to clearly label any equipment that has been affected by malicious code?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Isolating and securing all infected and potentially infected devices, making sure to clearly label any equipment that has been affected by malicious code?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C7",
+      "standardCode": "TSA-IR-3F.C7",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C7",
+      "text": "Does the CIRP provide specific measures sufficient to ensure security and integrity of backed-up data, including measures to secure backups?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP provide specific measures sufficient to ensure security and integrity of backed-up data, including measures to secure backups?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C8",
+      "standardCode": "TSA-IR-3F.C8",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C8",
+      "text": "Does the CIRP provide specific measures sufficient to store backup data separate from the system?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP provide specific measures sufficient to store backup data separate from the system?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C9",
+      "standardCode": "TSA-IR-3F.C9",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C9",
+      "text": "Does the CIRP provide procedures to ensure that the backup data is free of known malicious code when the backup is made and when tested for restoral?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP provide procedures to ensure that the backup data is free of known malicious code when the backup is made and when tested for restoral?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C10",
+      "standardCode": "TSA-IR-3F.C10",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C10",
+      "text": "Does the CIRP establish capability and governance for isolating the Information and Operational Technology systems in the event of a cybersecurity incident that results or could result in operational disruption?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP establish capability and governance for isolating the Information and Operational Technology systems in the event of a cybersecurity incident that results or could result in operational disruption?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C11",
+      "standardCode": "TSA-IR-3F.C11",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C11",
+      "text": "Does the CIRP establish exercises to test the effectiveness of procedures, no less than annually?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP establish exercises to test the effectiveness of procedures, no less than annually?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C12",
+      "standardCode": "TSA-IR-3F.C12",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C12",
+      "text": "Does the CIRP establish exercises to test the effectiveness of personnel responsible for implementing measures in this Cybersecurity Incident Response Plan?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP establish exercises to test the effectiveness of personnel responsible for implementing measures in this Cybersecurity Incident Response Plan?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C13",
+      "standardCode": "TSA-IR-3F.C13",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C13",
+      "text": "Does the CIRP establish exercises that test at least two objectives from sections IR-02D.C2 through IR-02D.C10 (listed above) no less than annually?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP establish exercises that test at least two objectives from sections IR-02D.C2 through IR-02D.C10 (listed above) no less than annually?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C14",
+      "standardCode": "TSA-IR-3F.C14",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C14",
+      "text": "Does the CIRP establish/identify who (by position) is responsible for implementing the specific measures in the Incident Response Plan and any necessary resources needed to implement the measures?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIRP establish/identify who (by position) is responsible for implementing the specific measures in the Incident Response Plan and any necessary resources needed to implement the measures?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3F_C15",
+      "standardCode": "TSA-IR-3F.C15",
+      "name": "TSA Pipeline Directive 2C - IR-3F.C15",
+      "text": "Do the exercises required in IR-02D.C13 include the employees identified (by position) in IR-02D.C14 as active participants in the exercises?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Do the exercises required in IR-02D.C13 include the employees identified (by position) in IR-02D.C14 as active participants in the exercises?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IR_3D_C1",
+      "standardCode": "TSA-IR-3D.C1",
+      "name": "TSA Pipeline Directive 2C - IR-3D.C1",
+      "text": "Describe the Security, Orchestration, Automation and Response (SOAR) capabilities in place.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Describe the Security, Orchestration, Automation and Response (SOAR) capabilities in place.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3D_Q3",
+      "standardCode": "TSA-LP-3D.Q3",
+      "name": "TSA Pipeline Directive 2C - LP-3D.Q3",
+      "text": "Observe a sampling of logs collected and confirm they adhere to the retention policy defined by the O/O’s CIP.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Observe a sampling of logs collected and confirm they adhere to the retention policy defined by the O/O’s CIP.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q1",
+      "standardCode": "TSA-CAP-3G.Q1",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q1",
+      "text": "Has the O/O developed a Cybersecurity Assessment Plan for proactively assessing and auditing cybersecurity measures?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Has the O/O developed a Cybersecurity Assessment Plan for proactively assessing and auditing cybersecurity measures?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q2",
+      "standardCode": "TSA-CAP-3G.Q2",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q2",
+      "text": "Does the CAP proactively assess the O/O’s Critical Cyber Systems to ascertain the effectiveness of cybersecurity measures?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP proactively assess the O/O’s Critical Cyber Systems to ascertain the effectiveness of cybersecurity measures?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q3",
+      "standardCode": "TSA-CAP-3G.Q3",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q3",
+      "text": "Does the CAP proactively assess the O/O’s Critical Cyber Systems to identify and resolve device, network, and/or system vulnerabilities?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP proactively assess the O/O’s Critical Cyber Systems to identify and resolve device, network, and/or system vulnerabilities?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q4",
+      "standardCode": "TSA-CAP-3G.Q4",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q4",
+      "text": "Does the CAP assess the effectiveness of the Owner/Operator's TSA-approved Cybersecurity Implementation Plan (CIP)?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP assess the effectiveness of the Owner/Operator's TSA-approved Cybersecurity Implementation Plan (CIP)?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q5",
+      "standardCode": "TSA-CAP-3G.Q5",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q5",
+      "text": "Does the CAP include a cybersecurity architecture design review at least once every two years that includes verification and validation of network traffic and system log review?:",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP include a cybersecurity architecture design review at least once every two years that includes verification and validation of network traffic and system log review?:.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q6",
+      "standardCode": "TSA-CAP-3G.Q6",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q6",
+      "text": "Does the CAP include a cybersecurity architecture design review at least once every two years that includes analysis to identify cybersecurity vulnerabilities related to network design, configuration, and inter-connectivity to internal and external systems?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP include a cybersecurity architecture design review at least once every two years that includes analysis to identify cybersecurity vulnerabilities related to network design, configuration, and inter-connectivity to internal and external systems?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q7",
+      "standardCode": "TSA-CAP-3G.Q7",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q7",
+      "text": "Does the CAP incorporate other assessment capabilities, such as penetration testing of Information Technology systems?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP incorporate other assessment capabilities, such as penetration testing of Information Technology systems?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q8",
+      "standardCode": "TSA-CAP-3G.Q8",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q8",
+      "text": "Does the CAP incorporate other assessment capabilities, such as the use of \"red\" and \"purple\" team (adversarial perspective) testing?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP incorporate other assessment capabilities, such as the use of \"red\" and \"purple\" team (adversarial perspective) testing?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q9",
+      "standardCode": "TSA-CAP-3G.Q9",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q9",
+      "text": "Does the CAP include a schedule for assessing and auditing specific cybersecurity measures and/or actions required by sections 8.2 through 8.4 above?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP include a schedule for assessing and auditing specific cybersecurity measures and/or actions required by sections 8.2 through 8.4 above?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q10",
+      "standardCode": "TSA-CAP-3G.Q10",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q10",
+      "text": "Does the schedule ensure at least 30 percent of the policies, procedures, measures, and capabilities in the TSA-approved Cybersecurity Implementation Plan are assessed each year, with 100 percent assessed over any three-year period?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the schedule ensure at least 30 percent of the policies, procedures, measures, and capabilities in the TSA-approved Cybersecurity Implementation Plan are assessed each year, with 100 percent assessed over any three-year period?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q11",
+      "standardCode": "TSA-CAP-3G.Q11",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q11",
+      "text": "Does the CAP ensure a “Cybersecurity Assessment Plan: Annual Report” containing the results of assessments conducted in accordance with the CAP is submitted to TSA as described in paragraph G.4. of this section?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CAP ensure a “Cybersecurity Assessment Plan: Annual Report” containing the results of assessments conducted in accordance with the CAP is submitted to TSA as described in paragraph G.4. of this section?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q12",
+      "standardCode": "TSA-CAP-3G.Q12",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q12",
+      "text": "Does the required CAP Annual Report include the assessment method(s) used to determine whether the policies, procedures, and capabilities described by the O/O in its Cybersecurity Implementation Plan are effective?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the required CAP Annual Report include the assessment method(s) used to determine whether the policies, procedures, and capabilities described by the O/O in its Cybersecurity Implementation Plan are effective?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q13",
+      "standardCode": "TSA-CAP-3G.Q13",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q13",
+      "text": "Does the required CAP Annual Report include the results of the individual assessments conducted?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the required CAP Annual Report include the results of the individual assessments conducted?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q14",
+      "standardCode": "TSA-CAP-3G.Q14",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q14",
+      "text": "Does the required CAP Annual Report include assessments conducted only during the previous 12 month period?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the required CAP Annual Report include assessments conducted only during the previous 12 month period?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q15",
+      "standardCode": "TSA-CAP-3G.Q15",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q15",
+      "text": "Does the Owner/Operator review and update their Cybersecurity Assessment Plan on an annual basis?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the Owner/Operator review and update their Cybersecurity Assessment Plan on an annual basis?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CAP_3G_Q16",
+      "standardCode": "TSA-CAP-3G.Q16",
+      "name": "TSA Pipeline Directive 2C - CAP-3G.Q16",
+      "text": "Has the O/O submitted the CAP to TSA for approval no later than 12 months from the date of the previous Cybersecurity Assessment Plan submission or TSA's approval of the previous plan?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Has the O/O submitted the CAP to TSA for approval no later than 12 months from the date of the previous Cybersecurity Assessment Plan submission or TSA's approval of the previous plan?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IC_3A_Q1",
+      "standardCode": "TSA-IC-3A.Q1",
+      "name": "TSA Pipeline Directive 2C - IC-3A.Q1",
+      "text": "Does the CIP adequately identify all cyber critical systems within the O/O’s environment?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the CIP adequately identify all cyber critical systems within the O/O’s environment?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_IC_3A_Q2",
+      "standardCode": "TSA-IC-3A.Q2",
+      "name": "TSA Pipeline Directive 2C - IC-3A.Q2",
+      "text": "Has the O/O provided a detailed list of all systems/devices, software and data that are subject to the requirements of the CIP?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Has the O/O provided a detailed list of all systems/devices, software and data that are subject to the requirements of the CIP?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_Q1",
+      "standardCode": "TSA-NS-3B1.Q1",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.Q1",
+      "text": "Does the O/O implement network segmentation policies and controls designed to prevent operational disruption to the Operational Technology system if the Information Technology system is compromised or vice versa?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the O/O implement network segmentation policies and controls designed to prevent operational disruption to the Operational Technology system if the Information Technology system is compromised or vice versa?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_R2",
+      "standardCode": "TSA-NS-3B1.R2",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.R2",
+      "text": "Necessary capacity means Owner/Operator’s determination of a capacity to support its business-critical functions required for pipeline operations and market expectations.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Necessary capacity means Owner/Operator’s determination of a capacity to support its business-critical functions required for pipeline operations and market expectations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_Q2",
+      "standardCode": "TSA-NS-3B1.Q2",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.Q2",
+      "text": "Do connections and data exchanged between the IT and OT systems establish an interdependency?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Do connections and data exchanged between the IT and OT systems establish an interdependency?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_C2",
+      "standardCode": "TSA-NS-3B1.C2",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.C2",
+      "text": "If YES, the inspection team will need to determine through interviews if the connections are severed what is the impact on the operation of the pipeline if any.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "If YES, the inspection team will need to determine through interviews if the connections are severed what is the impact on the operation of the pipeline if any.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_C3",
+      "standardCode": "TSA-NS-3B1.C3",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.C3",
+      "text": "If interdependencies are critical, are there redundant systems in place to ensure continued operations?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "If interdependencies are critical, are there redundant systems in place to ensure continued operations?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_C4",
+      "standardCode": "TSA-NS-3B1.C4",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.C4",
+      "text": "What, if any, contingency plans are in place to ensure the O/O can maintain operations?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What, if any, contingency plans are in place to ensure the O/O can maintain operations?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6810",
+      "standardCode": "TSA-Q-6810",
+      "name": "TSA Pipeline Directive 2C - Q-6810",
+      "text": "Do network diagrams/data flow diagrams clearly reflect what is asserted in the CIP or can the O/O adequately explain and describe any IT/OT connections and whether or not severing these connections would disrupt operations?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Do network diagrams/data flow diagrams clearly reflect what is asserted in the CIP or can the O/O adequately explain and describe any IT/OT connections and whether or not severing these connections would disrupt operations?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_NS_3B1_C5",
+      "standardCode": "TSA-NS-3B1.C5",
+      "name": "TSA Pipeline Directive 2C - NS-3B1.C5",
+      "text": "If NO, then a PCAP should be done to evaluate actual traffic.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "If NO, then a PCAP should be done to evaluate actual traffic.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EC_3B1_Q1",
+      "standardCode": "TSA-EC-3B1.Q1",
+      "name": "TSA Pipeline Directive 2C - EC-3B1.Q1",
+      "text": "Validate external connections with a detailed network diagram showing the connections/lack of connections.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate external connections with a detailed network diagram showing the connections/lack of connections.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EC_3B1_Q2",
+      "standardCode": "TSA-EC-3B1.Q2",
+      "name": "TSA Pipeline Directive 2C - EC-3B1.Q2",
+      "text": "Do external connections exist?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Do external connections exist?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EC_3B1_C2",
+      "standardCode": "TSA-EC-3B1.C2",
+      "name": "TSA Pipeline Directive 2C - EC-3B1.C2",
+      "text": "If the external connection is critical to continued operation is there built in redundancy?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "If the external connection is critical to continued operation is there built in redundancy?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EC_3B1_C3",
+      "standardCode": "TSA-EC-3B1.C3",
+      "name": "TSA Pipeline Directive 2C - EC-3B1.C3",
+      "text": "Validate the operational impact due to a loss of any external connections.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate the operational impact due to a loss of any external connections.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EC_3B1_C4",
+      "standardCode": "TSA-EC-3B1.C4",
+      "name": "TSA Pipeline Directive 2C - EC-3B1.C4",
+      "text": "What is the O/O’s contingency plan is to maintain operations.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What is the O/O’s contingency plan is to maintain operations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZV_3B1_R1",
+      "standardCode": "TSA-ZV-3B1.R1",
+      "name": "TSA Pipeline Directive 2C - ZV-3B1.R1",
+      "text": "Zone boundaries should be validated with a detailed network diagram and an architectural design document that describes the criticality, consequences and necessity. (This may also be defined and controlled with firewalls which could also manage network traffic as described in the next section).",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Zone boundaries should be validated with a detailed network diagram and an architectural design document that describes the criticality, consequences and necessity. (This may also be defined and controlled with firewalls which could also manage network traffic as described in the next section).\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZV_3B1_Q1",
+      "standardCode": "TSA-ZV-3B1.Q1",
+      "name": "TSA Pipeline Directive 2C - ZV-3B1.Q1",
+      "text": "Is a detailed network diagram available?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Is a detailed network diagram available?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZV_3B1_C1",
+      "standardCode": "TSA-ZV-3B1.C1",
+      "name": "TSA Pipeline Directive 2C - ZV-3B1.C1",
+      "text": "Does the detailed network diagram describe the criticality, consequences and necessity?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the detailed network diagram describe the criticality, consequences and necessity?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZV_3B1_Q2",
+      "standardCode": "TSA-ZV-3B1.Q2",
+      "name": "TSA Pipeline Directive 2C - ZV-3B1.Q2",
+      "text": "Is an architectural design document available?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Is an architectural design document available?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZV_3B1_C2",
+      "standardCode": "TSA-ZV-3B1.C2",
+      "name": "TSA Pipeline Directive 2C - ZV-3B1.C2",
+      "text": "Does the architectural design document describe the criticality, consequences and necessity?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the architectural design document describe the criticality, consequences and necessity?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZV_3B1_Q3",
+      "standardCode": "TSA-ZV-3B1.Q3",
+      "name": "TSA Pipeline Directive 2C - ZV-3B1.Q3",
+      "text": "Are the zones created using VLANs?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Are the zones created using VLANs?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6824",
+      "standardCode": "TSA-Q-6824",
+      "name": "TSA Pipeline Directive 2C - Q-6824",
+      "text": "Validate with switch/router configuration files they have that defines each VLAN/Zone and what resides in each zone.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate with switch/router configuration files they have that defines each VLAN/Zone and what resides in each zone.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6825",
+      "standardCode": "TSA-Q-6825",
+      "name": "TSA Pipeline Directive 2C - Q-6825",
+      "text": "Validate any associated documentation that defines each VLAN/Zone",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate any associated documentation that defines each VLAN/Zone.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6826",
+      "standardCode": "TSA-Q-6826",
+      "name": "TSA Pipeline Directive 2C - Q-6826",
+      "text": "Validate what resides in each zone.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate what resides in each zone.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_ZD_3B2_Q2",
+      "standardCode": "TSA-ZD-3B2.Q2",
+      "name": "TSA Pipeline Directive 2C - ZD-3B2.Q2",
+      "text": "Are tools employed to inspect traffic such as:",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Are tools employed to inspect traffic such as:.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6829",
+      "standardCode": "TSA-Q-6829",
+      "name": "TSA Pipeline Directive 2C - Q-6829",
+      "text": "List other network traffic tools:",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "List other network traffic tools:.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EN_3B2_Q1",
+      "standardCode": "TSA-EN-3B2.Q1",
+      "name": "TSA Pipeline Directive 2C - EN-3B2.Q1",
+      "text": "Indicate which traffic requires encryption using network diagrams/data flow diagrams.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Indicate which traffic requires encryption using network diagrams/data flow diagrams.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EN_3B2_C1",
+      "standardCode": "TSA-EN-3B2.C1",
+      "name": "TSA Pipeline Directive 2C - EN-3B2.C1",
+      "text": "The O/O must provide the inspector with what method of encryption is being used, e.g., symmetrical or asymmetrical, and what encryption algorithm they are using.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "The O/O must provide the inspector with what method of encryption is being used, e.g., symmetrical or asymmetrical, and what encryption algorithm they are using.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EN_3B2_C2",
+      "standardCode": "TSA-EN-3B2.C2",
+      "name": "TSA Pipeline Directive 2C - EN-3B2.C2",
+      "text": "The O/O must provide the inspector with what encryption algorithm they are using.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "The O/O must provide the inspector with what encryption algorithm they are using.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_EN_3B2_C3",
+      "standardCode": "TSA-EN-3B2.C3",
+      "name": "TSA Pipeline Directive 2C - EN-3B2.C3",
+      "text": "Inspector must observe an attempt to send unencrypted traffic between OT/IT.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Inspector must observe an attempt to send unencrypted traffic between OT/IT.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6834",
+      "standardCode": "TSA-Q-6834",
+      "name": "TSA Pipeline Directive 2C - Q-6834",
+      "text": "Upon observation, are OT services traffic traversing the IT network encrypted appropriately?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Upon observation, are OT services traffic traversing the IT network encrypted appropriately?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_AC_3C_Q1",
+      "standardCode": "TSA-AC-3C.Q1",
+      "name": "TSA Pipeline Directive 2C - AC-3C.Q1",
+      "text": "Does the O/O implement access control measures, including for local and remote access, to secure and prevent unauthorized access to Critical Cyber Systems?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the O/O implement access control measures, including for local and remote access, to secure and prevent unauthorized access to Critical Cyber Systems?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_AC_3C_Q2",
+      "standardCode": "TSA-AC-3C.Q2",
+      "name": "TSA Pipeline Directive 2C - AC-3C.Q2",
+      "text": "Does the O/O have policies and procedures to prevent the unauthorized access to Critical Cyber Systems?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the O/O have policies and procedures to prevent the unauthorized access to Critical Cyber Systems?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_AC_3C_C1a",
+      "standardCode": "TSA-AC-3C.C1a",
+      "name": "TSA Pipeline Directive 2C - AC-3C.C1a",
+      "text": "Verify the O/O complies with their defined schedule for memorized secret authenticators.  This can be accomplished by reviewing Identity Provider (IDP) logs or requesting a password age report. If change is only required due to a known/suspected compromise, determine if this has occurred and if so, review last password change date.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Verify the O/O complies with their defined schedule for memorized secret authenticators.  This can be accomplished by reviewing Identity Provider (IDP) logs or requesting a password age report. If change is only required due to a known/suspected compromise, determine if this has occurred and if so, review last password change date.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_MF_3C_Q1",
+      "standardCode": "TSA-MF-3C.Q1",
+      "name": "TSA Pipeline Directive 2C - MF-3C.Q1",
+      "text": "Does the O/O utilize MFA solutions such as smartcards, RSA tokens, or other known MFA solutions?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the O/O utilize MFA solutions such as smartcards, RSA tokens, or other known MFA solutions?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_MF_3C_R1",
+      "standardCode": "TSA-MF-3C.R1",
+      "name": "TSA Pipeline Directive 2C - MF-3C.R1",
+      "text": "Review the O/O’s implementation of Multi-Factor Authentication (MFA) e.g., smartcards, RSA tokens, or other known MFA solutions.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Review the O/O’s implementation of Multi-Factor Authentication (MFA) e.g., smartcards, RSA tokens, or other known MFA solutions.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_MF_3C_R2",
+      "standardCode": "TSA-MF-3C.R2",
+      "name": "TSA Pipeline Directive 2C - MF-3C.R2",
+      "text": "Observe or walk-through the process for issuing authenticators. Check the processes that have been completed.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Observe or walk-through the process for issuing authenticators. Check the processes that have been completed.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_R1",
+      "standardCode": "TSA-LP-3C.R1",
+      "name": "TSA Pipeline Directive 2C - LP-3C.R1",
+      "text": "Validate with the O/O the least privileged concept as it applies to account management and access controls. Check the processes that have been completed.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate with the O/O the least privileged concept as it applies to account management and access controls. Check the processes that have been completed.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_R2",
+      "standardCode": "TSA-LP-3C.R2",
+      "name": "TSA Pipeline Directive 2C - LP-3C.R2",
+      "text": "Verify the compensating controls asserted in the CIP to mitigate the risk when least privilege cannot be applied.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Verify the compensating controls asserted in the CIP to mitigate the risk when least privilege cannot be applied.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_R3",
+      "standardCode": "TSA-LP-3C.R3",
+      "name": "TSA Pipeline Directive 2C - LP-3C.R3",
+      "text": "Verify accounts with administrative or privileged access are separate from standard user type accounts.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Verify accounts with administrative or privileged access are separate from standard user type accounts.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_Q1",
+      "standardCode": "TSA-LP-3C.Q1",
+      "name": "TSA Pipeline Directive 2C - LP-3C.Q1",
+      "text": "Are highly privileged accounts like Microsoft Active Directory domain admins restricted from interactive logons to only the domain controllers?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Are highly privileged accounts like Microsoft Active Directory domain admins restricted from interactive logons to only the domain controllers?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_Q2",
+      "standardCode": "TSA-LP-3C.Q2",
+      "name": "TSA Pipeline Directive 2C - LP-3C.Q2",
+      "text": "Are other OS highly privileged accounts restricted in the same fashion?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Are other OS highly privileged accounts restricted in the same fashion?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_Q3",
+      "standardCode": "TSA-LP-3C.Q3",
+      "name": "TSA Pipeline Directive 2C - LP-3C.Q3",
+      "text": "Does the O/O have monitoring in place for highly privileged accounts?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Does the O/O have monitoring in place for highly privileged accounts?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_Q4",
+      "standardCode": "TSA-LP-3C.Q4",
+      "name": "TSA Pipeline Directive 2C - LP-3C.Q4",
+      "text": "Are log files protected from unauthorized manipulation/deletion?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Are log files protected from unauthorized manipulation/deletion?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3C_Q5",
+      "standardCode": "TSA-LP-3C.Q5",
+      "name": "TSA Pipeline Directive 2C - LP-3C.Q5",
+      "text": "How are privileged functions on OT devices controlled?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "How are privileged functions on OT devices controlled?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_SA_3C_R1",
+      "standardCode": "TSA-SA-3C.R1",
+      "name": "TSA Pipeline Directive 2C - SA-3C.R1",
+      "text": "Review the process the O/O uses to determine the need for shared accounts that are critical to operations and verify this is following the measures outlined in their CIP. Check the following processes that have been reviewed and verified.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Review the process the O/O uses to determine the need for shared accounts that are critical to operations and verify this is following the measures outlined in their CIP. Check the following processes that have been reviewed and verified.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_SA_3C_R2",
+      "standardCode": "TSA-SA-3C.R2",
+      "name": "TSA Pipeline Directive 2C - SA-3C.R2",
+      "text": "Validate trust relationships asserted in the CIP. If separate domains are implemented verify domain trusts by observation and using IDP admin tools.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validate trust relationships asserted in the CIP. If separate domains are implemented verify domain trusts by observation and using IDP admin tools.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_R1",
+      "standardCode": "TSA-CC-3D.R1",
+      "name": "TSA Pipeline Directive 2C - CC-3D.R1",
+      "text": "Implement continuous monitoring and detection policies and procedures that are designed to prevent, detect, and respond to cybersecurity threats and anomalies affecting Critical Cyber Systems.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Implement continuous monitoring and detection policies and procedures that are designed to prevent, detect, and respond to cybersecurity threats and anomalies affecting Critical Cyber Systems.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_Q1",
+      "standardCode": "TSA-CC-3D.Q1",
+      "name": "TSA Pipeline Directive 2C - CC-3D.Q1",
+      "text": "What tools are in place to prevent malicious email?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What tools are in place to prevent malicious email?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_Q_6855",
+      "standardCode": "TSA-Q-6855",
+      "name": "TSA Pipeline Directive 2C - Q-6855",
+      "text": "The O/O should describe in detail the capabilities of the tool used.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "The O/O should describe in detail the capabilities of the tool used.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_Q2",
+      "standardCode": "TSA-CC-3D.Q2",
+      "name": "TSA Pipeline Directive 2C - CC-3D.Q2",
+      "text": "What automated capabilities are in place when spam/malicious emails are detected?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What automated capabilities are in place when spam/malicious emails are detected?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_R2",
+      "standardCode": "TSA-CC-3D.R2",
+      "name": "TSA Pipeline Directive 2C - CC-3D.R2",
+      "text": "Validation may be done by reviewing filtering/blocking rules and logs.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Validation may be done by reviewing filtering/blocking rules and logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_Q3",
+      "standardCode": "TSA-CC-3D.Q3",
+      "name": "TSA Pipeline Directive 2C - CC-3D.Q3",
+      "text": "Is there a reporting tool/method for end users?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Is there a reporting tool/method for end users?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_Q4",
+      "standardCode": "TSA-CC-3D.Q4",
+      "name": "TSA Pipeline Directive 2C - CC-3D.Q4",
+      "text": "What tools are in place to prevent ingress/egress from known or suspected malicious IP addresses?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What tools are in place to prevent ingress/egress from known or suspected malicious IP addresses?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CC_3D_Q5",
+      "standardCode": "TSA-CC-3D.Q5",
+      "name": "TSA Pipeline Directive 2C - CC-3D.Q5",
+      "text": "What tools are in place to control the impact of known or suspected malicious web domains or applications?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What tools are in place to control the impact of known or suspected malicious web domains or applications?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CP_3D_R1",
+      "standardCode": "TSA-CP-3D.R1",
+      "name": "TSA Pipeline Directive 2C - CP-3D.R1",
+      "text": "Evaluate procedures to prevent, detect, and respond to cybersecurity threats and anomalies affecting Critical Cyber Systems.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Evaluate procedures to prevent, detect, and respond to cybersecurity threats and anomalies affecting Critical Cyber Systems.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CP_3D_Q1",
+      "standardCode": "TSA-CP-3D.Q1",
+      "name": "TSA Pipeline Directive 2C - CP-3D.Q1",
+      "text": "How does the O/O monitor the tools described above?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "How does the O/O monitor the tools described above?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CP_3D_Q2",
+      "standardCode": "TSA-CP-3D.Q2",
+      "name": "TSA Pipeline Directive 2C - CP-3D.Q2",
+      "text": "Is there a Security Operations Center (SOC) that is 24/7 operation or do the tools send alerts to operators/security personnel?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Is there a Security Operations Center (SOC) that is 24/7 operation or do the tools send alerts to operators/security personnel?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CP_3D_Q3",
+      "standardCode": "TSA-CP-3D.Q3",
+      "name": "TSA Pipeline Directive 2C - CP-3D.Q3",
+      "text": "What is the auditing frequency for unauthorized access to internet domains and addresses?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What is the auditing frequency for unauthorized access to internet domains and addresses?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CP_3D_Q4",
+      "standardCode": "TSA-CP-3D.Q4",
+      "name": "TSA Pipeline Directive 2C - CP-3D.Q4",
+      "text": "Is there real-time alerting?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Is there real-time alerting?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_CP_3D_Q6",
+      "standardCode": "TSA-CP-3D.Q6",
+      "name": "TSA Pipeline Directive 2C - CP-3D.Q6",
+      "text": "What Security, Orchestration, Automation and Response (SOAR) capabilities does the O/O have in place that standardize incident response?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "What Security, Orchestration, Automation and Response (SOAR) capabilities does the O/O have in place that standardize incident response?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3D_R1",
+      "standardCode": "TSA-LP-3D.R1",
+      "name": "TSA Pipeline Directive 2C - LP-3D.R1",
+      "text": "Evaluate Logging Policies:",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Evaluate Logging Policies:.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3D_Q1",
+      "standardCode": "TSA-LP-3D.Q1",
+      "name": "TSA Pipeline Directive 2C - LP-3D.Q1",
+      "text": "Do the O/O’s logging policies and tools provide for continuous logging and analysis for intrusions and anomalous behavior?",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Do the O/O’s logging policies and tools provide for continuous logging and analysis for intrusions and anomalous behavior?.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_LP_3D_R2",
+      "standardCode": "TSA-LP-3D.R2",
+      "name": "TSA Pipeline Directive 2C - LP-3D.R2",
+      "text": "Have the O/O walk-through the procedures to isolate the OT system from the IT system in the event that a cybersecurity event jeopardizes the safety and reliability of the OT system.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Have the O/O walk-through the procedures to isolate the OT system from the IT system in the event that a cybersecurity event jeopardizes the safety and reliability of the OT system.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_PA_3E_R2",
+      "standardCode": "TSA-PA-3E.R2",
+      "name": "TSA Pipeline Directive 2C - PA-3E.R2",
+      "text": "Determine what method or tools the O/O utilizes to ensure patches are current and up to date.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Determine what method or tools the O/O utilizes to ensure patches are current and up to date.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_PA_3E_R3",
+      "standardCode": "TSA-PA-3E.R3",
+      "name": "TSA Pipeline Directive 2C - PA-3E.R3",
+      "text": "Conduct a sampling of systems for verification of current patches to include OS, applications and firmware.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Conduct a sampling of systems for verification of current patches to include OS, applications and firmware.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_PA_3E_C1",
+      "standardCode": "TSA-PA-3E.C1",
+      "name": "TSA Pipeline Directive 2C - PA-3E.C1",
+      "text": "Walk through the process the O/O uses to prioritize application of patches to include the CISA Known Exploitable Vulnerabilities catalog.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Walk through the process the O/O uses to prioritize application of patches to include the CISA Known Exploitable Vulnerabilities catalog.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:TSA_PIPELINE_TSA_PA_3E_C2",
+      "standardCode": "TSA-PA-3E.C2",
+      "name": "TSA Pipeline Directive 2C - PA-3E.C2",
+      "text": "Verify the mitigation strategies in place for systems that cannot be patched or updated to include a timeline to apply those patches.",
+      "category": "General",
+      "purdueLevel": 3,
+      "description": "Verify the mitigation strategies in place for systems that cannot be patched or updated to include a timeline to apply those patches.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Verify compliance with TSA critical infrastructure directives and report incidents immediately.\n\nVERIFICATION CRITERIA:\nInspect the general configurations, check the verified logs, review the system settings, and check the following: Pipeline/Rail sector evidence must include: TSA Critical Cyber Asset inventory ledger, TSA security directive compliance reports, and operational telemetry link encryption configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

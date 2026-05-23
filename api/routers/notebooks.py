@@ -81,6 +81,7 @@ async def get_notebooks(
                 contacts=nb.get("contacts", []) or [],
                 crawl_failed=nb.get("crawl_failed", False),
                 suggested_contacts=nb.get("suggested_contacts", []) or [],
+                customer_id=nb.get("customer_id", None),
             )
             for nb in result
         ]
@@ -107,6 +108,7 @@ async def create_notebook(notebook: NotebookCreate):
             contacts=notebook.contacts or [],
             crawl_failed=notebook.crawl_failed or False,
             suggested_contacts=notebook.suggested_contacts or [],
+            customer_id=notebook.customer_id,
         )
         await new_notebook.save()
 
@@ -126,6 +128,7 @@ async def create_notebook(notebook: NotebookCreate):
             contacts=new_notebook.contacts or [],
             crawl_failed=new_notebook.crawl_failed or False,
             suggested_contacts=new_notebook.suggested_contacts or [],
+            customer_id=new_notebook.customer_id,
         )
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -198,6 +201,7 @@ async def get_notebook(notebook_id: str):
             contacts=nb.get("contacts", []) or [],
             crawl_failed=nb.get("crawl_failed", False),
             suggested_contacts=nb.get("suggested_contacts", []) or [],
+            customer_id=nb.get("customer_id", None),
         )
     except HTTPException:
         raise
@@ -248,6 +252,8 @@ async def update_notebook(
             notebook.crawl_failed = notebook_update.crawl_failed
         if notebook_update.suggested_contacts is not None:
             notebook.suggested_contacts = notebook_update.suggested_contacts
+        if notebook_update.customer_id is not None:
+            notebook.customer_id = notebook_update.customer_id
 
         await notebook.save()
 
@@ -283,6 +289,7 @@ async def update_notebook(
                 contacts=nb.get("contacts", []) or [],
                 crawl_failed=nb.get("crawl_failed", False),
                 suggested_contacts=nb.get("suggested_contacts", []) or [],
+                customer_id=nb.get("customer_id", None),
             )
 
         # Fallback if query fails
@@ -302,6 +309,7 @@ async def update_notebook(
             contacts=notebook.contacts or [],
             crawl_failed=notebook.crawl_failed or False,
             suggested_contacts=notebook.suggested_contacts or [],
+            customer_id=notebook.customer_id,
         )
     except HTTPException:
         raise
@@ -526,12 +534,15 @@ async def validate_graph(request: GraphValidationRequest):
                 "hs50-dema",
                 "hs50-glitch",
                 "hs50-timing",
+                "hs50-temper",
                 "dt200-rdma",
+                "dt200-enclave",
                 "dt200-tamper",
                 "dt200-quant",
                 "iso-spfm",
                 "iso-ecc",
-                "iso-lfm"
+                "iso-lfm",
+                "iso-fmda"
             ]
             
         return GraphValidationResponse(

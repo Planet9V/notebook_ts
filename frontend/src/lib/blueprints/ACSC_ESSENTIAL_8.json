@@ -1,0 +1,154 @@
+{
+  "id": "ACSC_ESSENTIAL_8",
+  "name": "ACSC Essential Eight",
+  "fullName": "Australian Cyber Security Centre Mitigation Strategies",
+  "description": "Prioritized mitigation strategies focused on preventing intrusions, limiting host impacts, and recovering data.",
+  "category": "General IT/OT",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_1_1",
+      "standardCode": "ACSC-ACSC-E8-1.1",
+      "name": "ACSC Essential Eight - Application Control Enforced",
+      "text": "Is application control enforced on all workstations to restrict execution of unapproved files?",
+      "category": "Application Control",
+      "purdueLevel": 3,
+      "description": "Validate AppLocker or equivalent GPO settings, review software installation approval logs, and verify that operators cannot execute unsigned scripts.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the application control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_1_2",
+      "standardCode": "ACSC-ACSC-E8-1.2",
+      "name": "ACSC Essential Eight - Application Control Rules Governance",
+      "text": "Are application control rules and execution whitelists reviewed and updated annually?",
+      "category": "Application Control",
+      "purdueLevel": 4,
+      "description": "Audit rule sets, verify that temporary exceptions are removed, and review developer code-signature validation lists.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the application control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_2_1",
+      "standardCode": "ACSC-ACSC-E8-2.1",
+      "name": "ACSC Essential Eight - Patch Security Vulnerabilities",
+      "text": "Are critical application security patches applied within 48 hours of release?",
+      "category": "Patch Applications",
+      "purdueLevel": 3,
+      "description": "Audit patch levels, review automated update logs, and check dynamic testing tools checking system configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the patch applications configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_2_2",
+      "standardCode": "ACSC-ACSC-E8-2.2",
+      "name": "ACSC Essential Eight - Operating System Vulnerability Patching",
+      "text": "Are security vulnerability patches applied to server operating systems within 48 hours?",
+      "category": "Patch Applications",
+      "purdueLevel": 3,
+      "description": "Verify OS patch lists, check automated update schedules on all production servers, and review update success logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the patch applications configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_3_1",
+      "standardCode": "ACSC-ACSC-E8-3.1",
+      "name": "ACSC Essential Eight - Microsoft Office Macro Blocking",
+      "text": "Are Microsoft Office macro settings configured to block macros from the Internet?",
+      "category": "Configure MS Office Macro Settings",
+      "purdueLevel": 3,
+      "description": "Verify AD macro configuration rules, block clear-text macros, and ensure only signed macros run.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the configure ms office macro settings configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_3_2",
+      "standardCode": "ACSC-ACSC-E8-3.2",
+      "name": "ACSC Essential Eight - Trusted Publishers Macro Execution",
+      "text": "Are Microsoft Office macros restricted to executing only from trusted publishers and locations?",
+      "category": "Configure MS Office Macro Settings",
+      "purdueLevel": 3,
+      "description": "Inspect trusted location GPOs, check digital signature validation keys, and review macro audit logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the configure ms office macro settings configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_4_1",
+      "standardCode": "ACSC-ACSC-E8-4.1",
+      "name": "ACSC Essential Eight - User Application Hardening",
+      "text": "Are web browsers configured to block Flash, Java, and unapproved extensions?",
+      "category": "User Application Hardening",
+      "purdueLevel": 3,
+      "description": "Inspect browser GPO policies, verify that unused web plugins are disabled, and check extension whitelists.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the user application hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_4_2",
+      "standardCode": "ACSC-ACSC-E8-4.2",
+      "name": "ACSC Essential Eight - Web Browser Ad-Block Enforcement",
+      "text": "Are web browsers configured to block advertising networks and dynamic tracking content?",
+      "category": "User Application Hardening",
+      "purdueLevel": 3,
+      "description": "Verify local ad-blocking software status, inspect browser extension GPOs, and review DNS blacklists.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the user application hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_5_1",
+      "standardCode": "ACSC-ACSC-E8-5.1",
+      "name": "ACSC Essential Eight - Restrict Administrative Privileges",
+      "text": "Are administrative privileges restricted to only those users who require them for their role?",
+      "category": "Restrict Administrative Privileges",
+      "purdueLevel": 4,
+      "description": "Review administrator lists, check role boundaries, and audit administrative event logging streams.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the restrict administrative privileges configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_5_2",
+      "standardCode": "ACSC-ACSC-E8-5.2",
+      "name": "ACSC Essential Eight - Dormant Admin Account Disabling",
+      "text": "Are administrator credentials changed regularly and dormant administrative accounts disabled?",
+      "category": "Restrict Administrative Privileges",
+      "purdueLevel": 4,
+      "description": "Verify GPO password guidelines, check active directory profiles, and audit administrator activity logs.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the restrict administrative privileges configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_6_1",
+      "standardCode": "ACSC-ACSC-E8-6.1",
+      "name": "ACSC Essential Eight - Operating System Patch Verification",
+      "text": "Are operating system patches validated and applied to workstations within 48 hours?",
+      "category": "Patch Operating Systems",
+      "purdueLevel": 3,
+      "description": "Audit workstation OS patch status, check automated patch deployment logs, and verify client success reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the patch operating systems configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_6_2",
+      "standardCode": "ACSC-ACSC-E8-6.2",
+      "name": "ACSC Essential Eight - Critical Server OS Patch Schedule",
+      "text": "Are server operating system security updates verified and applied within 48 hours?",
+      "category": "Patch Operating Systems",
+      "purdueLevel": 3,
+      "description": "Review server patch reports, check testing pipeline schedules, and verify that critical servers are updated immediately.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the patch operating systems configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_7_1",
+      "standardCode": "ACSC-ACSC-E8-7.1",
+      "name": "ACSC Essential Eight - Multi-Factor Authentication Enforced",
+      "text": "Is multi-factor authentication enforced for remote access and administrative access (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Multi-Factor Authentication",
+      "purdueLevel": 4,
+      "description": "Verify FIDO2 hardware token enforcement, check Jump Host configurations, and audit VPN session profiles.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the multi-factor authentication configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical ACSC ESSENTIAL 8 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_7_2",
+      "standardCode": "ACSC-ACSC-E8-7.2",
+      "name": "ACSC Essential Eight - MFA Cloud Service Integration",
+      "text": "Is multi-factor authentication enforced for all cloud services, SaaS platforms, and enterprise email (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Multi-Factor Authentication",
+      "purdueLevel": 4,
+      "description": "Inspect identity provider (IdP) integration settings, check MFA exemption logs, and verify token configurations.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the multi-factor authentication configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical ACSC ESSENTIAL 8 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_8_1",
+      "standardCode": "ACSC-ACSC-E8-8.1",
+      "name": "ACSC Essential Eight - Tested Regular Backups",
+      "text": "Are daily backups of critical data, applications, and configurations secured and tested?",
+      "category": "Regular Backups",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify secure isolated offsite replica storage, and check annual backup restoration test reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the regular backups configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:ACSC_ESSENTIAL_8_ACSC_ACSC_E8_8_2",
+      "standardCode": "ACSC-ACSC-E8-8.2",
+      "name": "ACSC Essential Eight - Backup Encryption at Rest",
+      "text": "Are daily backups encrypted at rest and stored in isolated write-once secure cabinets?",
+      "category": "Regular Backups",
+      "purdueLevel": 3,
+      "description": "Verify backup encryption keys, check replica storage access logs, and review physical locked cabinet audits.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the regular backups configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    }
+  ]
+}

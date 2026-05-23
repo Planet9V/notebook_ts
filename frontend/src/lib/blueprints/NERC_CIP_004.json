@@ -1,0 +1,100 @@
+{
+  "id": "NERC_CIP_004",
+  "name": "NERC CIP-004-6",
+  "fullName": "Personnel & Training",
+  "description": "Governs background checks, security awareness, and authorization requirements for personnel with system access.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R1_1",
+      "standardCode": "CIP004-CIP-004-R1.1",
+      "name": "NERC CIP-004-6 - Personnel Vetting Program",
+      "text": "Are background vetting checks carried out on all staff with critical access?",
+      "category": "Personnel Vetting",
+      "purdueLevel": 4,
+      "description": "Review background validation logs, screening checklists, and HR approval signatures.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the personnel vetting configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R1_2",
+      "standardCode": "CIP004-CIP-004-R1.2",
+      "name": "NERC CIP-004-6 - Background Investigation Checks",
+      "text": "Are background checks updated at least once every seven years for active personnel?",
+      "category": "Personnel Vetting",
+      "purdueLevel": 4,
+      "description": "Verify HR seven-year re-investigation schedules and employee vetting databases.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the personnel vetting configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R2_1",
+      "standardCode": "CIP004-CIP-004-R2.1",
+      "name": "NERC CIP-004-6 - Cyber Security Training Cycles",
+      "text": "Do staff complete cyber security training prior to receiving operational access?",
+      "category": "Training Program",
+      "purdueLevel": 4,
+      "description": "Verify training module completion sheets, exam scores, and onboarding authorization files.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the training program configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R2_2",
+      "standardCode": "CIP004-CIP-004-R2.2",
+      "name": "NERC CIP-004-6 - Substation Entry Awareness Training",
+      "text": "Is training updated and completed at least once every 15 calendar months?",
+      "category": "Training Program",
+      "purdueLevel": 4,
+      "description": "Check training schedules, course lists, and active certification logs.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the training program configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R3_1",
+      "standardCode": "CIP004-CIP-004-R3.1",
+      "name": "NERC CIP-004-6 - Access Authorization Management",
+      "text": "Are user access rights restricted to the minimal necessary profiles for roles (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Logical Access Gates",
+      "purdueLevel": 3,
+      "description": "Audit user permission assignments, Active Directory directory listings, and group rosters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the logical access gates configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 004 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R3_2",
+      "standardCode": "CIP004-CIP-004-R3.2",
+      "name": "NERC CIP-004-6 - Access Authorization Revocation",
+      "text": "Are access privileges revoked within 24 hours of personnel termination (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Logical Access Gates",
+      "purdueLevel": 4,
+      "description": "Review termination logs, check network access logs, and verify access deletion timestamps.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the logical access gates configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 004 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R4_1",
+      "standardCode": "CIP004-CIP-004-R4.1",
+      "name": "NERC CIP-004-6 - Personnel Access Vetting Logs",
+      "text": "Are electronic access rosters updated at least once every 90 days (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Auditing",
+      "purdueLevel": 3,
+      "description": "Verify quarterly roster review cycles, supervisor signatures, and active access lists.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the access auditing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 004 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R4_2",
+      "standardCode": "CIP004-CIP-004-R4.2",
+      "name": "NERC CIP-004-6 - Dormant User Account Vetting",
+      "text": "Are inactive accounts flagged and disabled after 90 days of dormancy (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Auditing",
+      "purdueLevel": 4,
+      "description": "Validate account activity statistics, directory queries, and disabled account lists.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the access auditing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 004 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R5_1",
+      "standardCode": "CIP004-CIP-004-R5.1",
+      "name": "NERC CIP-004-6 - Substation Critical System Vetting",
+      "text": "Are physical access badges restricted and verified for critical enclaves (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Physical Access Control",
+      "purdueLevel": 1,
+      "description": "Inspect badge authorization database lists, physical card configurations, and manager logs.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the physical access control configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 004 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_004_CIP004_CIP_004_R5_2",
+      "standardCode": "CIP004-CIP-004-R5.2",
+      "name": "NERC CIP-004-6 - Vendor Access Vetting",
+      "text": "Are external contractor access lists vetted and signed off by managers?",
+      "category": "Vendor Vetting Strategy",
+      "purdueLevel": 4,
+      "description": "Check vendor credentials lists, contractor service logs, and management sign-offs.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the vendor vetting strategy configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

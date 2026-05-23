@@ -1,0 +1,5 @@
+-- Migration 16: Create compliance assessment auditing schema
+DEFINE TABLE IF NOT EXISTS assessment SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS assessment_session SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS assessment_answer SCHEMALESS;
+DEFINE INDEX IF NOT EXISTS unique_session_question ON TABLE assessment_answer FIELDS session_id, question_id UNIQUE;

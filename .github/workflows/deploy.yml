@@ -1,0 +1,131 @@
+name: CI/CD Deployment
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  GHCR_IMAGE: ghcr.io/lfnovo/open-notebook
+  DOCKERHUB_IMAGE: lfnovo/open_notebook
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck (Backend & Frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Backend: Set up Python & uv
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install Python Dependencies
+        run: uv sync --all-groups
+
+      - name: Lint Python with Ruff
+        run: uv run ruff check .
+
+      - name: Typecheck Python with MyPy
+        run: uv run python -m mypy .
+
+      # Frontend: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint Frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Compile TypeScript (Typecheck)
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+  pytest-suite:
+    name: Backend Test Suite (Pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Backend: Set up Python & uv
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install Python Dependencies
+        run: uv sync --all-groups
+
+      - name: Run Complete Pytest Suite
+        run: uv run pytest tests/ -v
+
+  docker-build:
+    name: Build & Verify Docker Image
+    needs: [lint-and-typecheck, pytest-suite]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Setup caching for Docker layers
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-deploy-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-deploy-
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false  # Build and verify only. Deployment/Pushing is handled in release/main build pipelines.
+          tags: ${{ env.GHCR_IMAGE }}:${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      # Move cache to prevent continuous growth
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

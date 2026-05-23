@@ -1,0 +1,100 @@
+{
+  "id": "INGAA_GUIDE",
+  "name": "INGAA Guidelines",
+  "fullName": "Control Systems Cyber Security Guidelines for Natural Gas Pipelines",
+  "description": "Industry standards for securing interstate natural gas compressor stations and SCADA links.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_1_1",
+      "standardCode": "INGAA-INGAA-1.1",
+      "name": "INGAA Guidelines - Compressor Station Protection",
+      "text": "Are compressor station control networks isolated inside defined perimeters?",
+      "category": "Boundary Protection",
+      "purdueLevel": 3,
+      "description": "Verify network drawings, logical boundaries, and stateful router configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the boundary protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_1_2",
+      "standardCode": "INGAA-INGAA-1.2",
+      "name": "INGAA Guidelines - SCADA Link Separation",
+      "text": "Are SCADA links segregated from local facility office subnetworks?",
+      "category": "Boundary Protection",
+      "purdueLevel": 3,
+      "description": "Inspect edge firewall setups, router maps, and isolated DMZ conduits.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the boundary protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_2_1",
+      "standardCode": "INGAA-INGAA-2.1",
+      "name": "INGAA Guidelines - HMI Host Hardening",
+      "text": "Are HMI terminals configured to block unauthorized logical connections?",
+      "category": "Host Security Controls",
+      "purdueLevel": 2,
+      "description": "Verify local host-based firewall configurations, routing rules, and outbound rules.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the host security controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_2_2",
+      "standardCode": "INGAA-INGAA-2.2",
+      "name": "INGAA Guidelines - Default Credentials changed",
+      "text": "Are all default manufacturer passwords changed upon commissioning?",
+      "category": "Host Security Controls",
+      "purdueLevel": 2,
+      "description": "Ensure default passwords are changed on commissioning and replaced with cryptographically strong passwords.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the host security controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_3_1",
+      "standardCode": "INGAA-INGAA-3.1",
+      "name": "INGAA Guidelines - Field Station Access Locks",
+      "text": "Are physical access perimeters and entry locks active at remote stations (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Physical Asset Safety",
+      "purdueLevel": 1,
+      "description": "Verify physical lock gates, check badge-reader entry logs, and review camera feeds.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the physical asset safety configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_3_2",
+      "standardCode": "INGAA-INGAA-3.2",
+      "name": "INGAA Guidelines - Station Entry Logs Archiving",
+      "text": "Are physical entry visitor logs archived for at least 90 days (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Physical Asset Safety",
+      "purdueLevel": 1,
+      "description": "Check card reader access databases, check reader logs, and verify audit records.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the physical asset safety configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_4_1",
+      "standardCode": "INGAA-INGAA-4.1",
+      "name": "INGAA Guidelines - PLC Logic Backup Logs",
+      "text": "Are backups of PLC and SCADA configurations executed weekly (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery Safety",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify automated update schedules, and check backup success registries.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery safety configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_4_2",
+      "standardCode": "INGAA-INGAA-4.2",
+      "name": "INGAA Guidelines - Logic Restoration Testing",
+      "text": "Are backup restoration procedures tested annually for compressor PLCs (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery Safety",
+      "purdueLevel": 3,
+      "description": "Validate backup recovery test logs, offsite replica configurations, and restoration reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery safety configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_5_1",
+      "standardCode": "INGAA-INGAA-5.1",
+      "name": "INGAA Guidelines - Pipeline Vulnerability Assessments",
+      "text": "Are active vulnerability scans executed annually on the SCADA network?",
+      "category": "Vulnerability Assessment",
+      "purdueLevel": 3,
+      "description": "Verify vulnerability reports, scanner logs, and remediation tracking matrices.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the vulnerability assessment configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:INGAA_GUIDE_INGAA_INGAA_5_2",
+      "standardCode": "INGAA-INGAA-5.2",
+      "name": "INGAA Guidelines - Vendor Remote Link Tunnels",
+      "text": "Are service provider remote connections mediated through secure Jump Hosts?",
+      "category": "Vendor Operations Control",
+      "purdueLevel": 3,
+      "description": "Validate that remote vendor connections route through Jump Hosts with visual logging.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the vendor operations control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

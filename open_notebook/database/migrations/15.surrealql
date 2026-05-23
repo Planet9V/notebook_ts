@@ -1,0 +1,3 @@
+-- Migration 15: Create customer table and add customer_id link to notebook
+DEFINE TABLE IF NOT EXISTS customer SCHEMALESS;
+DEFINE FIELD IF NOT EXISTS customer_id ON TABLE notebook TYPE option<string>;

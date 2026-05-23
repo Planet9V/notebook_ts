@@ -99,6 +99,14 @@ class TestNotebookDomain:
         notebook_archived = Notebook(name="Test", description="Test", archived=True)
         assert notebook_archived.archived is True
 
+    def test_notebook_customer_id(self):
+        """Test notebook optional customer_id field."""
+        notebook = Notebook(name="Test", description="Test")
+        assert notebook.customer_id is None
+
+        notebook_with_customer = Notebook(name="Test", description="Test", customer_id="customer:123")
+        assert notebook_with_customer.customer_id == "customer:123"
+
 
 # ============================================================================
 # TEST SUITE 4: Source Domain

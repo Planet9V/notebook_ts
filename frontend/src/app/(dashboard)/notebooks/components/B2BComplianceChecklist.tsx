@@ -1,8 +1,17 @@
 'use client'
 
+import React, { useState, useMemo, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { ShieldCheck, Info, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
+import { 
+  ShieldCheck, 
+  Info, 
+  ExternalLink, 
+  CheckCircle2, 
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react'
 
 export interface ComplianceCheck {
   id: string
@@ -12,6 +21,7 @@ export interface ComplianceCheck {
   specSource: string
   referenceText: string
   checked: boolean
+  category: string
 }
 
 interface B2BComplianceChecklistProps {
@@ -30,6 +40,36 @@ export function B2BComplianceChecklist({
   const checkedCount = checks.filter(c => c.checked).length
   const totalCount = checks.length
   const progressPercent = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0
+
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
+
+  // Group checks by category
+  const groupedChecks = useMemo(() => {
+    const groups: Record<string, ComplianceCheck[]> = {}
+    checks.forEach(c => {
+      const cat = c.category || 'General Specifications'
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push(c)
+    })
+    return groups
+  }, [checks])
+
+  // Automatically expand all categories by default on mount or check list changes
+  useEffect(() => {
+    const next: Record<string, boolean> = {}
+    checks.forEach(c => {
+      const cat = c.category || 'General Specifications'
+      next[cat] = true
+    })
+    setExpandedCategories(prev => ({ ...next, ...prev }))
+  }, [checks])
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [cat]: !prev[cat]
+    }))
+  }
 
   return (
     <Card className="shadow-2xl border-white/10 bg-slate-900/80 backdrop-blur-md flex flex-col h-full min-h-0 overflow-hidden">
@@ -77,59 +117,95 @@ export function B2BComplianceChecklist({
             </p>
           </div>
         ) : (
-          <div className="space-y-2.5">
-            {checks.map((check) => {
-              const isSelected = selectedCheck?.id === check.id
+          <div className="space-y-3">
+            {Object.entries(groupedChecks).map(([category, catChecks]) => {
+              const isExpanded = !!expandedCategories[category]
               return (
                 <div 
-                  key={check.id}
-                  onClick={() => onSelectCheck(check)}
-                  className={`p-3 border rounded-lg transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden ${
-                    isSelected 
-                      ? 'border-cyan-500 bg-cyan-500/5 shadow-md shadow-cyan-500/5' 
-                      : 'hover:bg-slate-800/40 border-white/5 bg-slate-950/20'
-                  }`}
+                  key={category} 
+                  className="border border-white/5 bg-slate-950/20 rounded-lg overflow-hidden transition-all duration-300"
                 >
-                  {/* Left accent color bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 transition-all ${
-                    check.checked 
-                      ? 'bg-cyan-500' 
-                      : isSelected ? 'bg-cyan-600/40' : 'bg-transparent'
-                  }`} />
-
-                  <div className="flex items-start gap-3 pl-1.5">
-                    {/* Interactive Checkbox */}
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onToggleCheck(check.id)
-                      }}
-                      className={`h-4.5 w-4.5 rounded flex items-center justify-center border transition-all duration-200 mt-0.5 cursor-pointer ${
-                        check.checked 
-                          ? 'bg-cyan-500 border-cyan-400 text-slate-950' 
-                          : 'border-white/10 hover:border-cyan-500/50 bg-slate-900'
-                      }`}
-                    >
-                      {check.checked && <CheckCircle2 className="h-3.5 w-3.5 stroke-[3]" />}
+                  {/* Category Accordion Header */}
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="w-full flex items-center justify-between p-2.5 bg-slate-950/60 border-b border-white/5 text-left transition-all hover:bg-slate-950/80 group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5 text-cyan-500/60 group-hover:text-cyan-400 transition-colors" />
+                      <span className="text-[10px] font-bold text-slate-300 tracking-wide uppercase font-mono">
+                        {category}
+                      </span>
+                      <Badge variant="outline" className="text-[8px] font-mono border-white/10 bg-slate-900/60 text-slate-400 px-1.5 py-0">
+                        {catChecks.length} Checks
+                      </Badge>
                     </div>
+                    {isExpanded ? (
+                      <ChevronUp className="h-3 w-3 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+                    )}
+                  </button>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className={`text-xs font-bold font-mono tracking-wide truncate ${check.checked ? 'text-muted-foreground line-through' : 'text-slate-200'}`}>
-                          {check.title}
-                        </p>
-                        <Badge 
-                          variant="outline" 
-                          className="h-4.5 text-[8px] font-bold font-mono border-cyan-500/20 bg-cyan-500/5 text-cyan-400 capitalize px-1.5"
-                        >
-                          {check.badge}
-                        </Badge>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                        {check.description}
-                      </p>
+                  {/* Category Content */}
+                  {isExpanded && (
+                    <div className="p-2.5 space-y-2 animate-in fade-in duration-200">
+                      {catChecks.map((check) => {
+                        const isSelected = selectedCheck?.id === check.id
+                        return (
+                          <div 
+                            key={check.id}
+                            onClick={() => onSelectCheck(check)}
+                            className={`p-2.5 border rounded-lg transition-all cursor-pointer flex flex-col gap-1.5 relative overflow-hidden ${
+                              isSelected 
+                                ? 'border-cyan-500 bg-cyan-500/5 shadow-md shadow-cyan-500/5' 
+                                : 'hover:bg-slate-800/40 border-white/5 bg-slate-950/20'
+                            }`}
+                          >
+                            {/* Left accent color bar */}
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 transition-all ${
+                              check.checked 
+                                ? 'bg-cyan-500' 
+                                : isSelected ? 'bg-cyan-600/40' : 'bg-transparent'
+                            }`} />
+
+                            <div className="flex items-start gap-2.5 pl-1">
+                              {/* Interactive Checkbox */}
+                              <div 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onToggleCheck(check.id)
+                                }}
+                                className={`h-4 w-4 rounded flex items-center justify-center border transition-all duration-200 mt-0.5 cursor-pointer ${
+                                  check.checked 
+                                    ? 'bg-cyan-500 border-cyan-400 text-slate-950' 
+                                    : 'border-white/10 hover:border-cyan-500/50 bg-slate-900'
+                                }`}
+                              >
+                                {check.checked && <CheckCircle2 className="h-3 w-3 stroke-[3]" />}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className={`text-[11px] font-bold font-mono tracking-wide truncate ${check.checked ? 'text-muted-foreground line-through' : 'text-slate-200'}`}>
+                                    {check.title}
+                                  </p>
+                                  <Badge 
+                                    variant="outline" 
+                                    className="h-4 text-[7px] font-bold font-mono border-cyan-500/20 bg-cyan-500/5 text-cyan-400 capitalize px-1"
+                                  >
+                                    {check.badge}
+                                  </Badge>
+                                </div>
+                                <p className="text-[9.5px] text-muted-foreground mt-0.5 line-clamp-2 leading-normal">
+                                  {check.description}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
+                  )}
                 </div>
               )
             })}

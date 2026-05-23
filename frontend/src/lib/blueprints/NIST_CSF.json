@@ -1,0 +1,100 @@
+{
+  "id": "NIST_CSF",
+  "name": "NIST CSF v2.0",
+  "fullName": "NIST Cybersecurity Framework",
+  "description": "Framework designed to reduce cybersecurity risk through six core functions: Govern, Identify, Protect, Detect, Respond, Recover.",
+  "category": "General IT/OT",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:NIST_CSF_NIST_CSF_GV_OC_1",
+      "standardCode": "NIST_CSF-GV.OC-1",
+      "name": "NIST CSF v2.0 - Organizational Cybersecurity Strategy",
+      "text": "Is the organizational cybersecurity strategy formally aligned with corporate objectives?",
+      "category": "Cybersecurity Governance",
+      "purdueLevel": 4,
+      "description": "Verify documented strategies, management signatures, and evidence of annual review cycles.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the cybersecurity governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_GV_RM_1",
+      "standardCode": "NIST_CSF-GV.RM-1",
+      "name": "NIST CSF v2.0 - Security Risk Management Assessment",
+      "text": "Is a systematic cyber risk assessment executed at least annually?",
+      "category": "Cybersecurity Governance",
+      "purdueLevel": 4,
+      "description": "Validate risk assessment logs, methodology reports, and mitigation action trackers.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the cybersecurity governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_ID_AM_1",
+      "standardCode": "NIST_CSF-ID.AM-1",
+      "name": "NIST CSF v2.0 - Asset Classification Inventory",
+      "text": "Are all operational cyber assets identified, cataloged, and classified by critical impact (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Identify Assets",
+      "purdueLevel": 3,
+      "description": "Audit active asset databases, serial lists, and impact scores across the production network.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the identify assets configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_ID_RA_1",
+      "standardCode": "NIST_CSF-ID.RA-1",
+      "name": "NIST CSF v2.0 - Vulnerability Security Scan Execution",
+      "text": "Are active vulnerability scans executed quarterly on all cyber assets (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Identify Assets",
+      "purdueLevel": 3,
+      "description": "Audit vulnerability scanning schedules, check report logs, and verify that critical patches are applied.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the identify assets configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_PR_AA_1",
+      "standardCode": "NIST_CSF-PR.AA-1",
+      "name": "NIST CSF v2.0 - Operator Access Vetting Strategy",
+      "text": "Are logical and physical access permissions reviewed and audited regularly?",
+      "category": "Protect Controls",
+      "purdueLevel": 3,
+      "description": "Review operator account profiles, privilege delegation tables, and local authorization logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the protect controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_PR_DS_1",
+      "standardCode": "NIST_CSF-PR.DS-1",
+      "name": "NIST CSF v2.0 - Cryptographic Data Protection",
+      "text": "Is cryptographic encryption enforced for smart grid communication links?",
+      "category": "Protect Controls",
+      "purdueLevel": 3,
+      "description": "Verify cryptographic settings, check VPN configurations, and review parameters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the protect controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_DE_AE_1",
+      "standardCode": "NIST_CSF-DE.AE-1",
+      "name": "NIST CSF v2.0 - Boundary Traffic Monitoring Strategy",
+      "text": "Is boundary traffic monitored for smart grid anomaly detection in real-time?",
+      "category": "Detect Anomaly",
+      "purdueLevel": 3,
+      "description": "Inspect IDS status reports, signature update frequency, and network sensor alarm registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the detect anomaly configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_RS_MA_1",
+      "standardCode": "NIST_CSF-RS.MA-1",
+      "name": "NIST CSF v2.0 - Smart Grid Incident Recovery Plan",
+      "text": "Is a smart grid cyber disaster recovery plan documented and active?",
+      "category": "Respond Management",
+      "purdueLevel": 3,
+      "description": "Review disaster recovery plans, check offsite storage registers, and inspect procedures.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the respond management configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_RC_RP_1",
+      "standardCode": "NIST_CSF-RC.RP-1",
+      "name": "NIST CSF v2.0 - Disaster Recovery Testing Strategy",
+      "text": "Are backup restoration procedures for critical PLCs and SCADA nodes tested annually?",
+      "category": "Recover Operations",
+      "purdueLevel": 3,
+      "description": "Validate backup recovery test logs, offsite replica configurations, and restoration reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the recover operations configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_CSF_NIST_CSF_GV_SC_1",
+      "standardCode": "NIST_CSF-GV.SC-1",
+      "name": "NIST CSF v2.0 - Third-Party Risk Vetting Strategy",
+      "text": "Are service provider security capabilities evaluated and contractually enforced?",
+      "category": "Cybersecurity Governance",
+      "purdueLevel": 4,
+      "description": "Check vendor compliance disclosures, signed security clauses, and remote support access authorizations.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the cybersecurity governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

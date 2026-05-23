@@ -1,0 +1,100 @@
+{
+  "id": "NERC_CIP_002",
+  "name": "NERC CIP-002-5.1a",
+  "fullName": "BES Cyber System Categorization",
+  "description": "Mandatory standard to identify and categorize Bulk Electric System (BES) cyber systems into Impact levels.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R1_1",
+      "standardCode": "CIP002-CIP-002-R1.1",
+      "name": "NERC CIP-002-5.1a - BES Cyber Asset Identification",
+      "text": "Are all critical BES Cyber Assets identified and cataloged (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Classification",
+      "purdueLevel": 3,
+      "description": "Verify systematic identification of critical Bulk Electric System cyber systems to enforce baseline controls. Review inventory databases.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset classification configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R1_2",
+      "standardCode": "CIP002-CIP-002-R1.2",
+      "name": "NERC CIP-002-5.1a - System Impact Level",
+      "text": "Are identified BES Cyber Systems categorized into High, Medium, or Low impact levels (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Classification",
+      "purdueLevel": 3,
+      "description": "Ensure proper categorization of assets into impact boundaries according to regional reliability standards.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset classification configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R1_3",
+      "standardCode": "CIP002-CIP-002-R1.3",
+      "name": "NERC CIP-002-5.1a - Asset Connectivity Vetting",
+      "text": "Are external routable connectivity paths identified for all BES assets (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Classification",
+      "purdueLevel": 3,
+      "description": "Audit routable connectivity pathways and dial-up links crossing electronic perimeters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset classification configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R2",
+      "standardCode": "CIP002-CIP-002-R2",
+      "name": "NERC CIP-002-5.1a - BES Cyber Asset Update Review",
+      "text": "Is the BES cyber asset list reviewed and updated at least once every 15 calendar months (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Governance",
+      "purdueLevel": 4,
+      "description": "Validate continuous compliance auditing and list updates within NERC CIP regulatory cycles.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset governance configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R2_1",
+      "standardCode": "CIP002-CIP-002-R2.1",
+      "name": "NERC CIP-002-5.1a - Change Identification Procedures",
+      "text": "Are inventory changes tracked and flagged dynamically (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Governance",
+      "purdueLevel": 3,
+      "description": "Verify that configuration changes trigger re-evaluation of asset identification.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset governance configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R2_2",
+      "standardCode": "CIP002-CIP-002-R2.2",
+      "name": "NERC CIP-002-5.1a - System Re-evaluations",
+      "text": "Are BES asset classifications re-evaluated upon network segment modifications (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Governance",
+      "purdueLevel": 4,
+      "description": "Ensure risk scores are adjusted to maintain alignment with regulatory criteria.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset governance configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R3",
+      "standardCode": "CIP002-CIP-002-R3",
+      "name": "NERC CIP-002-5.1a - BES Connectivity Mapping",
+      "text": "Are all external logical links mapped and approved?",
+      "category": "Connectivity Vetting",
+      "purdueLevel": 3,
+      "description": "Audit external communications crossings and boundary data flows for critical nodes.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the connectivity vetting configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R3_1",
+      "standardCode": "CIP002-CIP-002-R3.1",
+      "name": "NERC CIP-002-5.1a - Asset Inventory Database",
+      "text": "Is an active database list of identified physical devices maintained (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Classification",
+      "purdueLevel": 3,
+      "description": "Verify serial numbers, MAC addresses, and physical device counts against the verified catalog.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset classification configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R4",
+      "standardCode": "CIP002-CIP-002-R4",
+      "name": "NERC CIP-002-5.1a - BES Classification Documentation",
+      "text": "Is the categorization documentation protected against unauthorized access (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Governance",
+      "purdueLevel": 4,
+      "description": "Ensure the BES asset database is encrypted at rest and locked down with strict RBAC.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset governance configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_002_CIP002_CIP_002_R4_1",
+      "standardCode": "CIP002-CIP-002-R4.1",
+      "name": "NERC CIP-002-5.1a - BES Regional Auditing Vetting",
+      "text": "Are BES asset lists prepared for annual auditing by regional compliance officers (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Governance",
+      "purdueLevel": 4,
+      "description": "Validate that logs are formatted correctly to support regulatory NERC auditor sweeps.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the asset governance configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    }
+  ]
+}

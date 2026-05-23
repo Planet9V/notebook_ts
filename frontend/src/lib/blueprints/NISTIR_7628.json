@@ -1,0 +1,100 @@
+{
+  "id": "NISTIR_7628",
+  "name": "NISTIR 7628 r1",
+  "fullName": "Guidelines for Smart Grid Cyber Security",
+  "description": "Three-volume technical guideline establishing robust security requirements for smart grid facilities.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_AC_1",
+      "standardCode": "NISTIR_7628-SG.AC-1",
+      "name": "NISTIR 7628 r1 - Smart Grid Access Control",
+      "text": "Are information access permissions restricted to authorized users across smart grid networks (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Control Strategy",
+      "purdueLevel": 3,
+      "description": "Audit user permission assignments, Active Directory directory listings, and group rosters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the access control strategy configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NISTIR 7628 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_AC_2",
+      "standardCode": "NISTIR_7628-SG.AC-2",
+      "name": "NISTIR 7628 r1 - Multi-Factor Authentication",
+      "text": "Is multi-factor authentication enforced for administrative and remote access (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Control Strategy",
+      "purdueLevel": 4,
+      "description": "Verify FIDO2 hardware token or app-based MFA enforcement on the smart grid gateway.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the access control strategy configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NISTIR 7628 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_IA_1",
+      "standardCode": "NISTIR_7628-SG.IA-1",
+      "name": "NISTIR 7628 r1 - Smart Grid Device Identification",
+      "text": "Are all devices uniquely identified and authenticated before accessing the smart grid?",
+      "category": "Identity Verification",
+      "purdueLevel": 3,
+      "description": "Check smart meter registries, device authentication logs, and cryptographic key lists.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the identity verification configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_IA_2",
+      "standardCode": "NISTIR_7628-SG.IA-2",
+      "name": "NISTIR 7628 r1 - Unique Software Authentication",
+      "text": "Do software processes authenticate using digital signatures before execution?",
+      "category": "Identity Verification",
+      "purdueLevel": 3,
+      "description": "Verify software signature report logs, check update parameters, and inspect scan reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the identity verification configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_CB_1",
+      "standardCode": "NISTIR_7628-SG.CB-1",
+      "name": "NISTIR 7628 r1 - Smart Grid Cryptography",
+      "text": "Is cryptographic encryption enforced for smart grid communication links?",
+      "category": "Cryptography Controls",
+      "purdueLevel": 3,
+      "description": "Verify smart grid cryptographic settings, check VPN configurations, and review parameters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cryptography controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_CB_2",
+      "standardCode": "NISTIR_7628-SG.CB-2",
+      "name": "NISTIR 7628 r1 - Hardware Key Enclave Management",
+      "text": "Are cryptographic keys managed in secure hardware enclaves inside meters?",
+      "category": "Cryptography Controls",
+      "purdueLevel": 4,
+      "description": "Verify secure hardware-backed cryptographic modules (HSM) protecting operational credentials.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the cryptography controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_SM_1",
+      "standardCode": "NISTIR_7628-SG.SM-1",
+      "name": "NISTIR 7628 r1 - Smart Grid Perimeter Segmentation",
+      "text": "Are smart grid subnetworks segregated by physical or logical boundaries (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Segregation",
+      "purdueLevel": 3,
+      "description": "Verify network topology drawings, logical boundaries, and stateful router filtering configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the perimeter segregation configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_SM_2",
+      "standardCode": "NISTIR_7628-SG.SM-2",
+      "name": "NISTIR 7628 r1 - Boundary Traffic Monitoring",
+      "text": "Is boundary traffic monitored for smart grid anomaly detection in real-time (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Segregation",
+      "purdueLevel": 3,
+      "description": "Inspect IDS status reports, signature update frequency, and network sensor alarm registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the perimeter segregation configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_IR_1",
+      "standardCode": "NISTIR_7628-SG.IR-1",
+      "name": "NISTIR 7628 r1 - Smart Grid Incident Recovery",
+      "text": "Is a smart grid cyber disaster recovery plan documented and active (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery Control",
+      "purdueLevel": 3,
+      "description": "Review disaster recovery plans, check offsite storage registers, and inspect procedures.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NISTIR_7628_NISTIR_7628_SG_IR_2",
+      "standardCode": "NISTIR_7628-SG.IR-2",
+      "name": "NISTIR 7628 r1 - Incident Reporting Rules",
+      "text": "Are smart grid cybersecurity incidents reported within 60 minutes of detection (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery Control",
+      "purdueLevel": 4,
+      "description": "Verify reporting timestamps, check notification tracking logs, and audit email gateway times.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    }
+  ]
+}

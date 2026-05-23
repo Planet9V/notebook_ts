@@ -1,0 +1,100 @@
+{
+  "id": "FERC_889",
+  "name": "FERC Order 889",
+  "fullName": "Open Access Same-Time Information System",
+  "description": "Federal Energy Regulatory Commission guidelines on information sharing and electric transmission interfaces.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:FERC_889_FERC_FERC_1_1",
+      "standardCode": "FERC-FERC-1.1",
+      "name": "FERC Order 889 - OASIS Access Control Roster",
+      "text": "Are OASIS information system access rights limited to authorized users (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Open Access Governance",
+      "purdueLevel": 4,
+      "description": "Review user access provisioning logs, check active directory profiles, and audit router access lists.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the open access governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical FERC 889 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_1_2",
+      "standardCode": "FERC-FERC-1.2",
+      "name": "FERC Order 889 - Transmission Link Vetting",
+      "text": "Are external transmission links verified and authorized annually (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Open Access Governance",
+      "purdueLevel": 3,
+      "description": "Audit external communications crossings and boundary data flows for transmission nodes.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the open access governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical FERC 889 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_2_1",
+      "standardCode": "FERC-FERC-2.1",
+      "name": "FERC Order 889 - OASIS Cryptography Controls",
+      "text": "Is cryptographic encryption enforced for all OASIS data transit (utilizing VPN tunnels, encrypted Modbus/DNP3 secure protocols, and HSM keys)?",
+      "category": "Data Link Encryption",
+      "purdueLevel": 3,
+      "description": "Verify transmission cryptographic settings, check VPN configurations, and review parameters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the data link encryption configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nTraversing industrial telemetry in cleartext across converged networks invites eavesdropping and packet injection. Malicious actors can execute Man-in-the-Middle (MitM) attacks, spoofing HMI screens while sending dangerous control commands."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_2_2",
+      "standardCode": "FERC-FERC-2.2",
+      "name": "FERC Order 889 - Hardware Key Enclave Management",
+      "text": "Are cryptographic keys managed in secure hardware enclaves (utilizing VPN tunnels, encrypted Modbus/DNP3 secure protocols, and HSM keys)?",
+      "category": "Data Link Encryption",
+      "purdueLevel": 4,
+      "description": "Verify secure hardware-backed cryptographic modules (HSM) protecting operational credentials.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the data link encryption configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nTraversing industrial telemetry in cleartext across converged networks invites eavesdropping and packet injection. Malicious actors can execute Man-in-the-Middle (MitM) attacks, spoofing HMI screens while sending dangerous control commands."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_3_1",
+      "standardCode": "FERC-FERC-3.1",
+      "name": "FERC Order 889 - OASIS Boundary Segment Separation",
+      "text": "Are OASIS system components segregated in dedicated subnetworks (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Segregation",
+      "purdueLevel": 3,
+      "description": "Ensure DMZ isolation, verify router ACL configurations, and audit reverse-proxy configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the perimeter segregation configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_3_2",
+      "standardCode": "FERC-FERC-3.2",
+      "name": "FERC Order 889 - Boundary Traffic Monitoring",
+      "text": "Is boundary traffic monitored for Smart Grid anomaly detection in real-time (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Segregation",
+      "purdueLevel": 3,
+      "description": "Inspect IDS status reports, signature update frequency, and network sensor alarm registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the perimeter segregation configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_4_1",
+      "standardCode": "FERC-FERC-4.1",
+      "name": "FERC Order 889 - OASIS Backup Isolation",
+      "text": "Are daily backups of OASIS configurations secured and tested?",
+      "category": "Operations Continuity",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify secure isolated offsite replica storage, and check test reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the operations continuity configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_4_2",
+      "standardCode": "FERC-FERC-4.2",
+      "name": "FERC Order 889 - Disaster Recovery Failover Plan",
+      "text": "Is an active energy infrastructure disaster recovery failover plan tested annually?",
+      "category": "Operations Continuity",
+      "purdueLevel": 3,
+      "description": "Review failover test logs, check backup server registers, and inspect procedures.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the operations continuity configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_5_1",
+      "standardCode": "FERC-FERC-5.1",
+      "name": "FERC Order 889 - OASIS Incident Reporting Plan",
+      "text": "Is a cyber security incident reporting plan formally defined and maintained (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Reporting Control",
+      "purdueLevel": 4,
+      "description": "Review reporting trees, emergency phone trees, and regulatory notification frameworks.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the incident reporting control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:FERC_889_FERC_FERC_5_2",
+      "standardCode": "FERC-FERC-5.2",
+      "name": "FERC Order 889 - Vendor Incident Disclosure Rules",
+      "text": "Are third-party service vendors integrated into the incident communication tree (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Reporting Control",
+      "purdueLevel": 4,
+      "description": "Check vendor contracts, review coordination procedure guides, and verify contact lists.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the incident reporting control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    }
+  ]
+}

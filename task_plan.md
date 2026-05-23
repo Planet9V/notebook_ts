@@ -1,59 +1,65 @@
-# Task Plan: Deep Integration of Sales Prospecting Automation Engine with Sources & RAG
+# Task Plan: CISA 16 USA Critical Infrastructure Sectors Alignment
 
-## Goal
-Enable deep integration of stage-triggered sales prospecting automation in Tetrel Notebook so that crawler and search results are created as first-class `Source` records in SurrealDB, automatically vectorized and chunked via the async command pipeline to immediately expand RAG chat context, alongside the structured LLM-generated intelligence `Note`.
+This document outlines the systematic implementation plan to update Tetrel's compliance framework engine to align with the official **16 USA Critical Infrastructure Sectors** defined by CISA and DHS.
 
-## Current Phase
-Phase 2: Design & Planning
+---
 
-## Phases
+## 1. Goal
+Replace the existing basic sector designations with the 16 official CISA sectors. Support multi-sector classification for all 66 frameworks to enable high-fidelity filtering and mapping in the database and Next.js frontend, ensuring full backward compatibility and 100% test suite safety.
 
-### Phase 1: Requirements & Discovery
-- [x] Understand user intent (create Sources for crawled/searched data, automate prospect research at each stage, keep it highly flexible for custom prompts and models)
-- [x] Review current implementation (PipelineRule domain models, FastAPI background worker tasks, API rules endpoints, Next.js Settings UI, tests)
-- [x] Identify gap: Crawler and searcher in `pipeline_worker.py` only save LLM summaries as `Note` records, losing the raw crawled webpage and search results from the `Source` list and from the SurrealDB vector database used by the RAG chat sessions.
-- [x] Document discoveries in `findings.md`
-- **Status:** complete
+---
 
-### Phase 2: Design & Planning
-- [/] Define the exact integration mechanism:
-  - For `crawl` rules: Save raw text scraped from the prospect's public website as a new `Source` in the database, add it to the notebook, and trigger asynchronous vectorization via `source.vectorize()`.
-  - For `search` rules: Save the compiled search results (titles, snippets, URLs) as a new `Source` in the database, add it to the notebook, and trigger asynchronous vectorization via `source.vectorize()`.
-  - In both cases: Feed the compiled text/insights into the specified LLM (using chosen prompt & model override) to generate the structured intelligence `Note`, save it, and add it to the notebook (triggering `embed_note`).
-- [/] Update `findings.md` with technical design and model/prompt configurations.
-- **Status:** in_progress
+## 2. Design Choices
 
-### Phase 3: Implementation
-- [x] Modify `open_notebook/domain/pipeline_worker.py` to implement the dual `Source` and `Note` creation pathway. (Already implemented in pipeline_worker.py)
-- [ ] Patch `Source` and `Asset` in `tests/test_pipeline.py` inside `test_run_pipeline_automation_crawl` to prevent hit to SurrealDB.
-- [ ] Add assertions to `test_run_pipeline_automation_crawl` verifying `Source` creation, save, and vectorization.
-- [ ] Add a new test `test_run_pipeline_automation_search` to verify `Source` creation, search query execution, and note generation for web search pipeline rules.
-- - **Status:** in_progress
+### Database Schema Upgrade
+- Keep the `sector` string field on the `regulation` table for backward compatibility, mapping each regulation to its *Primary CISA Critical Sector* (or `"Cross-Sector"`).
+- Add the `sectors` list of strings field to store *all* CISA sectors applicable to a given framework.
 
-### Phase 4: Testing & Verification
-- [ ] Run backend tests using `pytest tests/test_pipeline.py` and ensure they pass successfully.
-- [ ] Run frontend/backend build/linters to ensure compile correctness.
-- - **Status:** pending
+### Backend APIs
+- Update `RegulationResponse` in `api/models.py` to include `sectors: Optional[List[str]] = Field(default_factory=list)`.
+- Update `get_regulations` in `api/routers/regulations.py` to fetch `sectors` from SurrealDB records, falling back to `[sector]` if empty to ensure robustness.
 
-### Phase 5: Handoff & Delivery
-- [ ] Update `progress.md` with the final logs and session validation.
-- [ ] Summarize changes and hand over the refined system to the user.
-- - **Status:** pending
+### Database Seeder
+- Update all 66 framework objects in `scripts/generate_cset_library.py` to reflect their correct primary `sector` (from the CISA 16 or `"Cross-Sector"`) and secondary `sectors` array.
+- Clear and reseed the SurrealDB instance with the updated regulations and deduplicated controls/questions.
+- Regenerate individual JSON/Markdown blueprints via `scripts/generate_individual_framework_artifacts.py` to keep the artifacts folder in lockstep.
 
-## Key Questions
-1. **Should the raw crawler / searcher data be saved as first-class `Source` records?**
-   - *Yes*, this makes crawled webpages and search snippets searchable by the notebook's RAG chat, making the chatbot vastly more intelligent.
-2. **How do we link the newly created `Source` to the notebook?**
-   - By calling `await source.add_to_notebook(notebook_id)`, which inserts a `reference` edge between `source` and `notebook`.
-3. **How do we trigger vectorization on the new `Source`?**
-   - By calling `await source.vectorize()`, which schedules the background `embed_source` command in the SurrealDB command pipeline.
+### Frontend UI
+- Update `CSETFramework` interface in `frontend/src/app/(dashboard)/compliance/page.tsx` to include `sectors: string[]` and expand the `sector` type list.
+- Update `CSET_FRAMEWORKS_RAW` fallback data with the identical multi-sector schema to prevent fallback crashes.
+- Redefine `const sectors = [...]` array to list all 16 CISA sectors, `'Cross-Sector'`, and `'ALL'`.
+- Modify `matchesSector` filtering logic:
+  `const matchesSector = selectedSector === 'ALL' || fw.sectors.includes(selectedSector) || fw.sector === selectedSector`
+- Update card tags and badges to support rendering either the primary sector or the list of sectors elegantly.
 
-## Decisions Made
-| Decision | Rationale |
-|----------|-----------|
-| Dual-creation pathway (`Source` + `Note`) | Storing the raw scraped webpage / web search results as a `Source` ensures complete RAG context coverage, while storing the refined analysis as a `Note` provides immediate reading value for the sales representative. |
+---
 
-## Errors Encountered
-| Error | Attempt | Resolution |
-|-------|---------|------------|
-| `socket.gaierror: [Errno 8] nodename nor servname provided` | 1 | Unit tests hit real database connections because `Source` and `Asset` were not patched in `test_run_pipeline_automation_crawl`. Patch both classes to mock out database operations. |
+## 3. Implementation Checklist
+
+### Phase 1: Research & Plan Creation
+- [x] Research official CISA 16 sectors & subsectors from DHS and CISA portals.
+- [x] Create comprehensive `findings.md` mapping all 66 regulations to the 16 critical sectors.
+- [x] Author detailed `task_plan.md` mapping out execution phases.
+- [x] Initialize session tracking in `progress.md`.
+
+### Phase 2: Schema & Model Upgrades
+- [x] Add `sectors` field to `RegulationResponse` in `api/models.py`.
+- [x] Update SurrealDB query mapping in `api/routers/regulations.py` to retrieve `sectors`.
+
+### Phase 3: Seeder Refactoring & Reseeding
+- [x] Update `validate_regulation` in `scripts/generate_cset_library.py` to inspect `sectors` list.
+- [x] Refactor the `FRAMEWORKS` definitions list in `scripts/generate_cset_library.py` with CISA primary and secondary sectors.
+- [x] Execute `scripts/generate_cset_library.py` to populate SurrealDB.
+- [x] Execute `scripts/generate_individual_framework_artifacts.py` to rebuild static artifacts.
+- [x] Run database check `scratch/check_db.py` to verify ingestion integrity.
+
+### Phase 4: Frontend UI Refactoring
+- [x] Refactor the `CSETFramework` interface in `frontend/src/app/(dashboard)/compliance/page.tsx`.
+- [x] Update `CSET_FRAMEWORKS_RAW` static fallbacks with CISA sector schemas in `page.tsx`.
+- [x] Refactor filtering logic and `sectors` list in `page.tsx`.
+- [x] Run `npx tsc --noEmit` inside `frontend/` to confirm complete compile safety.
+
+### Phase 5: Verification & Verification
+- [x] Run Python pytest suite `pytest` to guarantee 100% test success.
+- [x] Run `.venv/bin/python scratch/verify_all_directives.py` to verify hydration completeness.
+- [x] Author a detailed walkthrough summarizing changes and achievements.

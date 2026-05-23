@@ -1,0 +1,100 @@
+{
+  "id": "NERC_CIP_005",
+  "name": "NERC CIP-005-7",
+  "fullName": "Electronic Security Perimeters",
+  "description": "Requires strict Electronic Security Perimeters (ESP) surrounding energy cyber systems and mediates external links.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R1_1",
+      "standardCode": "CIP005-CIP-005-R1.1",
+      "name": "NERC CIP-005-7 - Electronic Security Perimeter Boundary",
+      "text": "Are all critical systems enclosed within a defined Electronic Security Perimeter (ESP) (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Segmentation",
+      "purdueLevel": 3,
+      "description": "Verify network topology drawings, logical ESP boundaries, and stateful router filtering configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the perimeter segmentation configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R1_2",
+      "standardCode": "CIP005-CIP-005-R1.2",
+      "name": "NERC CIP-005-7 - Substation Gateway Isolation Routing",
+      "text": "Are all external logical connections routed through a stateful firewall conduit (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Segmentation",
+      "purdueLevel": 3,
+      "description": "Inspect boundary firewall routing rules, verify VLAN separation, and audit gateway controls.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the perimeter segmentation configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R2_1",
+      "standardCode": "CIP005-CIP-005-R2.1",
+      "name": "NERC CIP-005-7 - Interactive Remote Access Controls",
+      "text": "Is all interactive remote access mediated and authenticated at ESP boundaries (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Remote Access Gates",
+      "purdueLevel": 3,
+      "description": "Ensure remote connections transit through secure administrative Jump Host intermediate nodes.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the remote access gates configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 005 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R2_2",
+      "standardCode": "CIP005-CIP-005-R2.2",
+      "name": "NERC CIP-005-7 - Multi-Factor Authentication on Jump Hosts",
+      "text": "Is multi-factor authentication enforced on remote administrative Jump Servers (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Remote Access Gates",
+      "purdueLevel": 4,
+      "description": "Verify FIDO2 hardware token or app-based MFA enforcement on the operational gateway portal.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the remote access gates configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 005 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R3_1",
+      "standardCode": "CIP005-CIP-005-R3.1",
+      "name": "NERC CIP-005-7 - External Connectivity Vetting Logs",
+      "text": "Are all active external logical links documented, authorized, and reviewed annually?",
+      "category": "Connectivity Auditing",
+      "purdueLevel": 3,
+      "description": "Audit link authorization logs, verify connection partner approvals, and review diagrams.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the connectivity auditing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R3_2",
+      "standardCode": "CIP005-CIP-005-R3.2",
+      "name": "NERC CIP-005-7 - Gateway Configuration Control Monitors",
+      "text": "Are firewall configurations monitored in real-time for unauthorized edits?",
+      "category": "Connectivity Auditing",
+      "purdueLevel": 3,
+      "description": "Verify automated file integrity checking, configuration delta checkers, and change alerts.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the connectivity auditing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R4_1",
+      "standardCode": "CIP005-CIP-005-R4.1",
+      "name": "NERC CIP-005-7 - ESP Stateful Firewall Rule Auditing",
+      "text": "Are perimeter firewall rule sets reviewed and cleaned at least once every 90 days (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Security",
+      "purdueLevel": 3,
+      "description": "Verify firewall rule audit logs, supervisor signatures, and unused rule deletion records.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the perimeter security configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R4_2",
+      "standardCode": "CIP005-CIP-005-R4.2",
+      "name": "NERC CIP-005-7 - Intrusion Detection System Alerts",
+      "text": "Are logical boundary perimeters monitored by active intrusion detection sensors (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Perimeter Security",
+      "purdueLevel": 3,
+      "description": "Inspect IDS status reports, signature update frequency, and network sensor alarm registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the perimeter security configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R5_1",
+      "standardCode": "CIP005-CIP-005-R5.1",
+      "name": "NERC CIP-005-7 - Remote Administration Session Vetting",
+      "text": "Are remote operator sessions automatically terminated after 15 minutes of inactivity?",
+      "category": "Session Hardening",
+      "purdueLevel": 3,
+      "description": "Verify remote access session timeout variables, check configurations, and trace log streams.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the session hardening configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_005_CIP005_CIP_005_R5_2",
+      "standardCode": "CIP005-CIP-005-R5.2",
+      "name": "NERC CIP-005-7 - Dormant Remote Accounts Vetting",
+      "text": "Are remote contractor accounts disabled immediately upon project completion?",
+      "category": "Session Hardening",
+      "purdueLevel": 4,
+      "description": "Check vendor connection schedules, temporary account registers, and contractor logs.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the session hardening configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    }
+  ]
+}

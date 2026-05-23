@@ -25,6 +25,7 @@ class Notebook(ObjectModel):
     contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list)
     crawl_failed: Optional[bool] = False
     suggested_contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list)
+    customer_id: Optional[str] = None
 
     @field_validator("name")
     @classmethod

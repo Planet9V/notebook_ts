@@ -1,0 +1,100 @@
+{
+  "id": "IEC_62443_2_1",
+  "name": "IEC 62443-2-1",
+  "fullName": "Establishing an IACS Security Program",
+  "description": "Requirements for establishing, implementing, maintaining, and improving a security program for asset owners.",
+  "category": "Governance & Policy",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_1_1",
+      "standardCode": "62443_2_1-SP.1.1",
+      "name": "IEC 62443-2-1 - Security Program Approval",
+      "text": "Is the industrial control security program formally approved by executive management?",
+      "category": "Security Program Governance",
+      "purdueLevel": 4,
+      "description": "Verify documented program approvals, management signatures, and evidence of periodic review cycles.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the security program governance configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_2_1",
+      "standardCode": "62443_2_1-SP.2.1",
+      "name": "IEC 62443-2-1 - Asset Identification and Classification",
+      "text": "Are all operational cyber assets identified, cataloged, and classified by critical impact (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Management",
+      "purdueLevel": 3,
+      "description": "Audit active asset databases, serial lists, and impact scores across the production network.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the asset management configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_3_1",
+      "standardCode": "62443_2_1-SP.3.1",
+      "name": "IEC 62443-2-1 - Risk Assessment Framework",
+      "text": "Is a systematic cyber risk assessment executed at least annually on all production lines?",
+      "category": "Risk Management",
+      "purdueLevel": 4,
+      "description": "Validate risk assessment logs, methodology reports, and mitigation action trackers.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the risk management configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_4_1",
+      "standardCode": "62443_2_1-SP.4.1",
+      "name": "IEC 62443-2-1 - Incident Response Procedures",
+      "text": "Are operational cybersecurity incident response plans documented, active, and tested (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Command",
+      "purdueLevel": 4,
+      "description": "Verify emergency communication charts, active playbooks, and incident logging interfaces.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the incident command configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_5_1",
+      "standardCode": "62443_2_1-SP.5.1",
+      "name": "IEC 62443-2-1 - System Patch Management",
+      "text": "Is an active operational technology patch assessment and distribution plan implemented?",
+      "category": "Maintenance Safety",
+      "purdueLevel": 3,
+      "description": "Review firmware tracking lists, testing sandbox protocols, and patch validation status logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the maintenance safety configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_6_1",
+      "standardCode": "62443_2_1-SP.6.1",
+      "name": "IEC 62443-2-1 - Network Separation Baselines",
+      "text": "Are industrial control segments logically and physically separated from corporate business networks (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Segmentation Strategy",
+      "purdueLevel": 3,
+      "description": "Inspect edge firewall configurations, routing rules, and isolated DMZ boundaries.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the segmentation strategy configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_7_1",
+      "standardCode": "62443_2_1-SP.7.1",
+      "name": "IEC 62443-2-1 - Third-Party Risk Vetting",
+      "text": "Are service provider security capabilities evaluated and contractually enforced?",
+      "category": "Vendor Governance",
+      "purdueLevel": 4,
+      "description": "Check vendor compliance disclosures, signed security clauses, and remote support access authorizations.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the vendor governance configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_8_1",
+      "standardCode": "62443_2_1-SP.8.1",
+      "name": "IEC 62443-2-1 - Operator Access Vetting",
+      "text": "Are physical and logical access permissions reviewed and audited regularly (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Controls",
+      "purdueLevel": 3,
+      "description": "Review operator account profiles, privilege delegation tables, and local authorization logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the access controls configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical IEC 62443 2 1 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_9_1",
+      "standardCode": "62443_2_1-SP.9.1",
+      "name": "IEC 62443-2-1 - Personnel Training Program",
+      "text": "Do personnel receive industrial cybersecurity training prior to accessing critical networks?",
+      "category": "Training Program",
+      "purdueLevel": 4,
+      "description": "Verify employee onboarding certifications, training logs, and security awareness statistics.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the training program configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:IEC_62443_2_1_62443_2_1_SP_10_1",
+      "standardCode": "62443_2_1-SP.10.1",
+      "name": "IEC 62443-2-1 - Disaster Recovery Testing",
+      "text": "Are backup restoration procedures for critical PLCs and SCADA nodes tested annually?",
+      "category": "Operations Continuity",
+      "purdueLevel": 3,
+      "description": "Validate backup recovery test logs, offsite replica configurations, and restoration reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Document the Security Level achieved (SL-A) vs target requirements (SL-T) for each zone conduit.\n\nVERIFICATION CRITERIA:\nInspect the operations continuity configurations, check the verified logs, review the system settings, and check the following: Evaluation evidence must include: Zone and Conduit design architecture diagram, Security Level Target (SL-T) vs Security Level Achieved (SL-A) matrix, and OEM device integration manual validation registers.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

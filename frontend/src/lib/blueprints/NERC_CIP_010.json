@@ -1,0 +1,100 @@
+{
+  "id": "NERC_CIP_010",
+  "name": "NERC CIP-010-4",
+  "fullName": "Configuration Change Management & Vulnerability Assessments",
+  "description": "Enforces baseline configuration tracking, change verification, and regular active vulnerability assessments.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R1_1",
+      "standardCode": "CIP010-CIP-010-R1.1",
+      "name": "NERC CIP-010-4 - Baseline Configuration Log Vetting",
+      "text": "Are baseline configurations documented and approved for all cyber assets?",
+      "category": "Configuration Management",
+      "purdueLevel": 3,
+      "description": "Verify baseline configuration files, check logical profiles, and review software inventories.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the configuration management configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R1_2",
+      "standardCode": "CIP010-CIP-010-R1.2",
+      "name": "NERC CIP-010-4 - Substation Device Configuration Baselines",
+      "text": "Do baselines catalog software versions, logical port settings, and running services?",
+      "category": "Configuration Management",
+      "purdueLevel": 3,
+      "description": "Audit baseline catalog sheets, serial numbers, port rosters, and software registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the configuration management configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R2_1",
+      "standardCode": "CIP010-CIP-010-R2.1",
+      "name": "NERC CIP-010-4 - Configuration Change Vetting Controls",
+      "text": "Do configuration changes undergo security impact analysis prior to deployment?",
+      "category": "Change Security Control",
+      "purdueLevel": 3,
+      "description": "Verify change request documents, risk evaluation reports, and supervisor sign-offs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the change security control configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R2_2",
+      "standardCode": "CIP010-CIP-010-R2.2",
+      "name": "NERC CIP-010-4 - Unauthorized Change Verification Alerts",
+      "text": "Are active file integrity monitors configured to alert on baseline differences?",
+      "category": "Change Security Control",
+      "purdueLevel": 3,
+      "description": "Verify automated baseline integrity checking software configs, delta logs, and alerts.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the change security control configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R3_1",
+      "standardCode": "CIP010-CIP-010-R3.1",
+      "name": "NERC CIP-010-4 - Vulnerability Security Scan Execution",
+      "text": "Are active vulnerability scans executed quarterly on all cyber assets?",
+      "category": "Assessment Management",
+      "purdueLevel": 3,
+      "description": "Audit vulnerability scanning schedules, check report logs, and verify that critical patches are applied.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the assessment management configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R3_2",
+      "standardCode": "CIP010-CIP-010-R3.2",
+      "name": "NERC CIP-010-4 - Vulnerability Mitigation Action Trackers",
+      "text": "Are identified vulnerabilities tracked in an active risk management register?",
+      "category": "Assessment Management",
+      "purdueLevel": 4,
+      "description": "Review vulnerability remediation schedules, action tracking files, and coordinator reviews.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the assessment management configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R4_1",
+      "standardCode": "CIP010-CIP-010-R4.1",
+      "name": "NERC CIP-010-4 - Substation Change Management Logs",
+      "text": "Do changes to network switches and routers require double-signature approval (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Change Controls",
+      "purdueLevel": 3,
+      "description": "Check administrative change ticket registry lists, check routing approvals, and check logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the access change controls configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 010 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R4_2",
+      "standardCode": "CIP010-CIP-010-R4.2",
+      "name": "NERC CIP-010-4 - Configuration Change Access Vetting",
+      "text": "Are configuration database access permissions reviewed and audited regularly (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "Access Change Controls",
+      "purdueLevel": 4,
+      "description": "Review database access logs, verify administrator user limits, and check privilege tables.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the access change controls configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical NERC CIP 010 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R5_1",
+      "standardCode": "CIP010-CIP-010-R5.1",
+      "name": "NERC CIP-010-4 - Transient Cyber Asset Baseline",
+      "text": "Are transient cyber assets scanned for malware prior to connecting to networks (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Transient Asset Safety",
+      "purdueLevel": 3,
+      "description": "Verify transient asset scanning device logs, check update parameters, and inspect scan reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the transient asset safety configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NERC_CIP_010_CIP010_CIP_010_R5_2",
+      "standardCode": "CIP010-CIP-010-R5.2",
+      "name": "NERC CIP-010-4 - Removable Media Malware Vetting",
+      "text": "Are portable media drives scanned on a dedicated inspection kiosk prior to use (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Transient Asset Safety",
+      "purdueLevel": 2,
+      "description": "Inspect portable media check registers, scanning kiosk logs, and malware database status.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the transient asset safety configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    }
+  ]
+}

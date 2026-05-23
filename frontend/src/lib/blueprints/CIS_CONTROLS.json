@@ -1,0 +1,100 @@
+{
+  "id": "CIS_CONTROLS",
+  "name": "CIS Controls v8",
+  "fullName": "CIS Top 18 Critical Security Controls",
+  "description": "Prioritized set of actions protecting enterprise IT and endpoint devices from modern cyber threats.",
+  "category": "General IT/OT",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_1_1",
+      "standardCode": "CIS-CIS-1.1",
+      "name": "CIS Controls v8 - Active Asset Inventory Database",
+      "text": "Is an active database list of identified physical devices maintained?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Verify serial numbers, MAC addresses, and physical device counts against the verified catalog.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_2_1",
+      "standardCode": "CIS-CIS-2.1",
+      "name": "CIS Controls v8 - Software Application Inventory",
+      "text": "Is a formal software application inventory list maintained for all assets?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Verify software registers, linter parameters, and check application install logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_3_1",
+      "standardCode": "CIS-CIS-3.1",
+      "name": "CIS Controls v8 - Identify and Correct Flaws",
+      "text": "Are system software security flaws identified, reported, and corrected in a timely manner?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Verify patch schedules, review automated scanner outputs, and check vulnerability response trackers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_4_1",
+      "standardCode": "CIS-CIS-4.1",
+      "name": "CIS Controls v8 - Restrict Administrative Privileges",
+      "text": "Are administrative privileges restricted to only those users who require them for their role?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 4,
+      "description": "Review administrator lists, check role boundaries, and audit administrative event logging streams.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_5_1",
+      "standardCode": "CIS-CIS-5.1",
+      "name": "CIS Controls v8 - Operator Access Vetting Strategy",
+      "text": "Are logical and physical access permissions reviewed and audited regularly?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Review operator account profiles, privilege delegation tables, and local authorization logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_6_1",
+      "standardCode": "CIS-CIS-6.1",
+      "name": "CIS Controls v8 - Security Event Logging Configuration",
+      "text": "Do hosts log local security events including reboots, failed logins, and resets?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 2,
+      "description": "Verify OS logging configurations, local event logs, and buffer capacity allocations.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_7_1",
+      "standardCode": "CIS-CIS-7.1",
+      "name": "CIS Controls v8 - Microsoft Office Macro Blocking",
+      "text": "Are Microsoft Office macro settings configured to block macros from the Internet?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Verify AD macro configuration rules, block clear-text macros, and ensure only signed macros run.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_8_1",
+      "standardCode": "CIS-CIS-8.1",
+      "name": "CIS Controls v8 - Malware Defenses Enforced Strategy",
+      "text": "Are malware detection engines configured on all endpoints to scan and clean software?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Validate antivirus configurations, check real-time protection locks, and review daily scan reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_9_1",
+      "standardCode": "CIS-CIS-9.1",
+      "name": "CIS Controls v8 - User Endpoint Device Hardening Strategy",
+      "text": "Are user endpoint devices managed, hardened, and secured against malware?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Validate antivirus status, active firewall configs, and automated patch management on all operator laptops.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CIS_CONTROLS_CIS_CIS_10_1",
+      "standardCode": "CIS-CIS-10.1",
+      "name": "CIS Controls v8 - Tested regular backups Strategy",
+      "text": "Are daily backups of critical data, applications, and configurations secured and tested?",
+      "category": "CIS Core Controls",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify secure isolated offsite replica storage, and check annual backup restoration test reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cis core controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

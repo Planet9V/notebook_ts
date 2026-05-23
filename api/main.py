@@ -19,6 +19,7 @@ from api.routers import (
     config,
     context,
     credentials,
+    customers,
     embedding,
     embedding_rebuild,
     episode_profiles,
@@ -28,6 +29,7 @@ from api.routers import (
     notebooks,
     notes,
     podcasts,
+    regulations,
     search,
     settings,
     source_chat,
@@ -35,6 +37,7 @@ from api.routers import (
     speaker_profiles,
     transformations,
     pipeline,
+    assessments,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -291,6 +294,8 @@ async def open_notebook_error_handler(request: Request, exc: OpenNotebookError):
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(config.router, prefix="/api", tags=["config"])
 app.include_router(notebooks.router, prefix="/api", tags=["notebooks"])
+app.include_router(customers.router, prefix="/api", tags=["customers"])
+app.include_router(regulations.router, prefix="/api", tags=["regulations"])
 app.include_router(search.router, prefix="/api", tags=["search"])
 app.include_router(models.router, prefix="/api", tags=["models"])
 app.include_router(transformations.router, prefix="/api", tags=["transformations"])
@@ -312,6 +317,7 @@ app.include_router(source_chat.router, prefix="/api", tags=["source-chat"])
 app.include_router(credentials.router, prefix="/api", tags=["credentials"])
 app.include_router(languages.router, prefix="/api", tags=["languages"])
 app.include_router(pipeline.router, prefix="/api", tags=["pipeline"])
+app.include_router(assessments.router, prefix="/api", tags=["assessments"])
 
 
 @app.get("/")

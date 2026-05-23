@@ -1,0 +1,100 @@
+{
+  "id": "NERC_CIP_008",
+  "name": "NERC CIP-008-6",
+  "fullName": "Incident Reporting and Response Planning",
+  "description": "Establishes requirements to identify, classify, respond, and report critical grid cybersecurity incidents.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R1_1",
+      "standardCode": "CIP008-CIP-008-R1.1",
+      "name": "NERC CIP-008-6 - Incident Reporting Identification Controls",
+      "text": "Are processes defined to classify and identify cyber security incidents (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Readiness",
+      "purdueLevel": 4,
+      "description": "Verify classification criteria documents, incident severity metrics, and manager procedures.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the incident readiness configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R1_2",
+      "standardCode": "CIP008-CIP-008-R1.2",
+      "name": "NERC CIP-008-6 - Substation Cyber Incident Vetting",
+      "text": "Do operations team members review event anomalies daily for cyber threats (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Readiness",
+      "purdueLevel": 3,
+      "description": "Audit local event database logs, check review register sheets, and check central SIEM dashboard alerts.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the incident readiness configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R2_1",
+      "standardCode": "CIP008-CIP-008-R2.1",
+      "name": "NERC CIP-008-6 - Incident Response Plan Action Steps",
+      "text": "Is a documented cyber security incident response plan active and tested (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Response Plan",
+      "purdueLevel": 4,
+      "description": "Audit incident response plans, check tabletop exercise schedules, and verify post-incident reporting trackers.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the incident response plan configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R2_2",
+      "standardCode": "CIP008-CIP-008-R2.2",
+      "name": "NERC CIP-008-6 - Emergency Action Operations Guides",
+      "text": "Are emergency communication charts and contact rosters reviewed and updated annually (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Response Plan",
+      "purdueLevel": 4,
+      "description": "Verify contact lists, check emergency phone numbers, and inspect distribution registers.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the incident response plan configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R3_1",
+      "standardCode": "CIP008-CIP-008-R3.1",
+      "name": "NERC CIP-008-6 - Incident Response Tabletop Testing",
+      "text": "Are scenario tabletop exercises conducted annually for operations team members?",
+      "category": "Verification Exercise",
+      "purdueLevel": 4,
+      "description": "Review tabletop exercise logs, check participant registers, and inspect post-incident action items.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the verification exercise configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R3_2",
+      "standardCode": "CIP008-CIP-008-R3.2",
+      "name": "NERC CIP-008-6 - Tabletop Participant Vetting Registries",
+      "text": "Are regulatory NERC compliance reports filed for all executed tabletop tests?",
+      "category": "Verification Exercise",
+      "purdueLevel": 4,
+      "description": "Check compliance report files, audit test descriptions, and verify manager signatures.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the verification exercise configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R4_1",
+      "standardCode": "CIP008-CIP-008-R4.1",
+      "name": "NERC CIP-008-6 - Incident Reporting Authority Gates",
+      "text": "Are procedures defined to report critical incidents to the ES-ISAC?",
+      "category": "Regulatory Reporting",
+      "purdueLevel": 4,
+      "description": "Review regulatory reporting rules, check ES-ISAC notification forms, and verify contact guides.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the regulatory reporting configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R4_2",
+      "standardCode": "CIP008-CIP-008-R4.2",
+      "name": "NERC CIP-008-6 - ES-ISAC Regulatory Ingestion Logging",
+      "text": "Are critical incident reports filed with ES-ISAC within 60 minutes of classification?",
+      "category": "Regulatory Reporting",
+      "purdueLevel": 4,
+      "description": "Verify reporting timestamps, check notification tracking logs, and audit email gateway times.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the regulatory reporting configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R5_1",
+      "standardCode": "CIP008-CIP-008-R5.1",
+      "name": "NERC CIP-008-6 - Substation Security Alert Thresholds",
+      "text": "Are alarm thresholds configured to alert staff of communication losses?",
+      "category": "Telemetry Auditing",
+      "purdueLevel": 3,
+      "description": "Verify SCADA telemetry alarms, check connectivity monitoring metrics, and trace alert streams.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the telemetry auditing configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NERC_CIP_008_CIP008_CIP_008_R5_2",
+      "standardCode": "CIP008-CIP-008-R5.2",
+      "name": "NERC CIP-008-6 - Vendor Incident Reporting Integrations",
+      "text": "Are third-party service vendors integrated into the incident communication tree?",
+      "category": "Vendor Communication",
+      "purdueLevel": 4,
+      "description": "Check vendor contracts, review coordination procedure guides, and verify contact lists.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Format NERC CIP compliance logs and evidence packages to support regional auditor sweeps.\n\nVERIFICATION CRITERIA:\nInspect the vendor communication configurations, check the verified logs, review the system settings, and check the following: Auditor evidence must include: NERC CIP compliance register, active reliability coordinator approval logs, Bulk Electric System (BES) cyber asset inventories, and WECC/SERC/RFC audit-ready evidence package files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

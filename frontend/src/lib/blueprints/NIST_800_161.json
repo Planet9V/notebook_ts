@@ -1,0 +1,100 @@
+{
+  "id": "NIST_800_161",
+  "name": "NIST SP 800-161 r1",
+  "fullName": "Cybersecurity Supply Chain Risk Management (C-SCRM)",
+  "description": "Technical frameworks for monitoring, managing, and resolving vulnerabilities inside external supplier links.",
+  "category": "Supply Chain Security",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_1_1",
+      "standardCode": "NIST_800_161-SCRM-1.1",
+      "name": "NIST SP 800-161 r1 - Supply Chain Risk Management Strategy",
+      "text": "Is an active cyber security supply chain risk management plan documented?",
+      "category": "SCRM Domain",
+      "purdueLevel": 4,
+      "description": "Review supply chain security strategies, risk evaluation standards, and procurement policies.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm domain configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_1_2",
+      "standardCode": "NIST_800_161-SCRM-1.2",
+      "name": "NIST SP 800-161 r1 - Vendor Procurement Risk Evaluations Strategy",
+      "text": "Are hardware and software acquisitions evaluated for cyber risks prior to purchase?",
+      "category": "SCRM Domain",
+      "purdueLevel": 4,
+      "description": "Validate procurement evaluation check sheets, vendor security responses, and risk scores.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm domain configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_2_1",
+      "standardCode": "NIST_800_161-SCRM-2.1",
+      "name": "NIST SP 800-161 r1 - Hardware Authenticity Verification Logs Strategy",
+      "text": "Are newly purchased network switches and PLCs checked for physical authenticity (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Integrity Vetting",
+      "purdueLevel": 3,
+      "description": "Verify physical inspection registers, verify chassis seal numbers, and check chip codes.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the asset integrity vetting configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_2_2",
+      "standardCode": "NIST_800_161-SCRM-2.2",
+      "name": "NIST SP 800-161 r1 - Firmware Signature Integrity Auditing Strategy",
+      "text": "Are product firmware signatures verified against vendor baselines before deployment (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Asset Integrity Vetting",
+      "purdueLevel": 3,
+      "description": "Validate digital signature verification checks, check secure enclaves, and check hash registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the asset integrity vetting configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_3_1",
+      "standardCode": "NIST_800_161-SCRM-3.1",
+      "name": "NIST SP 800-161 r1 - Supply Chain Security Incident Action Plans Strategy",
+      "text": "Is an emergency response plan active to address supplier security breaches?",
+      "category": "SCRM Domain",
+      "purdueLevel": 4,
+      "description": "Verify vendor breach reaction playbooks, contact maps, and reporting protocols.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm domain configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_3_2",
+      "standardCode": "NIST_800_161-SCRM-3.2",
+      "name": "NIST SP 800-161 r1 - Vendor Security Disclosures Vetting Strategy",
+      "text": "Are vendor cybersecurity disclosures reviewed within 15 days of release?",
+      "category": "SCRM Domain",
+      "purdueLevel": 4,
+      "description": "Verify advisory tracking logs, patch schedule updates, and manager review sign-offs.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm domain configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_4_1",
+      "standardCode": "NIST_800_161-SCRM-4.1",
+      "name": "NIST SP 800-161 r1 - Procurement Contract Security Clauses Strategy",
+      "text": "Do procurement contracts contain clauses requiring vendors to disclose vulnerabilities?",
+      "category": "SCRM Vendor Governance",
+      "purdueLevel": 4,
+      "description": "Verify signed procurement contracts, review legal clauses, and check compliance files.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm vendor governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_4_2",
+      "standardCode": "NIST_800_161-SCRM-4.2",
+      "name": "NIST SP 800-161 r1 - Supply Chain Auditing Registries Strategy",
+      "text": "Are vendor cybersecurity audits conducted and logged in an active registry?",
+      "category": "SCRM Vendor Governance",
+      "purdueLevel": 4,
+      "description": "Verify vendor audit reports, scheduling logs, and coordinator signatures.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm vendor governance configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_5_1",
+      "standardCode": "NIST_800_161-SCRM-5.1",
+      "name": "NIST SP 800-161 r1 - Vendor Remote Link Security Gates Strategy",
+      "text": "Do vendor remote sessions undergo continuous authentication at Jump Host gates (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "SCRM Perimeter Strategy",
+      "purdueLevel": 3,
+      "description": "Validate that remote vendor connections route through Jump Hosts with visual logging.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the scrm perimeter strategy configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NIST_800_161_NIST_800_161_SCRM_5_2",
+      "standardCode": "NIST_800_161-SCRM-5.2",
+      "name": "NIST SP 800-161 r1 - Vendor Hardware Lifecycle Audits Strategy",
+      "text": "Are vendor hardware assets audited annually for compliance with standards (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "SCRM Asset Lifecycle",
+      "purdueLevel": 4,
+      "description": "Verify hardware lifecycle records, audit schedules, and compliance databases.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the scrm asset lifecycle configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    }
+  ]
+}

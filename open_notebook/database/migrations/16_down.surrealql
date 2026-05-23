@@ -1,0 +1,4 @@
+-- Migration 16 Down: Drop compliance assessment auditing schema
+REMOVE TABLE assessment;
+REMOVE TABLE assessment_session;
+REMOVE TABLE assessment_answer;

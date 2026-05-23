@@ -1,0 +1,100 @@
+{
+  "id": "ANSSI_BP_006",
+  "name": "ANSSI BP-006",
+  "fullName": "French Security Guidelines for Industrial Control Systems",
+  "description": "French national cybersecurity agency (ANSSI) guidelines establishing secure ICS network architectures.",
+  "category": "Industrial Control Systems",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_1_1",
+      "standardCode": "ANSSI-ANSSI-1.1",
+      "name": "ANSSI BP-006 - ANSSI ICS Segmentation",
+      "text": "Are industrial control segments logically separated by class perimeters (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "ANSSI Boundary Segmentation",
+      "purdueLevel": 3,
+      "description": "Ensure network boundaries map to Purdue Levels 1-5 with physical or logical segregation conduits and stateful firewalls.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the anssi boundary segmentation configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_1_2",
+      "standardCode": "ANSSI-ANSSI-1.2",
+      "name": "ANSSI BP-006 - Direct Office Bypass Blocking",
+      "text": "Is direct unmediated traffic blocked between process loops and enterprise LANs (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "ANSSI Boundary Segmentation",
+      "purdueLevel": 1,
+      "description": "Validate perimeter-edge firewall rules blocking direct connections between office LANs and field assets.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the anssi boundary segmentation configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_2_1",
+      "standardCode": "ANSSI-ANSSI-2.1",
+      "name": "ANSSI BP-006 - ANSSI Active Host Hardening",
+      "text": "Are unnecessary services and network daemons disabled on all host systems?",
+      "category": "ANSSI Host Hardening",
+      "purdueLevel": 2,
+      "description": "Validate that unused services (e.g. FTP, raw Telnet, HTTP) are disabled in the device settings.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the anssi host hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_2_2",
+      "standardCode": "ANSSI-ANSSI-2.2",
+      "name": "ANSSI BP-006 - Default Manufacturer Credentials",
+      "text": "Are default manufacturer credentials disabled across all field devices?",
+      "category": "ANSSI Host Hardening",
+      "purdueLevel": 2,
+      "description": "Ensure default passwords, accounts, and insecure configurations are changed on commissioning and replaced with unique cryptographically strong passwords.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the anssi host hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_3_1",
+      "standardCode": "ANSSI-ANSSI-3.1",
+      "name": "ANSSI BP-006 - Interactive Session Lock",
+      "text": "Are interactive engineering sessions in industrial environments locked automatically?",
+      "category": "ANSSI Session Hardening",
+      "purdueLevel": 3,
+      "description": "Verify automated session logout thresholds on engineering terminals, SCADA masters, and operations HMIs (default 5 minutes).\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the anssi session hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_3_2",
+      "standardCode": "ANSSI-ANSSI-3.2",
+      "name": "ANSSI BP-006 - Remote Session Tunnels Control",
+      "text": "Are remote session channels mediated through Jump Servers within the architecture?",
+      "category": "ANSSI Session Hardening",
+      "purdueLevel": 3,
+      "description": "Validate secure administrative gateway transit with complete session logging and operator approvals before remote tunneling is active.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the anssi session hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_4_1",
+      "standardCode": "ANSSI-ANSSI-4.1",
+      "name": "ANSSI BP-006 - Local Diagnostic Lockouts Strategy",
+      "text": "Are physical diagnostic serial ports locked or logically disabled?",
+      "category": "ANSSI Physical Safeguards",
+      "purdueLevel": 1,
+      "description": "Ensure RS-232, RS-485, and USB interfaces are physically locked or disabled to prevent local intrusions.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the anssi physical safeguards configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_4_2",
+      "standardCode": "ANSSI-ANSSI-4.2",
+      "name": "ANSSI BP-006 - Unused Port Lockdown Strategy",
+      "text": "Are unused physical ethernet ports on network devices logically locked?",
+      "category": "ANSSI Physical Safeguards",
+      "purdueLevel": 1,
+      "description": "Verify physical switchports are administratively disabled and locked inside secure enclosures.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the anssi physical safeguards configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_5_1",
+      "standardCode": "ANSSI-ANSSI-5.1",
+      "name": "ANSSI BP-006 - Tested regular backups Strategy",
+      "text": "Are daily backups of critical data, applications, and configurations secured and tested (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "ANSSI Incident Continuity",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify secure isolated offsite replica storage, and check annual backup restoration test reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the anssi incident continuity configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:ANSSI_BP_006_ANSSI_ANSSI_5_2",
+      "standardCode": "ANSSI-ANSSI-5.2",
+      "name": "ANSSI BP-006 - Malware Defenses Enforced Strategy",
+      "text": "Are malware detection engines configured on all endpoints to scan and clean software (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "ANSSI Incident Continuity",
+      "purdueLevel": 3,
+      "description": "Validate antivirus configurations, check real-time protection locks, and review daily scan reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the anssi incident continuity configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    }
+  ]
+}

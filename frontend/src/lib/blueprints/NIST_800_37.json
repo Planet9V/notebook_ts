@@ -1,0 +1,100 @@
+{
+  "id": "NIST_800_37",
+  "name": "NIST SP 800-37 r2",
+  "fullName": "Risk Management Framework - RMF Process Guide",
+  "description": "Directs the seven-step authorization and continuous monitoring pipeline for critical state database systems.",
+  "category": "Risk Management",
+  "sector": "Cross-Sector",
+  "questions": [
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_1_1",
+      "standardCode": "NIST_800_37-RMF-1.1",
+      "name": "NIST SP 800-37 r2 - Risk Management Framework Preparation",
+      "text": "Are organization-wide and system-level security preparation steps executed?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 4,
+      "description": "Verify documented preparation reports, executive approval signatures, and system categorizations.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_2_1",
+      "standardCode": "NIST_800_37-RMF-2.1",
+      "name": "NIST SP 800-37 r2 - RMF System Categorization Strategy",
+      "text": "Are systems categorized based on high-impact threat levels?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 3,
+      "description": "Audit active asset databases, serial lists, and impact scores across the production network.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_3_1",
+      "standardCode": "NIST_800_37-RMF-3.1",
+      "name": "NIST SP 800-37 r2 - RMF Control Selection Strategy",
+      "text": "Are standard baseline security controls selected and tailored for systems?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 4,
+      "description": "Validate control selection registers, security plans, and tailored overlay files.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_4_1",
+      "standardCode": "NIST_800_37-RMF-4.1",
+      "name": "NIST SP 800-37 r2 - RMF Control Implementation Strategy",
+      "text": "Are selected security controls implemented and documented inside system plans?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 3,
+      "description": "Verify control implementation logs, check active directories, and audit switch configs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_5_1",
+      "standardCode": "NIST_800_37-RMF-5.1",
+      "name": "NIST SP 800-37 r2 - RMF Control Assessment Strategy",
+      "text": "Are implemented controls assessed to confirm they operate effectively?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 4,
+      "description": "Verify control assessment plans, check auditor rosters, and review assessment reports.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_6_1",
+      "standardCode": "NIST_800_37-RMF-6.1",
+      "name": "NIST SP 800-37 r2 - RMF System Authorization Strategy",
+      "text": "Are system authorizations granted by senior leaders based on risk?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 4,
+      "description": "Verify signed authorization letters, system security plans, and risk profiles.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_7_1",
+      "standardCode": "NIST_800_37-RMF-7.1",
+      "name": "NIST SP 800-37 r2 - RMF Continuous Monitoring Strategy",
+      "text": "Do systems undergo active continuous security monitoring?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 3,
+      "description": "Inspect IDS status reports, signature update frequency, and network sensor alarm registers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_7_2",
+      "standardCode": "NIST_800_37-RMF-7.2",
+      "name": "NIST SP 800-37 r2 - Security Event Logs Review Strategy",
+      "text": "Are security-relevant operational logs reviewed daily by operations staff?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 3,
+      "description": "Audit local event database logs, check review register sheets, and check central SIEM dashboard alerts.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_3_2",
+      "standardCode": "NIST_800_37-RMF-3.2",
+      "name": "NIST SP 800-37 r2 - Third-Party Risk Vetting Strategy",
+      "text": "Are service provider security capabilities evaluated and contractually enforced?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 4,
+      "description": "Check vendor compliance disclosures, signed security clauses, and remote support access authorizations.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NIST_800_37_NIST_800_37_RMF_6_2",
+      "standardCode": "NIST_800_37-RMF-6.2",
+      "name": "NIST SP 800-37 r2 - Disaster Recovery Testing Strategy",
+      "text": "Are backup restoration procedures for critical PLCs and SCADA nodes tested annually?",
+      "category": "RMF Steps 1-7",
+      "purdueLevel": 3,
+      "description": "Validate backup recovery test logs, offsite replica configurations, and restoration reports.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the rmf steps 1-7 configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

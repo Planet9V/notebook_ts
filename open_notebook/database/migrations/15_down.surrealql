@@ -1,0 +1,3 @@
+-- Rollback Migration 15: Remove customer table and customer_id field
+REMOVE FIELD customer_id ON TABLE notebook;
+REMOVE TABLE IF EXISTS customer;

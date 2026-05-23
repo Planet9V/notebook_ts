@@ -14,6 +14,7 @@ class NotebookCreate(BaseModel):
     contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Stakeholder contacts list")
     crawl_failed: Optional[bool] = Field(False, description="Whether the last crawl failed")
     suggested_contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Stakeholder suggested contacts list")
+    customer_id: Optional[str] = Field(None, description="Optional Customer ID this notebook belongs to")
 
 
 class NotebookUpdate(BaseModel):
@@ -29,6 +30,7 @@ class NotebookUpdate(BaseModel):
     contacts: Optional[List[Dict[str, str]]] = Field(None, description="Stakeholder contacts list")
     crawl_failed: Optional[bool] = Field(None, description="Whether the last crawl failed")
     suggested_contacts: Optional[List[Dict[str, str]]] = Field(None, description="Stakeholder suggested contacts list")
+    customer_id: Optional[str] = Field(None, description="Optional Customer ID this notebook belongs to")
 
 
 class NotebookResponse(BaseModel):
@@ -47,6 +49,7 @@ class NotebookResponse(BaseModel):
     contacts: List[Dict[str, str]]
     crawl_failed: bool
     suggested_contacts: List[Dict[str, str]]
+    customer_id: Optional[str] = None
 
 
 # Search models
@@ -742,4 +745,133 @@ class GraphValidationResponse(BaseModel):
     violatedEdges: List[str]
     threatPaths: List[List[str]]
     verifiedRequirements: List[str]
+
+
+# Customer models
+class CustomerCreate(BaseModel):
+    name: str = Field(..., description="Name of the customer company")
+    website: Optional[str] = Field("", description="Website URL of the customer")
+    description: Optional[str] = Field("", description="Description of the customer")
+    industry: Optional[str] = Field("", description="Industry sector of the customer")
+    primary_sector: Optional[str] = Field("", description="Primary CISA critical infrastructure sector")
+    sectors: Optional[List[str]] = Field(default_factory=list, description="All mapped CISA sectors")
+    assigned_frameworks: Optional[List[str]] = Field(default_factory=list, description="Assigned CSET compliance frameworks list")
+    contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Primary contacts list")
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Name of the customer company")
+    website: Optional[str] = Field(None, description="Website URL of the customer")
+    description: Optional[str] = Field(None, description="Description of the customer")
+    industry: Optional[str] = Field(None, description="Industry sector of the customer")
+    primary_sector: Optional[str] = Field(None, description="Primary CISA critical infrastructure sector")
+    sectors: Optional[List[str]] = Field(None, description="All mapped CISA sectors")
+    assigned_frameworks: Optional[List[str]] = Field(None, description="Assigned CSET compliance frameworks list")
+    contacts: Optional[List[Dict[str, str]]] = Field(None, description="Primary contacts list")
+
+class CustomerResponse(BaseModel):
+    id: str
+    name: str
+    website: str
+    description: str
+    industry: str
+    primary_sector: str
+    sectors: List[str]
+    assigned_frameworks: List[str]
+    contacts: List[Dict[str, str]]
+    created: str
+    updated: str
+
+class CustomerMetricsResponse(CustomerResponse):
+    notebook_count: int = Field(0, description="Number of associated notebooks")
+    total_value: float = Field(0.0, description="Sum of associated notebooks estimated deal value")
+    compliance_progress: float = Field(0.0, description="Average security compliance progress percentage")
+
+
+# CSET Regulations & Questions models
+class RegulationResponse(BaseModel):
+    id: str
+    name: str
+    fullName: str
+    description: str
+    category: str
+    sector: str
+    sectors: Optional[List[str]] = Field(default_factory=list)
+    questionCount: int
+    maturityLevels: List[str]
+
+
+class QuestionResponse(BaseModel):
+    id: str
+    regulation_id: str
+    standard_code: str
+    question_text: str
+    description: str
+    purdue_level: int
+    category: str
+
+
+# Compliance Assessment & Auditing models
+class AssessmentCreate(BaseModel):
+    customer_id: str = Field(..., description="Customer ID record link")
+    framework_id: str = Field(..., description="Framework ID string")
+
+class AssessmentResponse(BaseModel):
+    id: str
+    customer_id: str
+    framework_id: str
+    created_at: str
+
+class AssessmentSessionCreate(BaseModel):
+    session_name: str = Field(..., description="Name of the assessment session")
+    carry_forward_prior: Optional[bool] = Field(True, description="Clones all answers from previous session if available")
+
+class AssessmentSessionResponse(BaseModel):
+    id: str
+    assessment_id: str
+    session_name: str
+    created_at: str
+    completed_at: Optional[str] = None
+    status: str  # "IN_PROGRESS" | "COMPLETED"
+    version_lock: Optional[str] = None
+
+class AssessmentAnswerUpdate(BaseModel):
+    answer: str = Field(..., description="YES, NO, N/A, ALT answer status")
+    comments: Optional[str] = Field("", description="Remediation comments and notes")
+    evidence_url: Optional[str] = Field("", description="URL or filepath reference to evidence")
+
+class AssessmentAnswerResponse(BaseModel):
+    id: str
+    session_id: str
+    question_id: str
+    answer: str
+    comments: str
+    evidence_url: str
+    updated_at: str
+
+class AssessmentReportStats(BaseModel):
+    total_questions: int
+    answered_count: int
+    yes_count: int
+    no_count: int
+    na_count: int
+    alt_count: int
+    completion_percentage: float
+    compliance_score: float
+
+class CategoryCoverage(BaseModel):
+    category: str
+    total: int
+    answered: int
+    yes_count: int
+    score: float
+
+class AssessmentReportResponse(BaseModel):
+    session_id: str
+    session_name: str
+    framework_id: str
+    stats: AssessmentReportStats
+    category_coverage: List[CategoryCoverage]
+    prioritized_recommendations: List[Dict[str, Any]]
+
+
 

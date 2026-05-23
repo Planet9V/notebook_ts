@@ -1,0 +1,100 @@
+{
+  "id": "CNSSI_1253",
+  "name": "CNSSI 1253",
+  "fullName": "Security Categorization for National Security Systems",
+  "description": "Instructions on categorizing government national security databases and applying tailored overlays.",
+  "category": "Defense & Aerospace",
+  "sector": "Defense",
+  "questions": [
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_AC_1_1",
+      "standardCode": "CNSSI-CNSS-AC-1.1",
+      "name": "CNSSI 1253 - National System Access Control",
+      "text": "Are system access rights limited to authorized government national security users (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "NSS Access Control",
+      "purdueLevel": 4,
+      "description": "Review user access provisioning logs, check active directory profiles, and audit router access lists.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the nss access control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical CNSSI 1253 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_AC_1_2",
+      "standardCode": "CNSSI-CNSS-AC-1.2",
+      "name": "CNSSI 1253 - Authorized External Connections",
+      "text": "Are external logical connections authorized, documented, and monitored (utilizing secure Jump Hosts, MFA validation nodes, active directory GPOs, and hardware tokens)?",
+      "category": "NSS Access Control",
+      "purdueLevel": 3,
+      "description": "Verify firewall rules separating internal zones, check VPN connection logs, and audit remote gateways.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the nss access control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUnauthenticated or unmonitored IT-OT bridge endpoints can expose critical CNSSI 1253 systems to lateral network pivoting. An administrative compromise in the enterprise domain (such as phishing or AD account compromise) can lead directly to unauthorized SCADA control commands."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_IA_5_1",
+      "standardCode": "CNSSI-CNSS-IA-5.1",
+      "name": "CNSSI 1253 - Unique User Identification",
+      "text": "Are all human users uniquely identified and authenticated before accessing government databases?",
+      "category": "NSS Identity Verification",
+      "purdueLevel": 3,
+      "description": "Ensure each employee has unique login credentials and default accounts are completely disabled.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the nss identity verification configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_IA_5_2",
+      "standardCode": "CNSSI-CNSS-IA-5.2",
+      "name": "CNSSI 1253 - Password Complexity Baselines",
+      "text": "Are password complexity standards and active lockouts enforced?",
+      "category": "NSS Identity Verification",
+      "purdueLevel": 3,
+      "description": "Verify AD GPO password rules, check lockout thresholds, and audit password expiration parameters.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the nss identity verification configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_MP_8_3",
+      "standardCode": "CNSSI-CNSS-MP-8.3",
+      "name": "CNSSI 1253 - Physical Media Sanitization",
+      "text": "Is media containing Controlled Unclassified Information sanitized prior to disposal?",
+      "category": "NSS Media Protection",
+      "purdueLevel": 2,
+      "description": "Review media degaussing and destruction procedures, inspect disposal logs, and check third-party sanitation certificates.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the nss media protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_PE_10_1",
+      "standardCode": "CNSSI-CNSS-PE-10.1",
+      "name": "CNSSI 1253 - Physical Security Access",
+      "text": "Are physical access perimeters and locked cabinets implemented at CUI sites?",
+      "category": "NSS Physical Protection",
+      "purdueLevel": 1,
+      "description": "Inspect physical locks, check badge-reader entry logs, and verify that server racks are physically padlocked.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the nss physical protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_PE_10_2",
+      "standardCode": "CNSSI-CNSS-PE-10.2",
+      "name": "CNSSI 1253 - Protect Support Infrastructure",
+      "text": "Are secondary support infrastructures (power, HVAC) physically secured and monitored?",
+      "category": "NSS Physical Protection",
+      "purdueLevel": 1,
+      "description": "Verify physical gates, locked padlocks, and CCTV analytics protecting auxiliary generators and HVAC air intake vents.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the nss physical protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_SC_13_1",
+      "standardCode": "CNSSI-CNSS-SC-13.1",
+      "name": "CNSSI 1253 - Monitor and Control Communications",
+      "text": "Are organizational communications monitored, controlled, and protected at boundary perimeters?",
+      "category": "NSS Boundary Protection",
+      "purdueLevel": 3,
+      "description": "Verify boundary firewalls, inspect intrusion detection logs, and check active network flow monitors.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the nss boundary protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_SC_13_5",
+      "standardCode": "CNSSI-CNSS-SC-13.5",
+      "name": "CNSSI 1253 - Subnetwork Segmentation",
+      "text": "Are publicly accessible system components segregated in dedicated subnetworks?",
+      "category": "NSS Boundary Protection",
+      "purdueLevel": 3,
+      "description": "Ensure DMZ isolation, verify router ACL configurations, and audit reverse-proxy configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the nss boundary protection configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:CNSSI_1253_CNSSI_CNSS_SI_14_1",
+      "standardCode": "CNSSI-CNSS-SI-14.1",
+      "name": "CNSSI 1253 - Identify and Correct Flaws",
+      "text": "Are system software security flaws identified, reported, and corrected in a timely manner (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "NSS System Integrity",
+      "purdueLevel": 3,
+      "description": "Verify patch schedules, review automated scanner outputs, and check vulnerability response trackers.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the nss system integrity configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    }
+  ]
+}

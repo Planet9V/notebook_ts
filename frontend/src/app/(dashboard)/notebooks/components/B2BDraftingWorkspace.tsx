@@ -318,15 +318,8 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Verify key-exchange block electromagnetic emission profiles against Tetrel\'s physical DEMA reference templates.',
       badge: 'HS-50 DEMA Compliant',
       specSource: 'HS-50 Hardware Audit Manual, Section 4.2',
-      referenceText: 'All hardware key-exchange modules must undergo differential electromagnetic auditing to isolate leakages below -110dBm.'
-    },
-    {
-      id: 'hs50-glitch',
-      title: 'Glitch Injection step-lock verification',
-      description: 'Laser voltage injection tests on memory boundaries to guarantee functional step-lock isolation.',
-      badge: 'Laser Resistant',
-      specSource: 'HS-50 Hardware Audit Manual, Section 5.9',
-      referenceText: 'Step-lock registers must implement auto-recovery thresholds within 3 clock cycles of fault detection.'
+      referenceText: 'All hardware key-exchange modules must undergo differential electromagnetic auditing to isolate leakages below -110dBm.',
+      category: 'Physical Side-Channel Protection'
     },
     {
       id: 'hs50-timing',
@@ -334,7 +327,26 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Confirm AES-256 block timing leakage metrics remain within acceptable noise floor tolerances.',
       badge: 'AES-Timing Clear',
       specSource: 'HS-50 Technical Spec Sheet, Page 12',
-      referenceText: 'Timing deviations across cryptographic executions must not exceed 0.05% under high-concurrency threads.'
+      referenceText: 'Timing deviations across cryptographic executions must not exceed 0.05% under high-concurrency threads.',
+      category: 'Physical Side-Channel Protection'
+    },
+    {
+      id: 'hs50-glitch',
+      title: 'Glitch Injection step-lock verification',
+      description: 'Laser voltage injection tests on memory boundaries to guarantee functional step-lock isolation.',
+      badge: 'Laser Resistant',
+      specSource: 'HS-50 Hardware Audit Manual, Section 5.9',
+      referenceText: 'Step-lock registers must implement auto-recovery thresholds within 3 clock cycles of fault detection.',
+      category: 'Fault Injection & Tamper Resistance'
+    },
+    {
+      id: 'hs50-temper',
+      title: 'Thermal & Voltage Tamper Detection',
+      description: 'Verify active substrate sensors trigger immediate zeroization of secure key storage upon boundary breach.',
+      badge: 'Sensors Active',
+      specSource: 'HS-50 Security Architecture, Page 14',
+      referenceText: 'Crypto-boundaries must trigger physical key zeroization if core temperature deviates beyond -40C to 125C.',
+      category: 'Fault Injection & Tamper Resistance'
     }
   ],
   'DT-200': [
@@ -344,7 +356,17 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Inspect RDMA networking configuration to ensure absolute memory context isolation between GPU slices.',
       badge: 'RDMA Segment Active',
       specSource: 'DT-200 Security Architecture, Page 8',
-      referenceText: 'Multi-node GPU architectures must enforce absolute address segregation across network-attached storage buffers.'
+      referenceText: 'Multi-node GPU architectures must enforce absolute address segregation across network-attached storage buffers.',
+      category: 'Compute & Memory Isolation'
+    },
+    {
+      id: 'dt200-enclave',
+      title: 'Confidential VM Hardware Enclave Attestation',
+      description: 'Verify cryptographic hardware-based root of trust attestation for guest VM memory execution spaces.',
+      badge: 'Enclave Verified',
+      specSource: 'DT-200 Core Spec, Section 2.1',
+      referenceText: 'All virtual machine instances handling model inferencing must run inside hardware-isolated secure enclaves.',
+      category: 'Compute & Memory Isolation'
     },
     {
       id: 'dt200-tamper',
@@ -352,7 +374,8 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Cryptographically sign model-weight uploads at target checkpoints to prevent poison payload execution.',
       badge: 'Payload Signed',
       specSource: 'DT-200 Ingest Guideline, Section 3.1',
-      referenceText: 'SHA-512 hashes of baseline datasets must be validated at every epoch change to guarantee weight purity.'
+      referenceText: 'SHA-512 hashes of baseline datasets must be validated at every epoch change to guarantee weight purity.',
+      category: 'Data & Payload Integrity'
     },
     {
       id: 'dt200-quant',
@@ -360,7 +383,8 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Mitigate hardware timing side-channels during model quantization layer execution.',
       badge: 'Quantization Masked',
       specSource: 'DT-200 Core Blueprint, Section 7.4',
-      referenceText: 'Layer-wise activation timing must be masked with random delay insertions (1-5µs) to prevent weights reconstruction.'
+      referenceText: 'Layer-wise activation timing must be masked with random delay insertions (1-5µs) to prevent weights reconstruction.',
+      category: 'Data & Payload Integrity'
     }
   ],
   'ISO-26262': [
@@ -370,7 +394,8 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Ensure hardware design achieves >99% diagnostic coverage for single-point faults.',
       badge: 'ASIL-D SPFM Validated',
       specSource: 'ISO-26262 Safety Standard, Part 5',
-      referenceText: 'Critical logic pathways in automotive semiconductors require concurrent monitoring to exceed the 99% SPFM threshold.'
+      referenceText: 'Critical logic pathways in automotive semiconductors require concurrent monitoring to exceed the 99% SPFM threshold.',
+      category: 'ASIL-D Diagnostic Safety Metrics'
     },
     {
       id: 'iso-ecc',
@@ -378,7 +403,8 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Verify double-bit error detection and single-bit correction coverage on SRAM cells.',
       badge: 'ECC Diagnostic Active',
       specSource: 'Automotive Safety Manual, Section 8.3',
-      referenceText: 'ECC diagnostic coverage must be evaluated through simulated fault-injection sweeps at minimum and maximum temperatures.'
+      referenceText: 'ECC diagnostic coverage must be evaluated through simulated fault-injection sweeps at minimum and maximum temperatures.',
+      category: 'ASIL-D Diagnostic Safety Metrics'
     },
     {
       id: 'iso-lfm',
@@ -386,7 +412,17 @@ const ALL_COMPLIANCE_CHECKS: Record<string, Omit<ComplianceCheck, 'checked'>[]> 
       description: 'Validate that latent faults in safety-critical registers do not propagate to the primary system bus.',
       badge: 'LFM Boundary Verified',
       specSource: 'ISO-26262 safety guidelines, Page 34',
-      referenceText: 'Self-test routines executed at power-on must test latent fault conditions in all redundant logic gates.'
+      referenceText: 'Self-test routines executed at power-on must test latent fault conditions in all redundant logic gates.',
+      category: 'Safety-Critical Verification & Latent Faults'
+    },
+    {
+      id: 'iso-fmda',
+      title: 'Automotive Failure Modes Effects & Diagnostics Analysis',
+      description: 'Perform quantitative FMEDA to verify ASIL-D random hardware failure rate (FIT) remains under target levels.',
+      badge: 'ASIL-D FIT Under 10',
+      specSource: 'ISO-26262 Safety Standard, Part 5, Clause 8',
+      referenceText: 'The hardware architecture must achieve a probabilistic metric for random hardware failures (PMHF) of less than 10 FIT.',
+      category: 'Safety-Critical Verification & Latent Faults'
     }
   ]
 }
@@ -430,12 +466,15 @@ export function B2BDraftingWorkspace({
     'hs50-dema': true,
     'hs50-glitch': false,
     'hs50-timing': false,
+    'hs50-temper': false,
     'dt200-rdma': false,
+    'dt200-enclave': false,
     'dt200-tamper': false,
     'dt200-quant': false,
     'iso-spfm': false,
     'iso-ecc': false,
-    'iso-lfm': false
+    'iso-lfm': false,
+    'iso-fmda': false
   })
 
   const [selectedCheck, setSelectedCheck] = useState<ComplianceCheck | null>(null)

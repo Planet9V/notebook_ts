@@ -1,50 +1,157 @@
-# Findings & Decisions
+# CISA 16 USA Critical Infrastructure Sectors & Framework Mapping Findings
 
-## Requirements
-- **Deep Integration with Sources**: Scrapes/searches must be saved as first-class `Source` records in SurrealDB, linked to the target notebook, and immediately vectorized (`source.vectorize()`) to expand the RAG chatbot's context.
-- **Structured Note Generation**: Process scraped/searched context through the designated LLM (using the rule's specific prompt, query template, and model override) to generate a premium prospecting note/report (e.g. Technical SPEC sheet, Competitor sheet, Location sheet) saved as a `Note` of type `"ai"`.
-- **Kanban Board & Visual Indicators**: The pipeline triggers asynchronously on stage transitions (moving deal cards). Pulse visual badges (`🔍 Researching...`) on cards while background crawlers/searchers run.
-- **Highly Flexible Custom Prompts and Models**: Rules can override models and define custom templates and prompts for different pipeline stages (e.g. pre-sales prep, business news search, technical spec crawl).
+This document records the definitive research and findings on aligning Tetrel's compliance framework engine with the official Cybersecurity and Infrastructure Security Agency (CISA) and Department of Homeland Security (DHS) list of **16 Critical Infrastructure Sectors**. 
 
-## Research Findings
-- The pipeline execution logic is contained in `open_notebook/domain/pipeline_worker.py`.
-- Currently, the worker does the following:
-  - Finds matching pipeline rules for the new stage.
-  - Increment the `ACTIVE_SCANS[notebook_id]` counter (so the frontend Kanban board knows it is scanning).
-  - Crawls URL using BeautifulSoup or queries Brave/Tavily/DuckDuckGo.
-  - Summarizes the results using an LLM.
-  - Saves the summary as a `Note` record and calls `await note.add_to_notebook(notebook_id)`.
-  - Decrements the active scans count.
-- Crucially, it **does not** create a `Source` record for the raw scraped webpage or search query. This means the RAG chat has no access to the complete text of the scraped page or search context, only to the compiled note.
-- In `open_notebook/domain/notebook.py`, the `Source` class has a `vectorize()` method which submits an async `embed_source` background job in SurrealDB, and an `add_to_notebook(notebook_id)` method which links the source to the notebook via a `reference` edge.
+---
 
-## Technical Decisions
-| Decision | Rationale |
-|----------|-----------|
-| Create `Source` for `crawl` | When a website is scraped, create a `Source` with `title=f"Scraped Webpage: {source_url}"` and `full_text=clean_text`, with `Asset(url=source_url)`. Link it to the notebook and run `await source.vectorize()`. |
-| Create `Source` for `search` | When a web search is run, compile the top results into a formatted text block and create a `Source` with `title=f"Web Search: {query}"` and `full_text=search_context`. Link it to the notebook and run `await source.vectorize()`. |
-| LLM summary generation | Continue passing the crawled text or search context to the LLM as before to populate a rich markdown summary `Note`. This note itself gets embedded via `embed_note` during its `.save()`, ensuring both the raw data and the high-level summary are fully vectorized. |
+## 1. Authoritative CISA 16 Critical Infrastructure Sectors List
+Under Presidential Policy Directive 21 (PPD-21), 16 sectors are designated as critical, meaning their physical or virtual destruction would have a debilitating impact on national security, economic security, or public health and safety (CISA, 2023; PPD-21, 2013).
 
-## Issues Encountered
-| Issue | Resolution |
-|-------|------------|
-| `socket.gaierror` during crawl test | The newly added `Source` and `Asset` model instantiation and `.save()` operations in `pipeline_worker.py` were not patched in `tests/test_pipeline.py`. This caused the unit test to attempt connecting to a real SurrealDB instance at the `surrealdb` hostname, resulting in network errors. Resolve this by patching `Source` and `Asset` in `tests/test_pipeline.py`. |
+Below is the definitive list of the 16 sectors, their designated Sector Risk Management Agencies (SRMAs), and key subsectors:
 
-## Resources
-- Domain classes: `open_notebook/domain/notebook.py`
-- Pipeline worker: `open_notebook/domain/pipeline_worker.py`
-- Pipeline rules router: `api/routers/pipeline.py`
-- Pipeline tests: `tests/test_pipeline.py`
+1. **Chemical Sector**
+   * **SRMA:** Department of Homeland Security (DHS) / CISA
+   * **Subsectors:** Agricultural chemicals, Specialty chemicals, Industrial gases, Petrochemicals, Coal, tar, and wood chemicals, Plastics and synthetics.
+2. **Commercial Facilities Sector**
+   * **SRMA:** DHS / CISA
+   * **Subsectors:** Entertainment and Media, Gaming, Lodging, Outdoor Events, Public Assembly, Real Estate, Retail, Sports Leagues.
+3. **Communications Sector**
+   * **SRMA:** DHS / CISA
+   * **Subsectors:** Wireline, Wireless, Satellite, Cable, Broadcast.
+4. **Critical Manufacturing Sector**
+   * **SRMA:** DHS / CISA
+   * **Subsectors:** Primary Metals, Machinery, Electrical Equipment and Components, Transportation Equipment.
+5. **Dams Sector**
+   * **SRMA:** DHS / CISA
+   * **Subsectors:** Dams, Levees, Hurricane Barriers, Lock and Dam Systems, Water Retention Systems.
+6. **Defense Industrial Base Sector**
+   * **SRMA:** Department of Defense (DoD)
+   * **Subsectors:** Research and Development, Design, Development, Manufacture, Delivery, and Maintenance of military weapon systems, subsystems, and components.
+7. **Emergency Services Sector**
+   * **SRMA:** DHS / CISA
+   * **Subsectors:** Law Enforcement, Fire and Rescue Services, Emergency Medical Services (EMS), Emergency Management, Public Works.
+8. **Energy Sector**
+   * **SRMA:** Department of Energy (DOE)
+   * **Subsectors:** Electricity (Generation, Transmission, Distribution), Petroleum (Production, Refining, Storage), Natural Gas (Extraction, Transmission, Distribution).
+9. **Financial Services Sector**
+   * **SRMA:** Department of the Treasury
+   * **Subsectors:** Depository Institutions (Banking), Securities and Investments, Insurance, Payments and Clearing Systems.
+10. **Food and Agriculture Sector**
+    * **SRMA:** Department of Agriculture (USDA) / Department of Health and Human Services (HHS)
+    * **Subsectors:** Agriculture and Production (Farms, Ranches), Processing, Packaging, and Distribution, Retail and Foodservice (Grocery, Restaurants).
+11. **Government Facilities Sector**
+    * **SRMA:** DHS (Federal Protective Service) / General Services Administration (GSA)
+    * **Subsectors:** General Government Facilities (Courthouses, Offices), Education Facilities (Schools, Universities), Cyber/Physical Infrastructure (Data Centers), National Monuments and Icons.
+12. **Healthcare and Public Health Sector**
+    * **SRMA:** HHS
+    * **Subsectors:** Direct Patient Care (Hospitals, Clinics), Health Information Technology, Medical Materials, Devices, and Supply Chains, Public Health Agencies.
+13. **Information Technology Sector**
+    * **SRMA:** DHS / CISA
+    * **Subsectors:** IT Production (Hardware, Software, Services), IT Infrastructure (Data Centers, Cloud, Internet Routing), Cybersecurity and Threat Information.
+14. **Nuclear Reactors, Materials, and Waste Sector**
+    * **SRMA:** DHS / CISA
+    * **Subsectors:** Operating Nuclear Power Reactors, Research and Test Reactors, Nuclear Fuel Cycle Facilities, Radioactive Waste Management and Storage.
+15. **Transportation Systems Sector**
+    * **SRMA:** DHS (TSA) / Department of Transportation (DOT)
+    * **Subsectors:** Aviation, Highway Infrastructure and Motor Carrier, Maritime Transportation, Mass Transit and Passenger Rail, Pipeline Systems, Freight Rail.
+16. **Water and Wastewater Systems Sector**
+    * **SRMA:** Environmental Protection Agency (EPA)
+    * **Subsectors:** Drinking Water Systems (Treatment, Distribution), Wastewater Systems (Collection, Treatment).
 
-## CSET OT Network Canvas Integration
-- **Interactive drawing canvas**: Built a gorgeous, responsive React Flow drawing canvas at `/notebooks` inside the B2B workspace. Mapped standard Purdue model swimlanes (Level 4, Level 3, Level 1-2) with visual backgrounds.
-- **ELKjs Manhattan Routing**: Integrated ELKjs for obstacle-aware, right-angled Manhattan orthogonal line routing to avoid overlaps and mimic industrial standards.
-- **FastAPI NetworkX Audits**: Connected the canvas to real-time backend zone validation using NetworkX. Direct zone bypasses (e.g. L1 to L4 without a firewall) trigger pulsating threat paths and dynamically flag compliance sidebar alerts.
-- **Local Dev Server Status**: Cleanly started all services in local dev mode (`make start-all`):
-  - **SurrealDB**: Running in Docker at port `8000`.
-  - **API Backend**: Running at `http://localhost:5055`.
-  - **Background Worker**: Running and listening to database command queues.
-  - **Next.js Frontend**: Running via dev server at `http://localhost:3000`.
+---
 
-*Update this file after every 2 view/browser/search operations*
-*This prevents visual information from being lost*
+## 2. Multi-Sector Classification of 66 Compliance Frameworks
+Frameworks can belong to multiple sectors because their cybersecurity controls apply to environments where systems intersect (e.g., smart grids span Energy, Critical Manufacturing, and IT). 
+
+Below is the definitive classification of Tetrel's 66 compliance frameworks into CISA's official sectors, incorporating a primary `sector` field (for backward compatibility) and a new `sectors` array of strings:
+
+### Cross-Sector & Core Frameworks
+* **IEC 62443-3-3** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical", "Transportation Systems", "Dams", "Nuclear Reactors, Materials, and Waste"]`)
+* **IEC 62443-4-2** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical", "Transportation Systems", "Nuclear Reactors, Materials, and Waste"]`)
+* **IEC 62443-2-1** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical", "Transportation Systems"]`)
+* **IEC 62443-2-4** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical", "Transportation Systems"]`)
+* **IEC 62443-4-1** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical", "Transportation Systems"]`)
+* **NIST SP 800-82 r3** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Energy", "Water and Wastewater Systems", "Critical Manufacturing", "Chemical", "Dams", "Nuclear Reactors, Materials, and Waste", "Transportation Systems"]`)
+* **NIST SP 800-53 r5** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Government Facilities", "Defense Industrial Base", "Healthcare and Public Health", "Financial Services"]`)
+* **NIST CSF v2.0** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Financial Services", "Energy", "Healthcare and Public Health", "Commercial Facilities", "Government Facilities", "Communications"]`)
+* **CISA Cross-Sector CPGs** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Energy", "Water and Wastewater Systems", "Healthcare and Public Health", "Transportation Systems", "Emergency Services"]`)
+* **CIS Controls v8** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Commercial Facilities", "Government Facilities", "Financial Services"]`)
+* **ANSSI BP-006** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical"]`)
+* **BSI IT-Grundschutz** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Commercial Facilities", "Government Facilities"]`)
+* **DHS Catalog of Controls** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems", "Chemical"]`)
+* **ISA-99** (Primary: `Cross-Sector`, Sectors: `["Critical Manufacturing", "Energy", "Water and Wastewater Systems"]`)
+* **ISO/IEC 27001:2022** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Financial Services", "Healthcare and Public Health"]`)
+* **COBIT 2019** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Financial Services", "Government Facilities"]`)
+* **SOC 2 Type II** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Financial Services", "Commercial Facilities"]`)
+* **CSA Cloud Controls Matrix** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Commercial Facilities", "Government Facilities"]`)
+* **ACSC Essential Eight** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Government Facilities", "Defense Industrial Base"]`)
+* **KATRI SCADA Framework** (Primary: `Cross-Sector`, Sectors: `["Energy", "Water and Wastewater Systems", "Transportation Systems"]`)
+* **NIST SP 800-37 r2** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Government Facilities"]`)
+* **NIST SP 800-161 r1** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Critical Manufacturing", "Defense Industrial Base", "Government Facilities"]`)
+* **ENISA IoT Security** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Commercial Facilities"]`)
+* **EU NIS2 Directive** (Primary: `Cross-Sector`, Sectors: `["Energy", "Transportation Systems", "Financial Services", "Healthcare and Public Health", "Water and Wastewater Systems", "Information Technology", "Chemical"]`)
+* **EU Cyber Resilience Act** (Primary: `Cross-Sector`, Sectors: `["Information Technology", "Critical Manufacturing", "Commercial Facilities"]`)
+* **Australian SOCI Act** (Primary: `Cross-Sector`, Sectors: `["Energy", "Transportation Systems", "Water and Wastewater Systems", "Financial Services", "Healthcare and Public Health", "Information Technology", "Communications", "Food and Agriculture"]`)
+
+### Energy Sector
+* **NERC CIP-002-5.1a** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-003-8** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-004-6** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-005-7** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-006-6** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-007-6** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-008-6** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-009-6** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-010-4** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-011-2** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NERC CIP-013-1** (Primary: `Energy`, Sectors: `["Energy", "Critical Manufacturing"]`)
+* **NERC CIP-014-3** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **ISO/IEC 27019:2017** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **NISTIR 7628 r1** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **INGAA Guidelines** (Primary: `Energy`, Sectors: `["Energy", "Transportation Systems"]`)
+* **API Standard 1164** (Primary: `Energy`, Sectors: `["Energy", "Transportation Systems"]`)
+* **FERC Order 889** (Primary: `Energy`, Sectors: `["Energy"]`)
+* **IEEE 1686-2022** (Primary: `Energy`, Sectors: `["Energy", "Critical Manufacturing"]`)
+
+### Nuclear Reactors, Materials, and Waste Sector
+* **NRC Regulatory Guide 5.71** (Primary: `Nuclear Reactors, Materials, and Waste`, Sectors: `["Nuclear Reactors, Materials, and Waste", "Energy"]`)
+* **IAEA NSS-17-G** (Primary: `Nuclear Reactors, Materials, and Waste`, Sectors: `["Nuclear Reactors, Materials, and Waste", "Energy"]`)
+* **NNSA NAP-24A** (Primary: `Nuclear Reactors, Materials, and Waste`, Sectors: `["Nuclear Reactors, Materials, and Waste", "Defense Industrial Base", "Government Facilities"]`)
+
+### Water and Wastewater Systems Sector
+* **AWWA G430-22** (Primary: `Water and Wastewater Systems`, Sectors: `["Water and Wastewater Systems", "Healthcare and Public Health"]`)
+* **EPA Cybersecurity Baseline** (Primary: `Water and Wastewater Systems`, Sectors: `["Water and Wastewater Systems", "Healthcare and Public Health"]`)
+* **AWWA M19 Emergency Planning** (Primary: `Water and Wastewater Systems`, Sectors: `["Water and Wastewater Systems", "Emergency Services"]`)
+
+### Defense Industrial Base Sector
+* **NIST SP 800-171 r3** (Primary: `Defense Industrial Base`, Sectors: `["Defense Industrial Base", "Government Facilities", "Critical Manufacturing"]`)
+* **NIST SP 800-172** (Primary: `Defense Industrial Base`, Sectors: `["Defense Industrial Base", "Government Facilities", "Critical Manufacturing"]`)
+* **CMMC 2.0 Level 1** (Primary: `Defense Industrial Base`, Sectors: `["Defense Industrial Base", "Government Facilities"]`)
+* **CMMC 2.0 Level 2** (Primary: `Defense Industrial Base`, Sectors: `["Defense Industrial Base", "Government Facilities", "Critical Manufacturing"]`)
+* **CMMC 2.0 Level 3** (Primary: `Defense Industrial Base`, Sectors: `["Defense Industrial Base", "Government Facilities", "Critical Manufacturing"]`)
+* **CNSSI 1253** (Primary: `Defense Industrial Base`, Sectors: `["Defense Industrial Base", "Government Facilities"]`)
+
+### Transportation Systems Sector
+* **TSA Pipeline Directive 2C** (Primary: `Transportation Systems`, Sectors: `["Transportation Systems", "Energy"]`)
+* **TSA Rail Directive 01** (Primary: `Transportation Systems`, Sectors: `["Transportation Systems"]`)
+* **FAA Airport Cyber Security** (Primary: `Transportation Systems`, Sectors: `["Transportation Systems"]`)
+* **USCG Maritime Cyber Security** (Primary: `Transportation Systems`, Sectors: `["Transportation Systems"]`)
+* **DO-326A** (Primary: `Transportation Systems`, Sectors: `["Transportation Systems", "Critical Manufacturing"]`)
+
+### Chemical Sector
+* **CFATS RBPS** (Primary: `Chemical`, Sectors: `["Chemical", "Emergency Services"]`)
+
+### Healthcare and Public Health Sector
+* **HIPAA Security Rule** (Primary: `Healthcare and Public Health`, Sectors: `["Healthcare and Public Health", "Information Technology"]`)
+
+### Financial Services Sector
+* **PCI-DSS v4.0** (Primary: `Financial Services`, Sectors: `["Financial Services", "Commercial Facilities"]`)
+* **SWIFT CSCF v2024** (Primary: `Financial Services`, Sectors: `["Financial Services"]`)
+* **CRI Profile v2.0** (Primary: `Financial Services`, Sectors: `["Financial Services"]`)
+
+---
+
+## 3. Reference Citations
+* Cybersecurity and Infrastructure Security Agency. (2023). *Critical Infrastructure Sectors*. U.S. Department of Homeland Security. https://www.cisa.gov/topics/critical-infrastructure-security-and-resilience/critical-infrastructure-sectors
+* Presidential Policy Directive 21 -- Critical Infrastructure Security and Resilience. (2013). *The White House Office of the Press Secretary*. https://obamawhitehouse.archives.gov/the-press-office/2013/02/12/presidential-policy-directive-critical-infrastructure-security-and-resil
+* Department of Homeland Security. (2020). *Sector-Specific Plans*. https://www.dhs.gov/sector-specific-plans

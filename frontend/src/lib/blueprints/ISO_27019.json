@@ -1,0 +1,100 @@
+{
+  "id": "ISO_27019",
+  "name": "ISO/IEC 27019:2017",
+  "fullName": "Information Security Controls for the Energy Utility Industry",
+  "description": "Energy-sector specific ISO guidelines directing secure controls for electric, gas, and water networks.",
+  "category": "Energy & Utilities",
+  "sector": "Energy",
+  "questions": [
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_1_1",
+      "standardCode": "ISO-ISO27019-1.1",
+      "name": "ISO/IEC 27019:2017 - Utility Information Security",
+      "text": "Are energy utility information security guidelines formally documented and active?",
+      "category": "Utility Security Policy",
+      "purdueLevel": 4,
+      "description": "Review energy security strategies, policy booklets, and administrative approval files.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the utility security policy configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_1_2",
+      "standardCode": "ISO-ISO27019-1.2",
+      "name": "ISO/IEC 27019:2017 - Process Control Isolation",
+      "text": "Are process control networks logically isolated from utility business links (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "Network Segmentation",
+      "purdueLevel": 3,
+      "description": "Inspect edge firewall setups, router maps, and isolated DMZ conduits.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the network segmentation configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_2_1",
+      "standardCode": "ISO-ISO27019-2.1",
+      "name": "ISO/IEC 27019:2017 - HMI Logic Port Hardening",
+      "text": "Are HMI terminals configured to block unauthorized outbound logical connections (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Host Device Hardening",
+      "purdueLevel": 2,
+      "description": "Verify local host-based firewall configurations, routing rules, and outbound rules.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the host device hardening configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_2_2",
+      "standardCode": "ISO-ISO27019-2.2",
+      "name": "ISO/IEC 27019:2017 - Telemetry Link Encryption",
+      "text": "Is telemetry data encrypted traversing external physical lines (utilizing VPN tunnels, encrypted Modbus/DNP3 secure protocols, and HSM keys)?",
+      "category": "Data Link Protection",
+      "purdueLevel": 3,
+      "description": "Verify telemetry VPN configurations, inspect crypto parameters, and check connection logs.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the data link protection configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nTraversing industrial telemetry in cleartext across converged networks invites eavesdropping and packet injection. Malicious actors can execute Man-in-the-Middle (MitM) attacks, spoofing HMI screens while sending dangerous control commands."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_3_1",
+      "standardCode": "ISO-ISO27019-3.1",
+      "name": "ISO/IEC 27019:2017 - Substation Entry Controls",
+      "text": "Are physical access perimeters and entry locks active at substations (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "Physical Asset Safety",
+      "purdueLevel": 1,
+      "description": "Verify physical lock gates, check badge-reader entry logs, and review camera feeds.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the physical asset safety configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_3_2",
+      "standardCode": "ISO-ISO27019-3.2",
+      "name": "ISO/IEC 27019:2017 - Operator Session Timeouts",
+      "text": "Do operator SCADA workstations enforce automatic session locks after 10 minutes?",
+      "category": "Session Security Controls",
+      "purdueLevel": 3,
+      "description": "Verify automated session lock parameters in the SCADA control software interface.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the session security controls configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_4_1",
+      "standardCode": "ISO-ISO27019-4.1",
+      "name": "ISO/IEC 27019:2017 - Supply Chain Vetting Logs",
+      "text": "Are utility hardware components verified for physical authenticity prior to deployment?",
+      "category": "Supply Chain Risk Management",
+      "purdueLevel": 4,
+      "description": "Verify physical inspection registers, verify chassis seal numbers, and check chip codes.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the supply chain risk management configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_4_2",
+      "standardCode": "ISO-ISO27019-4.2",
+      "name": "ISO/IEC 27019:2017 - Disaster Recovery Failover Plan",
+      "text": "Is an active energy infrastructure disaster recovery failover plan tested annually (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Operations Recovery",
+      "purdueLevel": 3,
+      "description": "Review failover test logs, check backup server registers, and inspect procedures.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the operations recovery configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_5_1",
+      "standardCode": "ISO-ISO27019-5.1",
+      "name": "ISO/IEC 27019:2017 - Incident Reporting Rules",
+      "text": "Are operational cybersecurity incidents reported immediately to grid authorities (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Incident Communication",
+      "purdueLevel": 4,
+      "description": "Review regulatory reporting rules, check ES-ISAC notification forms, and verify contact guides.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the incident communication configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:ISO_27019_ISO_ISO27019_5_2",
+      "standardCode": "ISO-ISO27019-5.2",
+      "name": "ISO/IEC 27019:2017 - Vendor Remote Link Tunnels",
+      "text": "Are third-party service remote connections mediated through secure Jump Hosts?",
+      "category": "Vendor Operations Control",
+      "purdueLevel": 3,
+      "description": "Validate that remote vendor connections route through Jump Hosts with visual logging.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n4. Map controls to the internal Statement of Applicability (SoA) register.\n\nVERIFICATION CRITERIA:\nInspect the vendor operations control configurations, check the verified logs, review the system settings, and check the following: ISO compliance evidence must include: Statement of Applicability (SoA), Annex A control validation logs, and Internal Audit reports aligned with ISO ISO 27019 requirements.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}

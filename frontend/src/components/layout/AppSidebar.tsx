@@ -42,6 +42,8 @@ import {
   Wrench,
   Command,
   TrendingUp,
+  Users,
+  ShieldCheck,
 } from 'lucide-react'
 
 const getNavigation = (t: TFunction) => [
@@ -57,6 +59,8 @@ const getNavigation = (t: TFunction) => [
       { name: t('navigation.notebooks'), href: '/notebooks', icon: Book },
       { name: t('navigation.askAndSearch'), href: '/search', icon: Search },
       { name: t('navigation.pipeline', 'Sales Pipeline'), href: '/pipeline', icon: TrendingUp },
+      { name: t('navigation.customers', 'Customer Ledger'), href: '/customers', icon: Users },
+      { name: t('navigation.compliance', 'Compliance Hub'), href: '/compliance', icon: ShieldCheck },
     ],
   },
   {

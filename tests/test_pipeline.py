@@ -381,3 +381,116 @@ class TestNotebookContactsDossier:
         assert data["contacts"][0]["name"] == "John Smith"
         assert mock_notebook.contacts == [{"name": "John Smith", "role": "VP Security", "email": "john@acme.com"}]
         mock_notebook.save.assert_called_once()
+
+
+class TestNotebookCustomerIntegration:
+    """Test suite for Notebook-Customer relationship integration."""
+
+    @patch("api.routers.notebooks.Notebook")
+    @patch("api.routers.notebooks.repo_query")
+    def test_get_notebooks_with_customer_id(self, mock_repo_query, mock_notebook_cls, client):
+        """Test fetching list of notebooks returns customer_id field."""
+        mock_notebooks_data = [
+            {
+                "id": "notebook:nb123",
+                "name": "Acme Corp Notebook",
+                "stage": "research",
+                "customer_id": "customer:123",
+            }
+        ]
+        mock_repo_query.return_value = mock_notebooks_data
+
+        response = client.get("/api/notebooks")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == "notebook:nb123"
+        assert data[0]["customer_id"] == "customer:123"
+
+    @patch("api.routers.notebooks.Notebook")
+    def test_create_notebook_with_customer_id(self, mock_notebook_cls, client):
+        """Test creating a new notebook with customer_id."""
+        mock_notebook = MagicMock()
+        mock_notebook.id = "notebook:nb123"
+        mock_notebook.name = "Acme Corp Notebook"
+        mock_notebook.description = ""
+        mock_notebook.stage = "lead"
+        mock_notebook.client_name = ""
+        mock_notebook.estimated_value = 0.0
+        mock_notebook.prospect_website = ""
+        mock_notebook.contacts = []
+        mock_notebook.crawl_failed = False
+        mock_notebook.suggested_contacts = []
+        mock_notebook.customer_id = "customer:123"
+        mock_notebook.created = "2026-01-01T00:00:00Z"
+        mock_notebook.updated = "2026-01-01T00:00:00Z"
+        mock_notebook.save = AsyncMock()
+
+        mock_notebook_cls.return_value = mock_notebook
+
+        response = client.post(
+            "/api/notebooks",
+            json={
+                "name": "Acme Corp Notebook",
+                "stage": "lead",
+                "customer_id": "customer:123"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == "notebook:nb123"
+        assert data["customer_id"] == "customer:123"
+
+    @patch("api.routers.notebooks.Notebook")
+    @patch("api.routers.notebooks.repo_query")
+    def test_get_notebook_with_customer_id(self, mock_repo_query, mock_notebook_cls, client):
+        """Test fetching a single notebook returns customer_id."""
+        notebook_id = "notebook:nb123"
+        mock_notebook_data = {
+            "id": notebook_id,
+            "name": "Acme Corp Notebook",
+            "stage": "research",
+            "customer_id": "customer:123"
+        }
+        mock_repo_query.return_value = [mock_notebook_data]
+
+        response = client.get(f"/api/notebooks/{notebook_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == notebook_id
+        assert data["customer_id"] == "customer:123"
+
+    @patch("api.routers.notebooks.Notebook")
+    @patch("api.routers.notebooks.repo_query")
+    def test_update_notebook_customer_id(self, mock_repo_query, mock_notebook_cls, client):
+        """Test updating a notebook's customer_id."""
+        notebook_id = "notebook:nb123"
+        mock_notebook = MagicMock()
+        mock_notebook.id = notebook_id
+        mock_notebook.name = "Acme Corp Notebook"
+        mock_notebook.stage = "research"
+        mock_notebook.customer_id = "customer:123"
+        mock_notebook.save = AsyncMock()
+
+        mock_notebook_cls.get = AsyncMock(return_value=mock_notebook)
+
+        mock_updated_data = {
+            "id": notebook_id,
+            "name": "Acme Corp Notebook",
+            "stage": "research",
+            "customer_id": "customer:456"
+        }
+        mock_repo_query.return_value = [mock_updated_data]
+
+        response = client.put(
+            f"/api/notebooks/{notebook_id}",
+            json={
+                "customer_id": "customer:456"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["customer_id"] == "customer:456"
+        assert mock_notebook.customer_id == "customer:456"
+        mock_notebook.save.assert_called_once()
+

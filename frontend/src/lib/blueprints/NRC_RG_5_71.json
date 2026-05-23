@@ -1,0 +1,100 @@
+{
+  "id": "NRC_RG_5_71",
+  "name": "NRC Regulatory Guide 5.71",
+  "fullName": "Cyber Security Programs for Nuclear Facilities",
+  "description": "Strict nuclear regulatory commission framework to prevent radiological sabotage via digital systems.",
+  "category": "Nuclear Operations",
+  "sector": "Nuclear",
+  "questions": [
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_1_1",
+      "standardCode": "NRC-NRC-1.1",
+      "name": "NRC Regulatory Guide 5.71 - Critical Digital Asset Vetting",
+      "text": "Are all critical digital assets identified and cataloged for the facility (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "CDA Asset Classification",
+      "purdueLevel": 3,
+      "description": "Verify systematic identification of critical nuclear plant digital systems to enforce baseline controls. Review inventory databases.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cda asset classification configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_1_2",
+      "standardCode": "NRC-NRC-1.2",
+      "name": "NRC Regulatory Guide 5.71 - CDA System Separation Plan",
+      "text": "Are critical digital assets isolated from external network segments (covering Siemens S7-1500 PLCs, Allen-Bradley ControlLogix, SEL RTUs, and digital relay modules)?",
+      "category": "CDA Asset Classification",
+      "purdueLevel": 3,
+      "description": "Ensure complete isolation of critical nuclear plant digital systems from external corporate or public networks.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cda asset classification configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nUsing unhardened or unpatched field controllers opens critical hardware interfaces to remote execution exploits. Attackers can leverage known vulnerabilities to flash unauthorized firmware or change safety threshold parameters on active PLCs."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_2_1",
+      "standardCode": "NRC-NRC-2.1",
+      "name": "NRC Regulatory Guide 5.71 - Process Zone Segmentation",
+      "text": "Are critical digital assets segregated by defined logical zones (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "CDA Perimeter Hardening",
+      "purdueLevel": 3,
+      "description": "Verify network topology drawings, logical boundaries, and stateful router configurations.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the cda perimeter hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_2_2",
+      "standardCode": "NRC-NRC-2.2",
+      "name": "NRC Regulatory Guide 5.71 - Substation Control Room Lock Gates",
+      "text": "Are entry doors into substation control rooms locked using card keys (enforced by Cisco Industrial Ethernet switches, network zoning firewalls, and isolated Purdue model level boundaries)?",
+      "category": "CDA Perimeter Hardening",
+      "purdueLevel": 1,
+      "description": "Verify physical door strike operations, lock configurations, and key backup settings.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the cda perimeter hardening configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nInadequate network segmentation allows IT-OT convergence traffic to flow unmediated across enclaves. A malware infection on the corporate LAN (like ransomware) can propagate directly to critical process control loops, halting operations."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_3_1",
+      "standardCode": "NRC-NRC-3.1",
+      "name": "NRC Regulatory Guide 5.71 - Physical Access Vetting Logging",
+      "text": "Are all physical entry and exit events recorded in an electronic database?",
+      "category": "Physical Security Controls",
+      "purdueLevel": 1,
+      "description": "Review card reader access databases, check reader logs, and verify audit records.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the physical security controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_3_2",
+      "standardCode": "NRC-NRC-3.2",
+      "name": "NRC Regulatory Guide 5.71 - Physical Entry Visitor Registry Logs",
+      "text": "Are visitors required to log in and sign a physical register book?",
+      "category": "Physical Security Controls",
+      "purdueLevel": 1,
+      "description": "Verify physical visitor logs, column data coverage, and supervisor audit signatures.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the physical security controls configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_4_1",
+      "standardCode": "NRC-NRC-4.1",
+      "name": "NRC Regulatory Guide 5.71 - PACS Security Event Logs Archiving",
+      "text": "Are physical access logs and CCTV videos archived for at least 90 days (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery Control",
+      "purdueLevel": 1,
+      "description": "Check media server disk space allocations, archive parameters, and backup drives.\n\nSOP:\n1. Establish physical locking covers and secure enclosures around critical field device interfaces.\n2. Configure hardware configuration locks and disable local diagnostic ports (USB, RS-232) to block local unauthorized adjustments.\n3. Validate that device configuration changes require double-signature supervisor tokens before logical modifications are written to memory.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_4_2",
+      "standardCode": "NRC-NRC-4.2",
+      "name": "NRC Regulatory Guide 5.71 - Weekly Logic Backup Frequency",
+      "text": "Are backups of critical nuclear control system software executed weekly (aligned with incident response playbooks, offsite backups, and isolated write-once media)?",
+      "category": "Disaster Recovery Control",
+      "purdueLevel": 3,
+      "description": "Review backup logs, verify automated update schedules, and check backup success registries.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the disaster recovery control configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nFailing to maintain isolated, offline backups during convergence events risks catastrophic downtime during ransomware outbreaks. If backups reside on the shared enterprise domain, the same malware that encrypts SCADA HMIs will wipe the recovery configurations."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_5_1",
+      "standardCode": "NRC-NRC-5.1",
+      "name": "NRC Regulatory Guide 5.71 - CDA Vulnerability Assessments",
+      "text": "Are active vulnerability assessments executed annually on critical digital assets?",
+      "category": "Vulnerability Assessment",
+      "purdueLevel": 3,
+      "description": "Verify vulnerability reports, scanner logs, and remediation tracking matrices.\n\nSOP:\n1. Deploy endpoint protection agents configured with real-time process monitoring to block unsigned scripts and execution threats.\n2. Enforce automatic session logout GPOs terminating interactive operator connections after a defined period of inactivity.\n3. Configure system event log forwarding to stream all reboots, login attempts, and administrative modifications to a centralized syslog receiver.\n\nVERIFICATION CRITERIA:\nInspect the vulnerability assessment configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    },
+    {
+      "id": "question:NRC_RG_5_71_NRC_NRC_5_2",
+      "standardCode": "NRC-NRC-5.2",
+      "name": "NRC Regulatory Guide 5.71 - Vendor Hardware Lifecycle Audits",
+      "text": "Are vendor hardware assets audited annually for compliance with nuclear standards?",
+      "category": "Vendor Lifecycle Strategy",
+      "purdueLevel": 4,
+      "description": "Verify hardware lifecycle records, audit schedules, and compliance databases.\n\nSOP:\n1. Enforce strict role-based access controls (RBAC) separating administrative tasks from standard operator routines.\n2. Route all incoming remote connections through isolated administrative Jump Hosts with visual session logging active.\n3. Conduct quarterly access audits to identify and completely disable dormant or inactive accounts.\n\nVERIFICATION CRITERIA:\nInspect the vendor lifecycle strategy configurations, check the verified logs, review the system settings, and check the following: General OT/IT security evidence must include: change management tracking tickets, Active Directory Group Policy Objects (GPOs), system log archives, and Nozomi/Dragos anomaly monitoring configuration files.\n\nOT/IT CONVERGENCE RISK:\nGeneral IT-OT convergence increases the threat landscape by bridging air-gapped industrial facilities with internet-facing corporate systems. Failing to enforce strict regulatory controls risks introducing severe operational vulnerabilities."
+    }
+  ]
+}
