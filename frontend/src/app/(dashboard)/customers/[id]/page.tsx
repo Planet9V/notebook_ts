@@ -35,6 +35,7 @@ import {
   ClipboardCheck
 } from 'lucide-react'
 import apiClient from '@/lib/api/client'
+import { CSETNetworkCanvas } from '../../notebooks/components/CSETNetworkCanvas'
 
 interface Customer {
   id: string
@@ -738,89 +739,10 @@ export default function CustomerDossierPage() {
                   </div>
                 )}
               </Card>
-            )}
-
-            {/* Tab 3: Threat Canvas */}
+            )}            {/* Tab 3: Threat Canvas */}
             {activeTab === 'threats' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-mono text-xs">
-                <div className="lg:col-span-2 space-y-4">
-                  {notebooks.length === 0 ? (
-                    <Card className="shadow-lg border-white/5 bg-slate-900/40 p-16 text-center text-muted-foreground/60">
-                      No network threat models linked.
-                    </Card>
-                  ) : (
-                    notebooks.map(nb => {
-                      const isThreatMock = dossierStats.activeThreatCount > 0 && nb.name.toLowerCase().includes('scada')
-                      return (
-                        <Card key={nb.id} className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden">
-                          <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
-                            <div>
-                              <CardTitle className="text-xs font-bold text-slate-200">{nb.name} Drawing Canvas</CardTitle>
-                              <CardDescription className="text-[10px]">Active React Flow drawing stencils security validation state</CardDescription>
-                            </div>
-                            <Badge variant="outline" className={`text-[8px] font-mono border-white/10 uppercase tracking-widest py-0.5 font-bold ${
-                              isThreatMock ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            }`}>
-                              {isThreatMock ? 'Violations Active' : 'Topology Secure'}
-                            </Badge>
-                          </CardHeader>
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center gap-4 bg-slate-950/50 p-3.5 border border-white/5 rounded-lg">
-                              <FileText className="h-8 w-8 text-cyan-400/80" />
-                              <div className="flex-1 space-y-1">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Purdue model network assets mapped</p>
-                                <p className="text-[10.5px] text-slate-300 font-sans">
-                                  Includes OT devices: PLC Controller, Industrial Switch, HMI interface, Substation RTU, Boundary Firewalls.
-                                </p>
-                              </div>
-                            </div>
-
-                            {isThreatMock ? (
-                              <div className="p-3 border border-orange-500/20 bg-orange-500/5 rounded-lg space-y-2">
-                                <div className="flex items-center gap-1.5 text-orange-500 font-bold">
-                                  <AlertTriangle className="h-3.5 w-3.5" />
-                                  <span>NetworkX Boundary Isolation Violations Detected</span>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground font-sans leading-relaxed">
-                                  Path sequence identified directly connecting field networks to enterprise networks without firewall mediation:
-                                </p>
-                                <div className="p-2 bg-slate-950/60 rounded text-[9.5px] text-slate-200 border border-white/5">
-                                  `[Level 1 field instrument plc-01]` --- {`>`} `[Level 4 Active Directory ent-01]` (Direct Cross Bypass)
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="p-3 border border-emerald-500/20 bg-emerald-500/5 rounded-lg flex items-center gap-2 text-emerald-400">
-                                <ShieldCheck className="h-4 w-4" />
-                                <span className="font-bold">All active routing verified compliant. Purdue network isolation gates enforced.</span>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      )
-                    })
-                  )}
-                </div>
-
-                <div className="lg:col-span-1">
-                  <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
-                    <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
-                      <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CSET Device Icon Stencils</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-2">
-                      <p className="text-[10px] text-muted-foreground leading-relaxed font-sans mb-3">
-                        Dynamic stencils downloaded from `cisagov/cset` public library used inside our Active Canvas editor:
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {['firewall', 'plc', 'switch', 'hmi', 'historian', 'rtu'].map(device => (
-                          <div key={device} className="p-2 border border-white/5 bg-slate-950/40 rounded flex items-center gap-2 hover:bg-slate-950/80 transition-all select-none">
-                            <img src={`/assets/devices/${device}.svg`} className="h-5 w-5 object-contain" alt="" onError={(e) => e.currentTarget.style.display = 'none'} />
-                            <span className="text-[8.5px] uppercase truncate">{device}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+              <div className="h-[680px] w-full rounded-2xl border border-white/5 bg-slate-950/40 backdrop-blur-md overflow-hidden relative flex flex-col">
+                <CSETNetworkCanvas />
               </div>
             )}
 
