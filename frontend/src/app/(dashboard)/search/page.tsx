@@ -8,21 +8,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+// RadioGroup removed — search now uses card-based mode selector
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Search, ChevronDown, AlertCircle, Settings, Save, MessageCircleQuestion } from 'lucide-react'
+import { Search, ChevronDown, AlertCircle, Settings, Save, MessageCircleQuestion, Wand2, Bot, Database, Layers, Globe, RotateCw, ExternalLink } from 'lucide-react'
 import { useSearch } from '@/lib/hooks/use-search'
 import { useAsk } from '@/lib/hooks/use-ask'
 import { useModelDefaults, useModels } from '@/lib/hooks/use-models'
 import { useModalManager } from '@/lib/hooks/use-modal-manager'
+import { useTransformations } from '@/lib/hooks/use-transformations'
+import { useStyleguides } from '@/lib/hooks/use-styleguides'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { StreamingResponse } from '@/components/search/StreamingResponse'
 import { AdvancedModelsDialog } from '@/components/search/AdvancedModelsDialog'
 import { SaveToNotebooksDialog } from '@/components/search/SaveToNotebooksDialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { cn } from '@/lib/utils'
 
 export default function SearchPage() {
   const { t } = useTranslation()
@@ -39,9 +44,14 @@ export default function SearchPage() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState(urlMode === 'search' ? urlQuery : '')
-  const [searchType, setSearchType] = useState<'text' | 'vector'>('text')
+  const [searchType, setSearchType] = useState<'vector' | 'hybrid'>('vector')
   const [searchSources, setSearchSources] = useState(true)
   const [searchNotes, setSearchNotes] = useState(true)
+  const [searchConfigs, setSearchConfigs] = useState({
+    vector: { limit: 50, minimumScore: 0.2, reranker: false },
+    hybrid: { limit: 50, minimumScore: 0.2, reranker: false },
+  })
+  const [showConfig, setShowConfig] = useState(false)
 
   // Ask state
   const [askQuestion, setAskQuestion] = useState(urlMode === 'ask' ? urlQuery : '')
@@ -64,11 +74,26 @@ export default function SearchPage() {
   const { data: availableModels } = useModels()
   const { openModal } = useModalManager()
 
+  const [engine, setEngine] = useState<'local' | 'hybrid'>('local')
+  const [selectedTransformationId, setSelectedTransformationId] = useState<string>('')
+  const [selectedModelId, setSelectedModelId] = useState<string>('')
+  const [customPrompt, setCustomPrompt] = useState<string>('')
+  const [outputFormatting, setOutputFormatting] = useState<string>('')
+  const [selectedStyleguideId, setSelectedStyleguideId] = useState<string>('')
+
+  const { data: transformations = [] } = useTransformations()
+  const { data: styleguides = [] } = useStyleguides()
+
   const modelNameById = useMemo(() => {
     if (!availableModels) {
       return new Map<string, string>()
     }
     return new Map(availableModels.map((model) => [model.id, model.name]))
+  }, [availableModels])
+
+  const perplexityModels = useMemo(() => {
+    if (!availableModels) return []
+    return availableModels.filter((m) => m.provider === 'perplexity')
   }, [availableModels])
 
   const resolveModelName = (id?: string | null) => {
@@ -85,15 +110,17 @@ export default function SearchPage() {
   const handleSearch = useCallback(() => {
     if (!searchQuery.trim()) return
 
+    const currentConfig = searchConfigs[searchType]
     searchMutation.mutate({
       query: searchQuery,
       type: searchType,
-      limit: 100,
+      limit: currentConfig.limit,
       search_sources: searchSources,
       search_notes: searchNotes,
-      minimum_score: 0.2
+      minimum_score: currentConfig.minimumScore,
+      reranker: currentConfig.reranker,
     })
-  }, [searchQuery, searchType, searchSources, searchNotes, searchMutation])
+  }, [searchQuery, searchType, searchSources, searchNotes, searchConfigs, searchMutation])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -102,16 +129,28 @@ export default function SearchPage() {
   }
 
   const handleAsk = useCallback(() => {
-    if (!askQuestion.trim() || !modelDefaults?.default_chat_model) return
+    if (!askQuestion.trim()) return
 
-    const models = customModels || {
-      strategy: modelDefaults.default_chat_model,
-      answer: modelDefaults.default_chat_model,
-      finalAnswer: modelDefaults.default_chat_model
+    if (engine === 'local') {
+      if (!modelDefaults?.default_chat_model) return
+      const models = customModels || {
+        strategy: modelDefaults.default_chat_model,
+        answer: modelDefaults.default_chat_model,
+        finalAnswer: modelDefaults.default_chat_model
+      }
+      ask.sendAsk(askQuestion, models)
+    } else {
+      ask.sendResearch(
+        askQuestion,
+        engine,
+        selectedTransformationId && selectedTransformationId !== 'none' ? selectedTransformationId : undefined,
+        selectedModelId && selectedModelId !== 'default' ? selectedModelId : undefined,
+        customPrompt || undefined,
+        outputFormatting || undefined,
+        selectedStyleguideId && selectedStyleguideId !== 'none' ? selectedStyleguideId : undefined
+      )
     }
-
-    ask.sendAsk(askQuestion, models)
-  }, [askQuestion, modelDefaults, customModels, ask])
+  }, [askQuestion, engine, modelDefaults, customModels, selectedTransformationId, selectedModelId, customPrompt, outputFormatting, selectedStyleguideId, ask])
 
   // Auto-trigger search/ask when arriving with URL params
   useEffect(() => {
@@ -129,6 +168,42 @@ export default function SearchPage() {
       hasAutoTriggeredRef.current = true
     }
   }, [urlQuery, urlMode, modelsLoading, modelDefaults, handleSearch, handleAsk])
+
+  // Load default search settings from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('search_configs')
+      if (saved) {
+        try {
+          setSearchConfigs(JSON.parse(saved))
+        } catch (e) {
+          console.error('Failed to parse search configs from localStorage', e)
+        }
+      } else {
+        const oldReranker = localStorage.getItem('default_reranker_enabled') === 'true'
+        if (oldReranker) {
+          setSearchConfigs({
+            vector: { limit: 50, minimumScore: 0.2, reranker: true },
+            hybrid: { limit: 50, minimumScore: 0.2, reranker: true },
+          })
+        }
+      }
+    }
+  }, [])
+
+  const updateSearchConfig = (type: 'vector' | 'hybrid', key: string, value: any) => {
+    setSearchConfigs((prev) => {
+      const updated = {
+        ...prev,
+        [type]: {
+          ...prev[type],
+          [key]: value,
+        },
+      }
+      localStorage.setItem('search_configs', JSON.stringify(updated))
+      return updated
+    })
+  }
 
   // Handle URL param changes while on page (e.g., from command palette again)
   useEffect(() => {
@@ -185,7 +260,61 @@ export default function SearchPage() {
                   {t('searchPage.askYourKbDesc')}
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Search Engine Mode Selector */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Research Intelligence Mode</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Local KB RAG */}
+                    <button
+                      type="button"
+                      onClick={() => setEngine('local')}
+                      disabled={ask.isStreaming}
+                      className={cn(
+                        "relative flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-300 backdrop-blur-md shadow-sm",
+                        engine === 'local'
+                          ? "border-primary bg-primary/10 shadow-md ring-1 ring-primary/30"
+                          : "border-border/40 bg-background/50 hover:bg-accent/40"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Database className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-semibold text-foreground">Local KB RAG</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/20 text-primary">vector</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Search and synthesize from your local knowledge base using vector search.
+                      </p>
+                    </button>
+
+                    {/* Hybrid Multi-Engine */}
+                    <button
+                      type="button"
+                      onClick={() => setEngine('hybrid')}
+                      disabled={ask.isStreaming}
+                      className={cn(
+                        "relative flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-300 backdrop-blur-md shadow-sm",
+                        engine === 'hybrid'
+                          ? "border-violet-500 bg-violet-500/10 shadow-md ring-1 ring-violet-500/30"
+                          : "border-border/40 bg-background/50 hover:bg-accent/40"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Layers className="h-4 w-4 text-violet-500" />
+                          <span className="text-sm font-semibold text-foreground">Hybrid Multi-Engine</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-violet-500/20 text-violet-600 dark:text-violet-400">combined</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Local KB + Perplexity + Valyu combined with deduplication and synthesis.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Question Input */}
                 <div className="space-y-2">
                   <Label htmlFor="ask-question">{t('searchPage.question')}</Label>
@@ -209,14 +338,126 @@ export default function SearchPage() {
                   <p className="text-xs text-muted-foreground">{t('searchPage.pressToSubmit')}</p>
                 </div>
 
-                {/* Models Display */}
-                {!hasEmbeddingModel ? (
-                  <div className="flex items-center gap-2 p-3 text-sm text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 rounded-md">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>{t('searchPage.noEmbeddingModel')}</span>
+                {/* Customizations / Configurations Panel (Follows transparency & config guidelines) */}
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Research Configuration & Guidelines
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-mono">
+                      Active: {engine === 'local' ? 'Local KB Defaults' : `${engine.toUpperCase()} Live`}
+                    </span>
                   </div>
-                ) : (
-                  <>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Transformation Template Selector */}
+                    <div className="space-y-2">
+                      <Label htmlFor="transformation-select" className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <Wand2 className="h-3.5 w-3.5 text-primary" />
+                        Search Transformation Template
+                      </Label>
+                      <Select
+                        value={selectedTransformationId}
+                        onValueChange={setSelectedTransformationId}
+                        disabled={ask.isStreaming}
+                      >
+                        <SelectTrigger id="transformation-select">
+                          <SelectValue placeholder="None (Standard Synthesis)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None (Standard Synthesis)</SelectItem>
+                          {transformations.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Guide final analysis synthesis with custom business rules, personas, or prospect research.
+                      </p>
+                    </div>
+
+                    {/* Custom Prompt Guidelines */}
+                    <div className="space-y-2">
+                        <Label htmlFor="custom-prompt-input" className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                          <Settings className="h-3.5 w-3.5 text-sky-500" />
+                          Custom Prompt Guidelines
+                        </Label>
+                        <Input
+                          id="custom-prompt-input"
+                          placeholder={engine === 'local' ? 'Unavailable for Local KB' : 'e.g. Focus on regulatory frameworks...'}
+                          value={customPrompt}
+                          onChange={(e) => setCustomPrompt(e.target.value)}
+                          disabled={ask.isStreaming || engine === 'local'}
+                          className="h-10 text-xs"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Inject query-specific constraints to guide searching and summarizing.
+                        </p>
+                      </div>
+                  </div>
+
+                  {/* Output Formatting & Style Guide */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    {/* Output Formatting */}
+                    <div className="space-y-2">
+                      <Label htmlFor="output-formatting" className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <Settings className="h-3.5 w-3.5 text-amber-500" />
+                        Output Formatting
+                      </Label>
+                      <Textarea
+                        id="output-formatting"
+                        placeholder="Describe the output format: e.g. Executive summary with bullet points, followed by detailed analysis with section headers..."
+                        value={outputFormatting}
+                        onChange={(e) => setOutputFormatting(e.target.value)}
+                        disabled={ask.isStreaming}
+                        rows={3}
+                        className="text-xs font-mono resize-none"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Instructions for the Long-Context agent to format and QA the final output.
+                      </p>
+                    </div>
+
+                    {/* Style Guide Selector */}
+                    <div className="space-y-2">
+                      <Label htmlFor="styleguide-select" className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <Wand2 className="h-3.5 w-3.5 text-pink-500" />
+                        Style Guide
+                      </Label>
+                      <Select
+                        value={selectedStyleguideId}
+                        onValueChange={setSelectedStyleguideId}
+                        disabled={ask.isStreaming}
+                      >
+                        <SelectTrigger id="styleguide-select">
+                          <SelectValue placeholder="None (Default Formatting)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None (Default Formatting)</SelectItem>
+                          {styleguides.map((sg) => (
+                            <SelectItem key={sg.id} value={sg.id}>
+                              {sg.name} — {sg.guide_type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Apply typography, colors, and layout rules to the final document.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Models Display for Local KB */}
+                {engine === 'local' && (
+                  !hasEmbeddingModel ? (
+                    <div className="flex items-center gap-2 p-3 text-sm text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 rounded-md">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{t('searchPage.noEmbeddingModel')}</span>
+                    </div>
+                  ) : (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs text-muted-foreground">
@@ -245,36 +486,36 @@ export default function SearchPage() {
                         </Badge>
                       </div>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        onClick={handleAsk}
-                        disabled={ask.isStreaming || !askQuestion.trim()}
-                        className="w-full"
-                      >
-                        {ask.isStreaming ? (
-                          <>
-                            <LoadingSpinner size="sm" className="mr-2" />
-                            {t('searchPage.processing')}
-                          </>
-                        ) : (
-                          t('searchPage.ask')
-                        )}
-                      </Button>
-
-                      {ask.finalAnswer && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowSaveDialog(true)}
-                          className="w-full"
-                        >
-                          <Save className="h-4 w-4 mr-2" />
-                          {t('searchPage.saveToNotebooks')}
-                        </Button>
-                      )}
-                    </div>
-                  </>
+                  )
                 )}
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    onClick={handleAsk}
+                    disabled={ask.isStreaming || !askQuestion.trim()}
+                    className="w-full"
+                  >
+                    {ask.isStreaming ? (
+                      <>
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        {t('searchPage.processing')}
+                      </>
+                    ) : (
+                      engine === 'local' ? t('searchPage.ask') : 'Begin Research'
+                    )}
+                  </Button>
+
+                  {ask.finalAnswer && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowSaveDialog(true)}
+                      className="w-full"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {t('searchPage.saveToNotebooks')}
+                    </Button>
+                  )}
+                </div>
 
                 {/* Streaming Response */}
                 <StreamingResponse
@@ -282,6 +523,8 @@ export default function SearchPage() {
                   strategy={ask.strategy}
                   answers={ask.answers}
                   finalAnswer={ask.finalAnswer}
+                  sources={ask.sources}
+                  status={ask.status}
                 />
 
                 {/* Advanced Models Dialog */}
@@ -353,50 +596,72 @@ export default function SearchPage() {
                   <p className="text-xs text-muted-foreground">{t('searchPage.pressToSearch')}</p>
                 </div>
 
-                {/* Search Options */}
-                <div className="space-y-4">
-                  {/* Search Type */}
-                  <div className="space-y-2" role="group" aria-labelledby="search-type-label">
-                    <span id="search-type-label" className="text-sm font-medium leading-none">{t('searchPage.searchType')}</span>
-                    {!hasEmbeddingModel && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>{t('searchPage.vectorSearchWarning')}</span>
-                      </div>
-                    )}
-                    <RadioGroup
-                      name="search-type"
-                      value={searchType}
-                      onValueChange={(value: 'text' | 'vector') => setSearchType(value)}
-                      disabled={modelsLoading || searchMutation.isPending}
+                {/* Search Mode Selector */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Search Mode</Label>
+                  {!hasEmbeddingModel && (
+                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{t('searchPage.vectorSearchWarning')}</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Vector Search */}
+                    <button
+                      type="button"
+                      onClick={() => setSearchType('vector')}
+                      disabled={searchMutation.isPending || !hasEmbeddingModel}
+                      className={cn(
+                        "relative flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-300 backdrop-blur-md shadow-sm",
+                        searchType === 'vector'
+                          ? "border-primary bg-primary/10 shadow-md ring-1 ring-primary/30"
+                          : "border-border/40 bg-background/50 hover:bg-accent/40"
+                      )}
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="text" id="text" />
-                        <Label htmlFor="text" className="font-normal cursor-pointer">
-                          {t('searchPage.textSearch')}
-                        </Label>
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Database className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-semibold text-foreground">Vector Search</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/20 text-primary">local</Badge>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem
-                          value="vector"
-                          id="vector"
-                          disabled={!hasEmbeddingModel || searchMutation.isPending}
-                        />
-                        <Label
-                          htmlFor="vector"
-                          className={`font-normal ${!hasEmbeddingModel ? 'text-muted-foreground cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {t('searchPage.vectorSearch')}
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Semantic search across your local knowledge base using embeddings.
+                      </p>
+                    </button>
 
-                  {/* Search Locations */}
-                  <div className="space-y-2" role="group" aria-labelledby="search-in-label">
-                    <span id="search-in-label" className="text-sm font-medium leading-none">{t('searchPage.searchIn')}</span>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
+                    {/* Hybrid Search */}
+                    <button
+                      type="button"
+                      onClick={() => setSearchType('hybrid')}
+                      disabled={searchMutation.isPending || !hasEmbeddingModel}
+                      className={cn(
+                        "relative flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-300 backdrop-blur-md shadow-sm",
+                        searchType === 'hybrid'
+                          ? "border-violet-500 bg-violet-500/10 shadow-md ring-1 ring-violet-500/30"
+                          : "border-border/40 bg-background/50 hover:bg-accent/40"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Layers className="h-4 w-4 text-violet-500" />
+                          <span className="text-sm font-semibold text-foreground">Hybrid Search</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-violet-500/20 text-violet-600 dark:text-violet-400">local + valyu</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Local KB vector search combined with Valyu external research.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                 {/* Options Row */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-wrap items-center gap-4 w-full">
+                    {/* Search Locations */}
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 text-sm">
                         <Checkbox
                           id="sources"
                           name="sources"
@@ -404,11 +669,9 @@ export default function SearchPage() {
                           onCheckedChange={(checked) => setSearchSources(checked as boolean)}
                           disabled={searchMutation.isPending}
                         />
-                        <Label htmlFor="sources" className="font-normal cursor-pointer">
-                          {t('searchPage.searchSources')}
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
+                        {t('searchPage.searchSources')}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
                         <Checkbox
                           id="notes"
                           name="notes"
@@ -416,12 +679,85 @@ export default function SearchPage() {
                           onCheckedChange={(checked) => setSearchNotes(checked as boolean)}
                           disabled={searchMutation.isPending}
                         />
-                        <Label htmlFor="notes" className="font-normal cursor-pointer">
-                          {t('searchPage.searchNotes')}
-                        </Label>
+                        {t('searchPage.searchNotes')}
+                      </label>
+                    </div>
+
+                    {/* Search Settings Toggle */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowConfig(!showConfig)}
+                      disabled={searchMutation.isPending}
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs ml-auto border-border/40 bg-background/50 text-muted-foreground hover:bg-accent/40 font-medium",
+                        showConfig && "border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 shadow-sm"
+                      )}
+                    >
+                      <Settings className={cn("h-3.5 w-3.5", showConfig && "text-primary animate-spin")} style={{ animationDuration: '6s' }} />
+                      Search Settings
+                    </Button>
+                  </div>
+
+                  {/* Settings Sliders Panel */}
+                  {showConfig && (
+                    <div className="w-full p-4 rounded-xl border border-border/40 bg-sidebar-accent/10 backdrop-blur-md grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* Limit Slider */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold font-mono tracking-wider uppercase text-muted-foreground">Max Results</Label>
+                          <span className="text-xs font-mono font-semibold text-primary">{searchConfigs[searchType].limit}</span>
+                        </div>
+                        <Slider
+                          value={[searchConfigs[searchType].limit]}
+                          onValueChange={(val) => updateSearchConfig(searchType, 'limit', val[0])}
+                          min={5}
+                          max={200}
+                          step={5}
+                          disabled={searchMutation.isPending}
+                        />
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Maximum number of matches to retrieve from indexing.
+                        </p>
+                      </div>
+
+                      {/* Min Score Slider */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold font-mono tracking-wider uppercase text-muted-foreground">Min Relevance Score</Label>
+                          <span className="text-xs font-mono font-semibold text-primary">{searchConfigs[searchType].minimumScore.toFixed(2)}</span>
+                        </div>
+                        <Slider
+                          value={[searchConfigs[searchType].minimumScore]}
+                          onValueChange={(val) => updateSearchConfig(searchType, 'minimumScore', val[0])}
+                          min={0.0}
+                          max={1.0}
+                          step={0.05}
+                          disabled={searchMutation.isPending}
+                        />
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Filter out results with similarity scores below this threshold.
+                        </p>
+                      </div>
+
+                      {/* Reranker Toggle */}
+                      <div className="flex flex-col justify-between space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="reranker-toggle" className="text-xs font-bold font-mono tracking-wider uppercase text-muted-foreground">LLM Reranking</Label>
+                          <Checkbox
+                            id="reranker-toggle"
+                            checked={searchConfigs[searchType].reranker}
+                            onCheckedChange={(checked) => updateSearchConfig(searchType, 'reranker', checked as boolean)}
+                            disabled={searchMutation.isPending}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Apply secondary LLM relevance scoring to re-sort results.
+                        </p>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Search Results */}
@@ -431,7 +767,17 @@ export default function SearchPage() {
                       <h3 className="text-sm font-medium">
                         {t('searchPage.resultsFound').replace('{count}', searchMutation.data.total_count.toString())}
                       </h3>
-                      <Badge variant="outline">{searchMutation.data.search_type === 'text' ? t('searchPage.textSearch') : t('searchPage.vectorSearch')}</Badge>
+                      <div className="flex items-center gap-2">
+                        {searchConfigs[searchType].reranker && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400">
+                            <RotateCw className="h-3 w-3 mr-1" />
+                            Reranked
+                          </Badge>
+                        )}
+                        <Badge variant="outline">
+                          {searchMutation.data.search_type === 'hybrid' ? 'Hybrid' : 'Vector'}
+                        </Badge>
+                      </div>
                     </div>
 
                     {searchMutation.data.results.length === 0 ? (
@@ -443,29 +789,68 @@ export default function SearchPage() {
                     ) : (
                       <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                         {searchMutation.data.results.map((result, index) => {
-                          // Parse type from parent_id (format: "source:id" or "note:id" or "source_insight:id")
-                          // Handle null parent_id gracefully (orphaned records)
-                          if (!result.parent_id) {
-                            console.warn('Search result with null parent_id:', result)
-                            return null
+                          const isValyu = result.source_origin === 'Valyu'
+                          const isClickable = !isValyu && result.parent_id
+
+                          // Parse type from parent_id (only for local results)
+                          let modalType: 'source' | 'note' | 'insight' = 'source'
+                          let recordId = ''
+                          if (result.parent_id) {
+                            const [type, id] = result.parent_id.split(':')
+                            modalType = type === 'source_insight' ? 'insight' : type as 'source' | 'note' | 'insight'
+                            recordId = id
                           }
-                          const [type, id] = result.parent_id.split(':')
-                          const modalType = type === 'source_insight' ? 'insight' : type as 'source' | 'note' | 'insight'
 
                           return (
                           <Card key={index} className="card-hover">
                             <CardContent className="pt-4">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
-                                  <button
-                                    onClick={() => openModal(modalType, id)}
-                                    className="text-primary hover:underline font-medium"
-                                  >
-                                    {result.title}
-                                  </button>
-                                  <Badge variant="secondary" className="ml-2 tabular-nums font-mono text-xs">
-                                    {result.final_score.toFixed(2)}
-                                  </Badge>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {/* Source Origin Badge */}
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] py-0 px-1.5 shrink-0",
+                                        isValyu
+                                          ? "border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5"
+                                          : "border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/5"
+                                      )}
+                                    >
+                                      {isValyu ? (
+                                        <><Globe className="h-3 w-3 mr-0.5" />Valyu</>
+                                      ) : (
+                                        <><Database className="h-3 w-3 mr-0.5" />Local KB</>
+                                      )}
+                                    </Badge>
+
+                                    {/* Title - clickable for local, link for Valyu */}
+                                    {isClickable ? (
+                                      <button
+                                        onClick={() => openModal(modalType, recordId)}
+                                        className="text-primary hover:underline font-medium text-sm"
+                                      >
+                                        {result.title}
+                                      </button>
+                                    ) : isValyu && result.url ? (
+                                      <a
+                                        href={result.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-500 hover:underline font-medium text-sm flex items-center gap-1"
+                                      >
+                                        {result.title}
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    ) : (
+                                      <span className="font-medium text-sm text-foreground">{result.title}</span>
+                                    )}
+
+                                    {/* Score */}
+                                    <Badge variant="secondary" className="ml-auto tabular-nums font-mono text-xs shrink-0">
+                                      {result.final_score.toFixed(2)}
+                                    </Badge>
+                                  </div>
                                 </div>
                               </div>
 
@@ -477,7 +862,10 @@ export default function SearchPage() {
                                   </CollapsibleTrigger>
                                   <CollapsibleContent className="mt-2 space-y-1">
                                     {result.matches.map((match, i) => (
-                                      <div key={i} className="text-sm pl-6 py-1 border-l-2 border-primary/30">
+                                      <div key={i} className={cn(
+                                        "text-sm pl-6 py-1 border-l-2",
+                                        isValyu ? "border-blue-500/30" : "border-primary/30"
+                                      )}>
                                         {match}
                                       </div>
                                     ))}
