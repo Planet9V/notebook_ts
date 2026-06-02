@@ -1,11 +1,12 @@
 // Search types
 export interface SearchRequest {
   query: string
-  type: 'text' | 'vector'
+  type: 'vector' | 'hybrid'
   limit: number
   search_sources: boolean
   search_notes: boolean
   minimum_score: number
+  reranker?: boolean
 }
 
 export interface SearchResult {
@@ -19,6 +20,10 @@ export interface SearchResult {
   score?: number
   type?: string
   source_type?: string
+  source_origin?: string
+  original_index?: number
+  url?: string
+  content?: string
   created: string
   updated: string
 }
@@ -42,6 +47,16 @@ export interface AskResponse {
   question: string
 }
 
+export interface ResearchRequest {
+  query: string
+  engine: 'local' | 'perplexity' | 'hybrid'
+  transformation_id?: string
+  model_id?: string
+  custom_prompt?: string
+  output_formatting?: string
+  styleguide_id?: string
+}
+
 // SSE Streaming types
 export interface StrategyData {
   reasoning: string
@@ -52,10 +67,24 @@ export interface StrategyData {
 }
 
 export interface AskStreamEvent {
-  type: 'strategy' | 'answer' | 'final_answer' | 'complete' | 'error'
+  type: 'strategy' | 'answer' | 'final_answer' | 'complete' | 'error' | 'status' | 'sources'
   reasoning?: string
   searches?: Array<{ term: string; instructions: string }>
   content?: string
   final_answer?: string
   message?: string
+  sources?: Array<{ title: string; url: string; content?: string }>
 }
+
+export interface CompareRequest {
+  query: string
+  limit: number
+}
+
+export interface CompareResponse {
+  raw_latency_ms: number
+  reranked_latency_ms: number
+  raw_results: SearchResult[]
+  reranked_results: SearchResult[]
+}
+

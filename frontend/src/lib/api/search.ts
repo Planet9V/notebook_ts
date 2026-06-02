@@ -1,11 +1,61 @@
 import apiClient from './client'
-import { SearchRequest, SearchResponse, AskRequest } from '@/lib/types/search'
+import { SearchRequest, SearchResponse, AskRequest, ResearchRequest, CompareRequest, CompareResponse } from '@/lib/types/search'
+
 
 export const searchApi = {
   // Standard search (non-streaming)
   search: async (params: SearchRequest) => {
     const response = await apiClient.post<SearchResponse>('/search', params)
     return response.data
+  },
+
+  // Research with streaming (SSE)
+  research: async (params: ResearchRequest) => {
+    // Get auth token using the same logic as apiClient interceptor
+    let token = null
+    if (typeof window !== 'undefined') {
+      const authStorage = localStorage.getItem('auth-storage')
+      if (authStorage) {
+        try {
+          const { state } = JSON.parse(authStorage)
+          if (state?.token) {
+            token = state.token
+          }
+        } catch (error) {
+          console.error('Error parsing auth storage:', error)
+        }
+      }
+    }
+
+    // Use relative URL to leverage Next.js rewrites
+    const url = '/api/search/research'
+
+    // Use fetch with ReadableStream for SSE
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      body: JSON.stringify(params)
+    })
+
+    if (!response.ok) {
+      let errorMessage = `HTTP error! status: ${response.status}`
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.detail || errorData.message || errorMessage
+      } catch {
+        errorMessage = response.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
+    }
+
+    if (!response.body) {
+      throw new Error('No response body received')
+    }
+
+    return response.body
   },
 
   // Ask with streaming (uses relative URL for Docker compatibility)
@@ -58,5 +108,12 @@ export const searchApi = {
     }
 
     return response.body
+  },
+
+  // Reranker comparison search
+  compare: async (params: CompareRequest) => {
+    const response = await apiClient.post<CompareResponse>('/search/compare', params)
+    return response.data
   }
 }
+
