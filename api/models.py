@@ -107,6 +107,18 @@ class SearchResponse(BaseModel):
     search_type: str = Field(..., description="Type of search performed")
 
 
+class CompareRequest(BaseModel):
+    query: str = Field(..., description="Search query for comparison")
+    limit: int = Field(10, description="Maximum number of results to compare")
+
+
+class CompareResponse(BaseModel):
+    raw_latency_ms: float = Field(..., description="Latency of raw vector search in milliseconds")
+    reranked_latency_ms: float = Field(..., description="Latency of reranked search in milliseconds")
+    raw_results: List[Dict[str, Any]] = Field(..., description="Results without reranking")
+    reranked_results: List[Dict[str, Any]] = Field(..., description="Results with reranking")
+
+
 class AskRequest(BaseModel):
     question: str = Field(..., description="Question to ask the knowledge base")
     strategy_model: str = Field(..., description="Model ID for query strategy")
@@ -1182,6 +1194,23 @@ class AssessmentSessionCreate(BaseModel):
     session_name: str = Field(..., description="Name of the assessment session")
     carry_forward_prior: Optional[bool] = Field(True, description="Clones all answers from previous session if available")
 
+class CategoryCoverage(BaseModel):
+    category: str
+    total: int
+    answered: int
+    yes_count: int
+    score: float
+
+class ComplianceSnapshot(BaseModel):
+    compliance_score: float
+    total_questions: int
+    answered_count: int
+    yes_count: int
+    no_count: int
+    na_count: int
+    alt_count: int
+    category_coverage: List[CategoryCoverage]
+
 class AssessmentSessionResponse(BaseModel):
     id: str
     assessment_id: str
@@ -1190,6 +1219,8 @@ class AssessmentSessionResponse(BaseModel):
     completed_at: Optional[str] = None
     status: str  # "IN_PROGRESS" | "COMPLETED"
     version_lock: Optional[str] = None
+    compliance_snapshot: Optional[ComplianceSnapshot] = None
+
 
 class AssessmentAnswerUpdate(BaseModel):
     answer: str = Field(..., description="YES, NO, N/A, ALT answer status")
@@ -1215,12 +1246,6 @@ class AssessmentReportStats(BaseModel):
     completion_percentage: float
     compliance_score: float
 
-class CategoryCoverage(BaseModel):
-    category: str
-    total: int
-    answered: int
-    yes_count: int
-    score: float
 
 class AssessmentReportResponse(BaseModel):
     session_id: str

@@ -1,20 +1,27 @@
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends
+from datetime import datetime, timezone
+from typing import List
+
+from fastapi import APIRouter, HTTPException
 from loguru import logger
 
 from api.models import (
+    AssessmentAnswerResponse,
+    AssessmentAnswerUpdate,
     AssessmentCreate,
+    AssessmentReportResponse,
+    AssessmentReportStats,
     AssessmentResponse,
     AssessmentSessionCreate,
     AssessmentSessionResponse,
-    AssessmentAnswerUpdate,
-    AssessmentAnswerResponse,
-    AssessmentReportResponse,
-    AssessmentReportStats,
     CategoryCoverage,
+    ComplianceSnapshot,
 )
-from open_notebook.database.repository import ensure_record_id, repo_query, repo_create, repo_update
+from open_notebook.database.repository import (
+    ensure_record_id,
+    repo_create,
+    repo_query,
+    repo_update,
+)
 
 router = APIRouter()
 
@@ -48,7 +55,7 @@ async def create_assessment(data: AssessmentCreate):
             
         # Check for existing link
         existing = await repo_query(
-            "SELECT * FROM assessment WHERE customer_id = $cust_id AND framework_id = $fw_id",
+            "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) AND type::string(framework_id) = type::string($fw_id)",
             {"cust_id": cust_id, "fw_id": fw_id}
         )
         
@@ -58,11 +65,22 @@ async def create_assessment(data: AssessmentCreate):
             rec = await repo_create("assessment", {
                 "customer_id": cust_id,
                 "framework_id": fw_id,
-                "created_at": datetime.utcnow().isoformat() + "Z"
+                "created_at": datetime.now(timezone.utc).isoformat() + "Z"
             })
             if isinstance(rec, list):
                 rec = rec[0]
                 
+        # Emit activity for new assessments
+        if not existing:
+            from api.routers.activity_emitter import emit_activity
+            fw_name = str(reg_check[0].get("name", fw_id)) if reg_check else fw_id
+            await emit_activity(
+                customer_id=cust_id,
+                activity_type="assessment_started",
+                description=f"Compliance assessment started: {fw_name}",
+                metadata={"assessment_id": str(rec["id"]), "framework_id": str(fw_id)},
+            )
+
         return AssessmentResponse(
             id=str(rec["id"]),
             customer_id=str(rec["customer_id"]),
@@ -85,7 +103,7 @@ async def get_assessments(customer_id: str):
             cust_id = f"customer:{cust_id}"
             
         results = await repo_query(
-            "SELECT * FROM assessment WHERE customer_id = $cust_id ORDER BY created_at DESC",
+            "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) ORDER BY created_at DESC",
             {"cust_id": cust_id}
         )
         
@@ -125,7 +143,7 @@ async def create_session(assessment_id: str, data: AssessmentSessionCreate):
             "session_name": data.session_name,
             "status": "IN_PROGRESS",
             "version_lock": fw_id,
-            "created_at": datetime.utcnow().isoformat() + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat() + "Z",
             "completed_at": None
         }
         
@@ -138,7 +156,7 @@ async def create_session(assessment_id: str, data: AssessmentSessionCreate):
         # Perform carry-forward if requested and a prior session exists
         if data.carry_forward_prior:
             prior = await repo_query(
-                "SELECT id FROM assessment_session WHERE assessment_id = $assess_id ORDER BY created_at DESC LIMIT 2",
+                "SELECT id, created_at FROM assessment_session WHERE type::string(assessment_id) = type::string($assess_id) ORDER BY created_at DESC LIMIT 2",
                 {"assess_id": assess_id}
             )
             # Since LIMIT 2 returns the newly created one as index 0, check if a prior index 1 exists
@@ -148,7 +166,7 @@ async def create_session(assessment_id: str, data: AssessmentSessionCreate):
                 
                 # Retrieve all answers from prior session
                 prior_answers = await repo_query(
-                    "SELECT * FROM assessment_answer WHERE session_id = $prior_sess_id",
+                    "SELECT * FROM assessment_answer WHERE type::string(session_id) = type::string($prior_sess_id)",
                     {"prior_sess_id": prior_sess_id}
                 )
                 
@@ -159,9 +177,21 @@ async def create_session(assessment_id: str, data: AssessmentSessionCreate):
                         "answer": ans["answer"],
                         "comments": ans.get("comments") or "",
                         "evidence_url": ans.get("evidence_url") or "",
-                        "updated_at": datetime.utcnow().isoformat() + "Z"
+                        "updated_at": datetime.now(timezone.utc).isoformat() + "Z"
                     })
                     
+        # Emit activity for new session
+        assess_record = assess[0]
+        cust_id = assess_record.get("customer_id")
+        if cust_id:
+            from api.routers.activity_emitter import emit_activity
+            await emit_activity(
+                customer_id=str(cust_id),
+                activity_type="assessment_started",
+                description=f"Audit session \"{data.session_name}\" started",
+                metadata={"session_id": new_sess_id, "assessment_id": assess_id},
+            )
+
         return AssessmentSessionResponse(
             id=new_sess_id,
             assessment_id=str(new_sess["assessment_id"]),
@@ -187,7 +217,7 @@ async def get_sessions(assessment_id: str):
             assess_id = f"assessment:{assessment_id}"
             
         results = await repo_query(
-            "SELECT * FROM assessment_session WHERE assessment_id = $assess_id ORDER BY created_at DESC",
+            "SELECT * FROM assessment_session WHERE type::string(assessment_id) = type::string($assess_id) ORDER BY created_at DESC",
             {"assess_id": assess_id}
         )
         
@@ -225,13 +255,13 @@ async def get_session_questions(session_id: str):
         
         # Load all standard questions
         questions = await repo_query(
-            "SELECT * FROM question WHERE regulation_id = $fw_id ORDER BY standard_code ASC",
+            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id) ORDER BY standard_code ASC",
             {"fw_id": fw_id}
         )
         
         # Load all answered responses in this session
         answers = await repo_query(
-            "SELECT * FROM assessment_answer WHERE session_id = $session_id",
+            "SELECT * FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
             {"session_id": sess_id}
         )
         
@@ -286,11 +316,11 @@ async def update_answer(session_id: str, question_id: str, data: AssessmentAnswe
             
         # Check if answer record already exists
         existing = await repo_query(
-            "SELECT id FROM assessment_answer WHERE session_id = $session_id AND question_id = $question_id",
+            "SELECT id FROM assessment_answer WHERE type::string(session_id) = type::string($session_id) AND type::string(question_id) = type::string($question_id)",
             {"session_id": sess_id, "question_id": q_id}
         )
         
-        now_str = datetime.utcnow().isoformat() + "Z"
+        now_str = datetime.now(timezone.utc).isoformat() + "Z"
         
         if existing:
             ans_record_id = str(existing[0]["id"])
@@ -331,7 +361,7 @@ async def update_answer(session_id: str, question_id: str, data: AssessmentAnswe
 
 @router.post("/sessions/{session_id}/complete", response_model=AssessmentSessionResponse)
 async def complete_session(session_id: str):
-    """Finalize and lock an active audit session milestone."""
+    """Finalize and lock an active audit session milestone and store a static compliance snapshot."""
     try:
         sess_id = session_id
         if ":" not in sess_id:
@@ -341,9 +371,93 @@ async def complete_session(session_id: str):
         if not sess_check:
             raise HTTPException(status_code=404, detail="Audit session not found")
             
+        session_record = sess_check[0]
+        fw_id = session_record.get("version_lock")
+
+        # Load standard questions & custom fields
+        questions = await repo_query(
+            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id)",
+            {"fw_id": fw_id}
+        )
+        
+        # Load answers
+        answers = await repo_query(
+            "SELECT * FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
+            {"session_id": sess_id}
+        )
+        
+        answer_map = {ans["question_id"]: ans for ans in answers}
+        
+        total_questions = len(questions)
+        answered_count = len(answers)
+        
+        yes_count = 0
+        no_count = 0
+        na_count = 0
+        alt_count = 0
+        
+        # Calculate statistics
+        for ans in answers:
+            a = ans["answer"]
+            if a == "Y":
+                yes_count += 1
+            elif a == "N":
+                no_count += 1
+            elif a == "NA":
+                na_count += 1
+            elif a == "ALT":
+                alt_count += 1
+                
+        unanswered_count = total_questions - answered_count
+        no_count += unanswered_count  # Treat unanswered as NO for security posture
+        
+        denominator = total_questions - na_count
+        compliance_score = ((yes_count + alt_count) / denominator) * 100 if denominator > 0 else 0.0
+        
+        # Category coverage analysis
+        category_map = {}
+        for q in questions:
+            cat = q.get("category") or "Control"
+            if cat not in category_map:
+                category_map[cat] = {"total": 0, "answered": 0, "yes_count": 0}
+            
+            category_map[cat]["total"] += 1
+            
+            q_id = str(q["id"])
+            ans = answer_map.get(q_id)
+            if ans:
+                category_map[cat]["answered"] += 1
+                if ans["answer"] in ["Y", "ALT"]:
+                    category_map[cat]["yes_count"] += 1
+                    
+        category_coverage = []
+        for cat, metrics in category_map.items():
+            tot = metrics["total"]
+            yes = metrics["yes_count"]
+            score = (yes / tot) * 100 if tot > 0 else 0.0
+            category_coverage.append({
+                "category": cat,
+                "total": tot,
+                "answered": metrics["answered"],
+                "yes_count": yes,
+                "score": score
+            })
+
+        compliance_snapshot = {
+            "compliance_score": compliance_score,
+            "total_questions": total_questions,
+            "answered_count": answered_count,
+            "yes_count": yes_count,
+            "no_count": no_count,
+            "na_count": na_count,
+            "alt_count": alt_count,
+            "category_coverage": category_coverage
+        }
+
         result = await repo_update("assessment_session", sess_id, {
             "status": "COMPLETED",
-            "completed_at": datetime.utcnow().isoformat() + "Z"
+            "completed_at": datetime.now(timezone.utc).isoformat() + "Z",
+            "compliance_snapshot": compliance_snapshot
         })
         
         if isinstance(result, list):
@@ -356,7 +470,8 @@ async def complete_session(session_id: str):
             created_at=str(result["created_at"]),
             completed_at=result.get("completed_at"),
             status=str(result["status"]),
-            version_lock=result.get("version_lock")
+            version_lock=result.get("version_lock"),
+            compliance_snapshot=result.get("compliance_snapshot")
         )
     except HTTPException:
         raise
@@ -382,13 +497,13 @@ async def get_session_report(session_id: str):
         
         # Load standard questions & custom fields
         questions = await repo_query(
-            "SELECT * FROM question WHERE regulation_id = $fw_id",
+            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id)",
             {"fw_id": fw_id}
         )
         
         # Load answers
         answers = await repo_query(
-            "SELECT * FROM assessment_answer WHERE session_id = $session_id",
+            "SELECT * FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
             {"session_id": sess_id}
         )
         
@@ -524,7 +639,7 @@ async def get_assessment_trends(assessment_id: str):
             assess_id = f"assessment:{assessment_id}"
             
         sessions = await repo_query(
-            "SELECT * FROM assessment_session WHERE assessment_id = $assess_id ORDER BY created_at ASC",
+            "SELECT * FROM assessment_session WHERE type::string(assessment_id) = type::string($assess_id) ORDER BY created_at ASC",
             {"assess_id": assess_id}
         )
         
@@ -537,13 +652,13 @@ async def get_assessment_trends(assessment_id: str):
             
             # Load answers & questions for scoring
             q_count_res = await repo_query(
-                "SELECT count() FROM question WHERE regulation_id = $fw_id GROUP ALL",
+                "SELECT count() FROM question WHERE type::string(regulation_id) = type::string($fw_id) GROUP ALL",
                 {"fw_id": fw_id}
             )
             total_questions = q_count_res[0]["count"] if q_count_res else 0
             
             ans_res = await repo_query(
-                "SELECT answer FROM assessment_answer WHERE session_id = $session_id",
+                "SELECT answer FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
                 {"session_id": sess_id}
             )
             
