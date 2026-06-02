@@ -1,61 +1,37 @@
-# Progress Log: CISA 16 USA Critical Infrastructure Sectors Alignment
+# Session Progress Log — Phase 4
 
-## Session: 2026-05-23 (CISA 16 Sectors Alignment)
-
-### Phase 1: Planning & Research Storage
-- **Status:** complete
-- **Started:** 2026-05-23T17:00:00-05:00
-- **Completed:** 2026-05-23T17:03:00-05:00
-- **Actions taken:**
-  - Researched the official 16 CISA Critical Infrastructure Sectors, Sector Risk Management Agencies (SRMAs), and subsectors.
-  - Mapped all 66 compliance frameworks to primary CISA sectors and secondary multi-sector arrays.
-  - Created highly detailed, academic-cited `findings.md`.
-  - Updated `task_plan.md` with complete phase descriptions and design decisions.
-  - Initialized progress logs.
-
-### Phase 2: Schema & Model Upgrades
-- **Status:** complete
-- **Started:** 2026-05-23T17:03:00-05:00
-- **Completed:** 2026-05-23T17:15:00-05:00
-- **Actions taken:**
-  - Updated `api/models.py` to add `sectors` multi-sector lists to `RegulationResponse` and customer settings models.
-  - Refactored `api/routers/regulations.py` to fetch `sectors` list from SurrealDB, fallback to `[sector]` for backward compatibility.
-  - Fully mapped all endpoints in regulations and customers routers.
-
-### Phase 3: Seeder Refactoring & Reseeding
-- **Status:** complete
-- **Started:** 2026-05-23T17:15:00-05:00
-- **Completed:** 2026-05-23T17:35:00-05:00
-- **Actions taken:**
-  - Refactored `scripts/generate_cset_library.py` to specify CISA-aligned primary `sector` and secondary `sectors` array for all 66 frameworks.
-  - Cleared and reseeded SurrealDB with 66 regulations and 7,062 validated controls/questions.
-  - Executed `scripts/generate_individual_framework_artifacts.py` to generate the individual JSON and Markdown blueprints in `data/blueprints/` and `docs/blueprints/`.
-
-### Phase 4: Frontend UI Refactoring
-- **Status:** complete
-- **Started:** 2026-05-23T17:35:00-05:00
-- **Completed:** 2026-05-23T18:00:00-05:00
-- **Actions taken:**
-  - Refactored `frontend/src/app/(dashboard)/compliance/page.tsx` with all 16 CISA sectors filtering, multi-sector cards, and badge lists.
-  - Refactored `frontend/src/app/(dashboard)/customers/[id]/page.tsx` with multi-sector dropdown checkboxes and beautiful card settings view.
-  - Ran `npx tsc --noEmit` to verify type safety with zero compilation errors.
-
-### Phase 5: Verification & Commit
-- **Status:** complete
-- **Started:** 2026-05-23T18:00:00-05:00
-- **Completed:** 2026-05-23T18:15:00-05:00
-- **Actions taken:**
-  - Ran `pytest` to verify 200/200 test cases are green.
-  - Verified 100% hydration and validation of 7,062 controls via `scratch/verify_all_directives.py`.
-  - Added all untracked files and staged modifications for local git storage.
+This file logs our actions and test results step-by-step during the session.
 
 ---
 
-## 5-Question Reboot Check
-| Question | Answer |
-|----------|--------|
-| Where am I? | Phase 5: Verification & Commit (Completed) |
-| Where am I going? | Stage and commit all files in local git, restart the developer server, and present the final system overview to the user. |
-| What's the goal? | Fully align Tetrel's compliance framework engine with CISA's official list of 16 USA Critical Infrastructure Sectors and verify it. |
-| What have I learned? | CISA defines exactly 16 critical infrastructure sectors under PPD-21. Scaling frameworks to align with CISA multi-sector lists enables rich B2B customer setting mappings and zero layout regressions. |
-| What have I done? | Formulated research, mapped all 66 frameworks, updated backend models, seeders, generated individual JSON/Markdown blueprints, refactored compliance hub and customer settings frontend views, and ran type checking/testing. |
+## 📅 Session Goals
+1. **Plan Formulation:** Draft a clean, detailed, and TDD-aligned plan for Tasks A, B, C, and D. (COMPLETE!)
+2. **Execute Task A:** Implement granular search configuration sliders (limit, min score, reranker) in the search dashboard. (COMPLETE!)
+3. **Execute Task B:** Build comparison search endpoint and the raw vs reranked sandbox dashboard page. (COMPLETE!)
+4. **Execute Task C:** Calculate and persist compliance score snapshots to session records on complete session actions. (COMPLETE!)
+5. **Execute Task D:** Add copilot autocomplete and rewrite capabilities directly to the SOW Markdown editor. (COMPLETE!)
+
+---
+
+## 🛠️ Completed Session Checkpoints
+
+### Checkpoint 1: Initialized Phase 4 planning files
+- Created implementation plan file `docs/plans/2026-06-02-reranking-sandbox-historical-audit-copilot.md`.
+- Updated master `implementation_plan.md` artifact.
+- Created `task_plan.md`, `findings.md`, and `progress.md` in the project root.
+
+### Checkpoint 2: Completed Task A & Task B
+- Implemented search config sliders in `search/page.tsx`.
+- Implemented `/api/search/compare` endpoint in backend.
+- Created `RerankerSandbox.tsx` side-by-side search relevance auditing tool in frontend.
+- Added and verified integration test `tests/test_search_compare.py` passes.
+- Verified frontend compilation is completely clean.
+
+### Checkpoint 3: Completed Task C & Task D
+- Implemented dynamic compliance metrics snapshot saving on CSET session completion.
+- Added and verified integration test `tests/test_cset_snapshot.py` passes.
+- Implemented `/api/agents/draft/copilot` endpoint using default chat model and prompting.
+- Implemented interactive SOW Drafting Copilot inline toolbar in `B2BDraftingWorkspace.tsx`.
+- Added and verified integration test `tests/test_draft_copilot.py` passes.
+- Verified frontend compilation is completely clean.
+

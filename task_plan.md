@@ -1,65 +1,63 @@
-# Task Plan: CISA 16 USA Critical Infrastructure Sectors Alignment
+# Master Task Plan — Phase 4: Reranking, Historical Snapshots, and SOW Copilot
 
-This document outlines the systematic implementation plan to update Tetrel's compliance framework engine to align with the official **16 USA Critical Infrastructure Sectors** defined by CISA and DHS.
-
----
-
-## 1. Goal
-Replace the existing basic sector designations with the 16 official CISA sectors. Support multi-sector classification for all 66 frameworks to enable high-fidelity filtering and mapping in the database and Next.js frontend, ensuring full backward compatibility and 100% test suite safety.
+This file tracks the active checklist and progress for Phase 4. We enforce TDD and Karpathy rules (clean, complete code with no stubs).
 
 ---
 
-## 2. Design Choices
+## 📋 The Master Checklist
 
-### Database Schema Upgrade
-- Keep the `sector` string field on the `regulation` table for backward compatibility, mapping each regulation to its *Primary CISA Critical Sector* (or `"Cross-Sector"`).
-- Add the `sectors` list of strings field to store *all* CISA sectors applicable to a given framework.
+- [x] **Task A: Reranker UI Toggle & Slider Controls**
+  - [x] Initialize `searchConfigs` state in `page.tsx` with limit, minimumScore, and reranker properties for vector and hybrid search types.
+  - [x] Add `localStorage` mounting and saving side-effects.
+  - [x] Expose an expandable "Search Config" configuration panel in the UI with sliders and a reranker checkbox.
+  - [x] Connect configuration to the search query mutation.
+  - [x] Run `npx tsc --noEmit` to verify type safety.
+  - [x] Commit Task A.
 
-### Backend APIs
-- Update `RegulationResponse` in `api/models.py` to include `sectors: Optional[List[str]] = Field(default_factory=list)`.
-- Update `get_regulations` in `api/routers/regulations.py` to fetch `sectors` from SurrealDB records, falling back to `[sector]` if empty to ensure robustness.
+- [x] **Task B: Reranker Admin Sandbox Comparison Tool**
+  - [x] Create failing test `tests/test_search_compare.py`.
+  - [x] Run test to verify failure.
+  - [x] Implement `POST /api/search/compare` in `api/routers/search.py` calculating latency and relevance scores side-by-side.
+  - [x] Build comparison Sandbox component `RerankerSandbox.tsx` in `frontend`.
+  - [x] Embed the sandbox in `/advanced/page.tsx`.
+  - [x] Run test to verify pass.
+  - [x] Commit Task B.
 
-### Database Seeder
-- Update all 66 framework objects in `scripts/generate_cset_library.py` to reflect their correct primary `sector` (from the CISA 16 or `"Cross-Sector"`) and secondary `sectors` array.
-- Clear and reseed the SurrealDB instance with the updated regulations and deduplicated controls/questions.
-- Regenerate individual JSON/Markdown blueprints via `scripts/generate_individual_framework_artifacts.py` to keep the artifacts folder in lockstep.
+- [x] **Task C: CSET Historical Audit Logging**
+  - [x] Create failing test `tests/test_cset_snapshot.py`.
+  - [x] Run test to verify failure.
+  - [x] Add `compliance_snapshot` field to `AssessmentSessionResponse` in `api/models.py`.
+  - [x] Calculate score/coverage on session completion and save to SurrealDB session record in `api/routers/assessments.py`.
+  - [x] Run test to verify pass.
+  - [x] Commit Task C.
 
-### Frontend UI
-- Update `CSETFramework` interface in `frontend/src/app/(dashboard)/compliance/page.tsx` to include `sectors: string[]` and expand the `sector` type list.
-- Update `CSET_FRAMEWORKS_RAW` fallback data with the identical multi-sector schema to prevent fallback crashes.
-- Redefine `const sectors = [...]` array to list all 16 CISA sectors, `'Cross-Sector'`, and `'ALL'`.
-- Modify `matchesSector` filtering logic:
-  `const matchesSector = selectedSector === 'ALL' || fw.sectors.includes(selectedSector) || fw.sector === selectedSector`
-- Update card tags and badges to support rendering either the primary sector or the list of sectors elegantly.
+- [x] **Task D: Inline SOW Drafting Autocomplete**
+  - [x] Create failing test `tests/test_draft_copilot.py`.
+  - [x] Run test to verify failure.
+  - [x] Implement `POST /api/agents/draft/copilot` in `api/routers/agents.py` using Drafting Copilot prompts and chat models.
+  - [x] Implement UI Copilot toolbar above `MarkdownEditor` in `B2BDraftingWorkspace.tsx`.
+  - [x] Hook text selection to populate suggestion inputs, and show Accept & Replace actions.
+  - [x] Run tests and verify frontend compilation.
+  - [x] Commit Task D.
 
 ---
 
-## 3. Implementation Checklist
+## 🧪 Verification Log
 
-### Phase 1: Research & Plan Creation
-- [x] Research official CISA 16 sectors & subsectors from DHS and CISA portals.
-- [x] Create comprehensive `findings.md` mapping all 66 regulations to the 16 critical sectors.
-- [x] Author detailed `task_plan.md` mapping out execution phases.
-- [x] Initialize session tracking in `progress.md`.
+| Task | Method | Status | Details |
+|------|--------|--------|---------|
+| Task A | `npx tsc --noEmit` | [x] | Success |
+| Task B | `pytest tests/test_search_compare.py` | [x] | Success, passed 100% |
+| Task C | `pytest tests/test_cset_snapshot.py` | [x] | Success, passed 100% |
+| Task D | `pytest tests/test_draft_copilot.py` | [x] | Success, passed 100% |
 
-### Phase 2: Schema & Model Upgrades
-- [x] Add `sectors` field to `RegulationResponse` in `api/models.py`.
-- [x] Update SurrealDB query mapping in `api/routers/regulations.py` to retrieve `sectors`.
+---
 
-### Phase 3: Seeder Refactoring & Reseeding
-- [x] Update `validate_regulation` in `scripts/generate_cset_library.py` to inspect `sectors` list.
-- [x] Refactor the `FRAMEWORKS` definitions list in `scripts/generate_cset_library.py` with CISA primary and secondary sectors.
-- [x] Execute `scripts/generate_cset_library.py` to populate SurrealDB.
-- [x] Execute `scripts/generate_individual_framework_artifacts.py` to rebuild static artifacts.
-- [x] Run database check `scratch/check_db.py` to verify ingestion integrity.
+## ⚠️ Errors Encountered & Resolution
 
-### Phase 4: Frontend UI Refactoring
-- [x] Refactor the `CSETFramework` interface in `frontend/src/app/(dashboard)/compliance/page.tsx`.
-- [x] Update `CSET_FRAMEWORKS_RAW` static fallbacks with CISA sector schemas in `page.tsx`.
-- [x] Refactor filtering logic and `sectors` list in `page.tsx`.
-- [x] Run `npx tsc --noEmit` inside `frontend/` to confirm complete compile safety.
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+| TS size="xs" on Button | 1 | Replaced with size="sm" (standard prop size) |
+| Loader2 missing | 1 | Added Loader2 to lucide-react imports in B2BDraftingWorkspace |
+| Slider id prop | 1 | Removed id prop from Slider in RerankerSandbox |
 
-### Phase 5: Verification & Verification
-- [x] Run Python pytest suite `pytest` to guarantee 100% test success.
-- [x] Run `.venv/bin/python scratch/verify_all_directives.py` to verify hydration completeness.
-- [x] Author a detailed walkthrough summarizing changes and achievements.
