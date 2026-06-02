@@ -1,0 +1,17 @@
+DEFINE TABLE asset SCHEMAFULL;
+DEFINE FIELD notebook_id ON asset TYPE string;
+DEFINE FIELD node_id ON asset TYPE string;
+DEFINE FIELD type ON asset TYPE string;
+DEFINE FIELD purdueLevel ON asset TYPE int;
+DEFINE FIELD manufacturer ON asset TYPE option<string>;
+DEFINE FIELD os_version ON asset TYPE option<string>;
+DEFINE FIELD firmware_version ON asset TYPE option<string>;
+DEFINE FIELD ip_address ON asset TYPE option<string>;
+DEFINE FIELD mac_address ON asset TYPE option<string>;
+DEFINE FIELD subnet_mask ON asset TYPE option<string>;
+DEFINE FIELD hostname ON asset TYPE option<string>;
+DEFINE FIELD x ON asset TYPE float;
+DEFINE FIELD y ON asset TYPE float;
+DEFINE FIELD created ON asset TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated ON asset TYPE datetime DEFAULT time::now() VALUE time::now();
+

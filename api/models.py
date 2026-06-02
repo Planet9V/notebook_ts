@@ -52,16 +52,53 @@ class NotebookResponse(BaseModel):
     customer_id: Optional[str] = None
 
 
+# Asset models
+class AssetCreate(BaseModel):
+    notebook_id: str = Field(..., description="ID of the notebook this asset belongs to")
+    node_id: str = Field(..., description="Node ID of the asset on the drawing canvas")
+    type: str = Field(..., description="Type of the asset, e.g. plc, hmi, workstation")
+    purdueLevel: int = Field(..., description="Purdue model level (0-5)")
+    manufacturer: Optional[str] = Field(None, description="Manufacturer of the device")
+    os_version: Optional[str] = Field(None, description="Operating system version")
+    firmware_version: Optional[str] = Field(None, description="Firmware version")
+    ip_address: Optional[str] = Field(None, description="IP address")
+    mac_address: Optional[str] = Field(None, description="MAC address")
+    subnet_mask: Optional[str] = Field(None, description="Subnet mask")
+    hostname: Optional[str] = Field(None, description="Hostname")
+    x: float = Field(..., description="X coordinate on the canvas")
+    y: float = Field(..., description="Y coordinate on the canvas")
+
+
+class AssetResponse(BaseModel):
+    id: str = Field(..., description="Unique SurrealDB record ID for the asset")
+    notebook_id: str = Field(..., description="ID of the notebook this asset belongs to")
+    node_id: str = Field(..., description="Node ID of the asset on the drawing canvas")
+    type: str = Field(..., description="Type of the asset, e.g. plc, hmi, workstation")
+    purdueLevel: int = Field(..., description="Purdue model level (0-5)")
+    manufacturer: Optional[str] = Field(None, description="Manufacturer of the device")
+    os_version: Optional[str] = Field(None, description="Operating system version")
+    firmware_version: Optional[str] = Field(None, description="Firmware version")
+    ip_address: Optional[str] = Field(None, description="IP address")
+    mac_address: Optional[str] = Field(None, description="MAC address")
+    subnet_mask: Optional[str] = Field(None, description="Subnet mask")
+    hostname: Optional[str] = Field(None, description="Hostname")
+    x: float = Field(..., description="X coordinate on the canvas")
+    y: float = Field(..., description="Y coordinate on the canvas")
+    created: str = Field(..., description="Creation timestamp")
+    updated: str = Field(..., description="Last update timestamp")
+
+
 # Search models
 class SearchRequest(BaseModel):
     query: str = Field(..., description="Search query")
-    type: Literal["text", "vector"] = Field("text", description="Search type")
+    type: Literal["vector", "hybrid"] = Field("vector", description="Search type: vector (local KB) or hybrid (local KB + Valyu)")
     limit: int = Field(100, description="Maximum number of results", le=1000)
     search_sources: bool = Field(True, description="Include sources in search")
     search_notes: bool = Field(True, description="Include notes in search")
     minimum_score: float = Field(
         0.2, description="Minimum score for vector search", ge=0, le=1
     )
+    reranker: bool = Field(False, description="Whether to rerank results using the configured reranker model")
 
 
 class SearchResponse(BaseModel):
@@ -82,19 +119,60 @@ class AskResponse(BaseModel):
     question: str = Field(..., description="Original question")
 
 
+class ResearchRequest(BaseModel):
+    query: str = Field(..., description="Research query or topic")
+    engine: str = Field("local", description="Research engine: local, perplexity, hybrid")
+    transformation_id: Optional[str] = Field(None, description="Optional transformation template ID to guide synthesis")
+    model_id: Optional[str] = Field(None, description="Optional Perplexity model ID override")
+    custom_prompt: Optional[str] = Field(None, description="Optional custom prompt instructions override")
+    output_formatting: Optional[str] = Field(None, description="Output formatting instructions for the Long-Context synthesis agent")
+    styleguide_id: Optional[str] = Field(None, description="Optional style guide ID for document formatting")
+
+
+
+class ResearchResponse(BaseModel):
+    answer: str = Field(..., description="Detailed research findings and synthesis")
+    sources: List[Dict[str, Any]] = Field(default_factory=list, description="Citations and web sources used")
+
+
 # Models API models
 class ModelCreate(BaseModel):
-    name: str = Field(..., description="Model name (e.g., gpt-5-mini, claude, gemini)")
+    name: str = Field(
+        ..., description="Name/identifier of the model (e.g., gpt-4, llama3)"
+    )
     provider: str = Field(
         ..., description="Provider name (e.g., openai, anthropic, gemini)"
     )
     type: str = Field(
         ...,
-        description="Model type (language, embedding, text_to_speech, speech_to_text)",
+        description="Model type (language, embedding, reranking, image_generation, audio, video, text_to_speech, speech_to_text)",
     )
     credential: Optional[str] = Field(
         None, description="Credential ID to link this model to"
     )
+    context_length: Optional[int] = Field(None, description="Maximum context window size in tokens")
+    max_completion_tokens: Optional[int] = Field(None, description="Maximum completion tokens")
+    pricing_prompt: Optional[str] = Field(None, description="Cost per prompt token (string for precision)")
+    pricing_completion: Optional[str] = Field(None, description="Cost per completion token")
+    pricing_image: Optional[str] = Field(None, description="Cost per image token")
+    pricing_audio: Optional[str] = Field(None, description="Cost per audio token")
+    pricing_web_search: Optional[str] = Field(None, description="Cost per web search")
+    pricing_internal_reasoning: Optional[str] = Field(None, description="Cost per internal reasoning token")
+    pricing_input_cache_read: Optional[str] = Field(None, description="Cost per cached input read")
+    pricing_input_cache_write: Optional[str] = Field(None, description="Cost per cached input write")
+    modality: Optional[str] = Field(None, description="Modality string (e.g. text->text, text+image->text+image)")
+    input_modalities: Optional[List[str]] = Field(None, description="Input modality list (text, image, audio, video, file)")
+    output_modalities: Optional[List[str]] = Field(None, description="Output modality list (text, image, audio)")
+    description: Optional[str] = Field(None, description="Model description")
+    tokenizer: Optional[str] = Field(None, description="Tokenizer name")
+    instruct_type: Optional[str] = Field(None, description="Instruction format type")
+    hugging_face_id: Optional[str] = Field(None, description="HuggingFace model ID")
+    canonical_slug: Optional[str] = Field(None, description="Canonical model slug")
+    knowledge_cutoff: Optional[str] = Field(None, description="Training data cutoff date")
+    expiration_date: Optional[str] = Field(None, description="Model deprecation date")
+    supported_parameters: Optional[List[str]] = Field(None, description="Supported API parameters")
+    is_moderated: Optional[bool] = Field(None, description="Whether model is moderated")
+    provider_context_length: Optional[int] = Field(None, description="Provider-level context window")
 
 
 class ModelResponse(BaseModel):
@@ -103,6 +181,31 @@ class ModelResponse(BaseModel):
     provider: str
     type: str
     credential: Optional[str] = None
+    context_length: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
+    pricing_prompt: Optional[str] = None
+    pricing_completion: Optional[str] = None
+    pricing_image: Optional[str] = None
+    pricing_audio: Optional[str] = None
+    pricing_web_search: Optional[str] = None
+    pricing_internal_reasoning: Optional[str] = None
+    pricing_input_cache_read: Optional[str] = None
+    pricing_input_cache_write: Optional[str] = None
+    modality: Optional[str] = None
+    input_modalities: Optional[List[str]] = None
+    output_modalities: Optional[List[str]] = None
+    description: Optional[str] = None
+    tokenizer: Optional[str] = None
+    instruct_type: Optional[str] = None
+    hugging_face_id: Optional[str] = None
+    canonical_slug: Optional[str] = None
+    knowledge_cutoff: Optional[str] = None
+    expiration_date: Optional[str] = None
+    supported_parameters: Optional[List[str]] = None
+    is_moderated: Optional[bool] = None
+    provider_context_length: Optional[int] = None
+    openrouter_created_at: Optional[int] = None
+    last_synced_at: Optional[str] = None
     created: str
     updated: str
 
@@ -115,6 +218,7 @@ class DefaultModelsResponse(BaseModel):
     default_speech_to_text_model: Optional[str] = None
     default_embedding_model: Optional[str] = None
     default_tools_model: Optional[str] = None
+    default_reranker_model: Optional[str] = None
 
 
 class ProviderAvailabilityResponse(BaseModel):
@@ -136,6 +240,12 @@ class TransformationCreate(BaseModel):
     apply_default: bool = Field(
         False, description="Whether to apply this transformation by default"
     )
+    # GTM Research extension fields
+    category: Optional[str] = Field("transformation", description="transformation or gtm_research")
+    search_engine: Optional[str] = Field(None, description="Default search engine for GTM research")
+    search_model_id: Optional[str] = Field(None, description="Model override for GTM research")
+    color_tag: Optional[str] = Field(None, description="Visual color tag (e.g. sky for light blue)")
+    target_context: Optional[str] = Field(None, description="market|presales|org_gtm|tech_gtm")
 
 
 class TransformationUpdate(BaseModel):
@@ -150,6 +260,11 @@ class TransformationUpdate(BaseModel):
     apply_default: Optional[bool] = Field(
         None, description="Whether to apply this transformation by default"
     )
+    category: Optional[str] = Field(None, description="transformation or gtm_research")
+    search_engine: Optional[str] = Field(None, description="Default search engine")
+    search_model_id: Optional[str] = Field(None, description="Model override")
+    color_tag: Optional[str] = Field(None, description="Visual color tag")
+    target_context: Optional[str] = Field(None, description="Research context type")
 
 
 class TransformationResponse(BaseModel):
@@ -159,6 +274,11 @@ class TransformationResponse(BaseModel):
     description: str
     prompt: str
     apply_default: bool
+    category: Optional[str] = "transformation"
+    search_engine: Optional[str] = None
+    search_model_id: Optional[str] = None
+    color_tag: Optional[str] = None
+    target_context: Optional[str] = None
     created: str
     updated: str
 
@@ -710,6 +830,7 @@ class PipelineRuleCreate(BaseModel):
     prompt: str = Field(..., description="AI instruction prompt")
     query_template: Optional[str] = Field("", description="Query template for search engine")
     model_override: Optional[str] = Field(None, description="Optional specific model ID to use")
+    search_engine: Optional[str] = Field("default", description="Search engine to use: default, valyu, perplexity, brave, duckduckgo")
     is_active: bool = Field(True, description="Whether this automation rule is active")
 
 
@@ -720,6 +841,7 @@ class PipelineRuleResponse(BaseModel):
     prompt: str
     query_template: str
     model_override: Optional[str] = None
+    search_engine: Optional[str] = "default"
     is_active: bool
     created: str
     updated: str
@@ -730,6 +852,14 @@ class GraphNode(BaseModel):
     id: str
     type: str
     purdueLevel: int
+    ip_address: Optional[str] = None
+    mac_address: Optional[str] = None
+    subnet_mask: Optional[str] = None
+    hostname: Optional[str] = None
+    manufacturer: Optional[str] = None
+    os_version: Optional[str] = None
+    firmware_version: Optional[str] = None
+
 
 class GraphEdge(BaseModel):
     id: str
@@ -745,10 +875,14 @@ class GraphValidationResponse(BaseModel):
     violatedEdges: List[str]
     threatPaths: List[List[str]]
     verifiedRequirements: List[str]
+    nodeViolations: Optional[Dict[str, List[str]]] = None
+    edgeViolations: Optional[Dict[str, List[str]]] = None
+
 
 
 # Customer models
 class CustomerCreate(BaseModel):
+    # === Existing fields ===
     name: str = Field(..., description="Name of the customer company")
     website: Optional[str] = Field("", description="Website URL of the customer")
     description: Optional[str] = Field("", description="Description of the customer")
@@ -756,9 +890,45 @@ class CustomerCreate(BaseModel):
     primary_sector: Optional[str] = Field("", description="Primary CISA critical infrastructure sector")
     sectors: Optional[List[str]] = Field(default_factory=list, description="All mapped CISA sectors")
     assigned_frameworks: Optional[List[str]] = Field(default_factory=list, description="Assigned CSET compliance frameworks list")
-    contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Primary contacts list")
+    contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Legacy inline contacts (deprecated, use contact table)")
+    # === Address ===
+    street_address: Optional[str] = Field("", description="Street address")
+    street_address_2: Optional[str] = Field("", description="Suite/unit")
+    city: Optional[str] = Field("", description="City")
+    state: Optional[str] = Field("", description="State/province")
+    postal_code: Optional[str] = Field("", description="ZIP/postal code")
+    country: Optional[str] = Field("US", description="ISO country code")
+    # === Communication ===
+    phone: Optional[str] = Field("", description="Main phone number")
+    phone_alt: Optional[str] = Field("", description="Alternative phone")
+    fax: Optional[str] = Field("", description="Fax number")
+    email: Optional[str] = Field("", description="Company email")
+    # === Sales ===
+    salesperson: Optional[str] = Field("", description="Assigned sales rep")
+    lead_source: Optional[str] = Field("", description="Lead acquisition source")
+    annual_revenue: Optional[float] = Field(None, description="Annual revenue USD")
+    employee_count: Optional[int] = Field(None, description="Number of employees")
+    # === Classification ===
+    customer_type: Optional[str] = Field("prospect", description="prospect, client, partner, vendor")
+    tier: Optional[str] = Field("smb", description="enterprise, mid_market, smb")
+    status: Optional[str] = Field("active", description="active, inactive, churned")
+    # === Engagement ===
+    last_contact_date: Optional[str] = Field(None, description="ISO datetime of last interaction")
+    next_followup: Optional[str] = Field(None, description="ISO datetime of next action")
+    engagement_score: Optional[int] = Field(0, description="0-100 engagement score")
+    # === Social ===
+    linkedin_url: Optional[str] = Field("", description="Company LinkedIn URL")
+    twitter_url: Optional[str] = Field("", description="Company X/Twitter URL")
+    facebook_url: Optional[str] = Field("", description="Company Facebook URL")
+    # === Metadata ===
+    tags: Optional[List[str]] = Field(default_factory=list, description="Freeform tags for filtering")
+    internal_notes: Optional[str] = Field("", description="Private internal notes")
+    import_batch_id: Optional[str] = Field(None, description="Import batch identifier")
+    import_source: Optional[str] = Field(None, description="Source file name if imported")
+
 
 class CustomerUpdate(BaseModel):
+    # === Existing fields ===
     name: Optional[str] = Field(None, description="Name of the customer company")
     website: Optional[str] = Field(None, description="Website URL of the customer")
     description: Optional[str] = Field(None, description="Description of the customer")
@@ -766,25 +936,212 @@ class CustomerUpdate(BaseModel):
     primary_sector: Optional[str] = Field(None, description="Primary CISA critical infrastructure sector")
     sectors: Optional[List[str]] = Field(None, description="All mapped CISA sectors")
     assigned_frameworks: Optional[List[str]] = Field(None, description="Assigned CSET compliance frameworks list")
-    contacts: Optional[List[Dict[str, str]]] = Field(None, description="Primary contacts list")
+    contacts: Optional[List[Dict[str, str]]] = Field(None, description="Legacy inline contacts")
+    # === Address ===
+    street_address: Optional[str] = Field(None, description="Street address")
+    street_address_2: Optional[str] = Field(None, description="Suite/unit")
+    city: Optional[str] = Field(None, description="City")
+    state: Optional[str] = Field(None, description="State/province")
+    postal_code: Optional[str] = Field(None, description="ZIP/postal code")
+    country: Optional[str] = Field(None, description="ISO country code")
+    # === Communication ===
+    phone: Optional[str] = Field(None, description="Main phone number")
+    phone_alt: Optional[str] = Field(None, description="Alternative phone")
+    fax: Optional[str] = Field(None, description="Fax number")
+    email: Optional[str] = Field(None, description="Company email")
+    # === Sales ===
+    salesperson: Optional[str] = Field(None, description="Assigned sales rep")
+    lead_source: Optional[str] = Field(None, description="Lead acquisition source")
+    annual_revenue: Optional[float] = Field(None, description="Annual revenue USD")
+    employee_count: Optional[int] = Field(None, description="Number of employees")
+    # === Classification ===
+    customer_type: Optional[str] = Field(None, description="prospect, client, partner, vendor")
+    tier: Optional[str] = Field(None, description="enterprise, mid_market, smb")
+    status: Optional[str] = Field(None, description="active, inactive, churned")
+    # === Engagement ===
+    last_contact_date: Optional[str] = Field(None, description="ISO datetime of last interaction")
+    next_followup: Optional[str] = Field(None, description="ISO datetime of next action")
+    engagement_score: Optional[int] = Field(None, description="0-100 engagement score")
+    # === Social ===
+    linkedin_url: Optional[str] = Field(None, description="Company LinkedIn URL")
+    twitter_url: Optional[str] = Field(None, description="Company X/Twitter URL")
+    facebook_url: Optional[str] = Field(None, description="Company Facebook URL")
+    # === Metadata ===
+    tags: Optional[List[str]] = Field(None, description="Freeform tags for filtering")
+    internal_notes: Optional[str] = Field(None, description="Private internal notes")
+    import_batch_id: Optional[str] = Field(None, description="Import batch identifier")
+    import_source: Optional[str] = Field(None, description="Source file name if imported")
+
 
 class CustomerResponse(BaseModel):
     id: str
     name: str
-    website: str
-    description: str
-    industry: str
-    primary_sector: str
-    sectors: List[str]
-    assigned_frameworks: List[str]
-    contacts: List[Dict[str, str]]
+    # === Existing fields ===
+    website: str = ""
+    description: str = ""
+    industry: str = ""
+    primary_sector: str = ""
+    sectors: List[str] = Field(default_factory=list)
+    assigned_frameworks: List[str] = Field(default_factory=list)
+    contacts: List[Dict[str, str]] = Field(default_factory=list)
+    # === Address ===
+    street_address: str = ""
+    street_address_2: str = ""
+    city: str = ""
+    state: str = ""
+    postal_code: str = ""
+    country: str = "US"
+    # === Communication ===
+    phone: str = ""
+    phone_alt: str = ""
+    fax: str = ""
+    email: str = ""
+    # === Sales ===
+    salesperson: str = ""
+    lead_source: str = ""
+    annual_revenue: Optional[float] = None
+    employee_count: Optional[int] = None
+    # === Classification ===
+    customer_type: str = "prospect"
+    tier: str = "smb"
+    status: str = "active"
+    # === Engagement ===
+    last_contact_date: Optional[str] = None
+    next_followup: Optional[str] = None
+    engagement_score: int = 0
+    # === Social ===
+    linkedin_url: str = ""
+    twitter_url: str = ""
+    facebook_url: str = ""
+    # === Metadata ===
+    tags: List[str] = Field(default_factory=list)
+    internal_notes: str = ""
+    import_batch_id: Optional[str] = None
+    import_source: Optional[str] = None
+    # === Timestamps ===
     created: str
     updated: str
+
 
 class CustomerMetricsResponse(CustomerResponse):
     notebook_count: int = Field(0, description="Number of associated notebooks")
     total_value: float = Field(0.0, description="Sum of associated notebooks estimated deal value")
     compliance_progress: float = Field(0.0, description="Average security compliance progress percentage")
+    contact_count: int = Field(0, description="Number of first-class contacts")
+    engagement_breakdown: Optional[Dict[str, Any]] = Field(None, description="Engagement score component breakdown")
+
+
+# Contact models
+class ContactCreate(BaseModel):
+    first_name: str = Field(..., description="Contact first name")
+    last_name: str = Field(..., description="Contact last name")
+    email: Optional[str] = Field("", description="Email address")
+    phone: Optional[str] = Field("", description="Direct phone")
+    mobile: Optional[str] = Field("", description="Mobile phone")
+    title: Optional[str] = Field("", description="Job title")
+    department: Optional[str] = Field("", description="Department")
+    seniority: Optional[str] = Field("", description="C-level, VP, Director, Manager, Individual")
+    linkedin_url: Optional[str] = Field("", description="Personal LinkedIn URL")
+    customer_id: Optional[str] = Field(None, description="Associated customer ID")
+    status: Optional[str] = Field("active", description="active, inactive, bounced")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Freeform tags")
+    notes: Optional[str] = Field("", description="Private notes about contact")
+    source: Optional[str] = Field("manual", description="How acquired: manual, import, scraped")
+
+
+class ContactUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, description="Contact first name")
+    last_name: Optional[str] = Field(None, description="Contact last name")
+    email: Optional[str] = Field(None, description="Email address")
+    phone: Optional[str] = Field(None, description="Direct phone")
+    mobile: Optional[str] = Field(None, description="Mobile phone")
+    title: Optional[str] = Field(None, description="Job title")
+    department: Optional[str] = Field(None, description="Department")
+    seniority: Optional[str] = Field(None, description="Seniority level")
+    linkedin_url: Optional[str] = Field(None, description="Personal LinkedIn URL")
+    customer_id: Optional[str] = Field(None, description="Associated customer ID")
+    status: Optional[str] = Field(None, description="active, inactive, bounced")
+    tags: Optional[List[str]] = Field(None, description="Freeform tags")
+    notes: Optional[str] = Field(None, description="Private notes about contact")
+    last_contacted: Optional[str] = Field(None, description="ISO datetime of last interaction")
+    source: Optional[str] = Field(None, description="How acquired")
+
+
+class ContactResponse(BaseModel):
+    id: str
+    first_name: str
+    last_name: str
+    full_name: str = ""
+    email: str = ""
+    phone: str = ""
+    mobile: str = ""
+    title: str = ""
+    department: str = ""
+    seniority: str = ""
+    linkedin_url: str = ""
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    status: str = "active"
+    tags: List[str] = Field(default_factory=list)
+    notes: str = ""
+    last_contacted: Optional[str] = None
+    source: str = "manual"
+    import_batch_id: Optional[str] = None
+    created: str
+    updated: str
+
+
+# Import / Export models
+class ImportPreviewResponse(BaseModel):
+    file_name: str = Field(..., description="Uploaded file name")
+    total_rows: int = Field(..., description="Number of data rows detected")
+    columns: List[str] = Field(..., description="Column headers from the file")
+    sample_rows: List[List[str]] = Field(..., description="First N sample rows for preview")
+    suggested_mapping: Dict[str, str] = Field(default_factory=dict, description="Auto-detected column-to-field mapping")
+    available_customer_fields: List[str] = Field(default_factory=list, description="Valid customer target fields")
+    available_contact_fields: List[str] = Field(default_factory=list, description="Valid contact target fields")
+
+
+class ImportOptions(BaseModel):
+    create_notebooks: bool = Field(True, description="Create a notebook for each imported customer")
+    notebook_stage: str = Field("bulk_import", description="Pipeline stage for auto-created notebooks")
+    default_customer_type: str = Field("prospect", description="Default customer type for imports")
+    default_tier: str = Field("smb", description="Default tier for imports")
+    default_lead_source: str = Field("csv_import", description="Lead source tag for imports")
+    duplicate_strategy: str = Field("skip", description="skip, update, or create")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Tags to apply to all imported records")
+
+
+class ImportExecuteRequest(BaseModel):
+    file_name: str = Field(..., description="Name of the previously uploaded file")
+    column_mapping: Dict[str, str] = Field(..., description="Column header to field name mapping")
+    options: ImportOptions = Field(default_factory=ImportOptions, description="Import behavior options")
+
+
+class ImportErrorDetail(BaseModel):
+    row: int = Field(..., description="Row number (1-indexed, header = row 1)")
+    field: Optional[str] = Field(None, description="Field that caused the error")
+    error: str = Field(..., description="Error description")
+    data: Optional[Dict[str, str]] = Field(None, description="Partial row data for context")
+
+
+class ImportWarningDetail(BaseModel):
+    row: int = Field(..., description="Row number")
+    field: Optional[str] = Field(None, description="Field with warning")
+    warning: str = Field(..., description="Warning description")
+    data: Optional[Dict[str, str]] = Field(None, description="Partial row data for context")
+
+
+class ImportResultResponse(BaseModel):
+    batch_id: str = Field(..., description="Unique import batch identifier")
+    total_rows: int = Field(..., description="Total rows in the file")
+    customers_created: int = Field(0, description="New customer records created")
+    customers_updated: int = Field(0, description="Existing customer records updated")
+    customers_skipped: int = Field(0, description="Rows skipped (duplicate or invalid)")
+    contacts_created: int = Field(0, description="Contact records created")
+    notebooks_created: int = Field(0, description="Notebook records auto-created")
+    errors: List[ImportErrorDetail] = Field(default_factory=list, description="Row-level errors")
+    warnings: List[ImportWarningDetail] = Field(default_factory=list, description="Row-level warnings")
 
 
 # CSET Regulations & Questions models
@@ -874,4 +1231,379 @@ class AssessmentReportResponse(BaseModel):
     prioritized_recommendations: List[Dict[str, Any]]
 
 
+# Scheduled Search models
+class ScheduledSearchCreate(BaseModel):
+    name: str = Field(..., description="Name for this scheduled search")
+    notebook_id: str = Field(..., description="Notebook ID to save results to")
+    query: str = Field(..., description="Search query to execute")
+    engine: str = Field("hybrid", description="Search engine: local, perplexity, hybrid")
+    interval: str = Field("daily", description="Interval: hourly, daily, weekly, monthly")
+    transformation_id: Optional[str] = Field(None, description="Optional transformation to apply to results")
+    save_as_source: bool = Field(True, description="Whether to save results as a source in the notebook")
 
+
+class ScheduledSearchUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Name for this scheduled search")
+    query: Optional[str] = Field(None, description="Search query to execute")
+    engine: Optional[str] = Field(None, description="Search engine")
+    interval: Optional[str] = Field(None, description="Interval: hourly, daily, weekly, monthly")
+    is_active: Optional[bool] = Field(None, description="Whether this schedule is active")
+    transformation_id: Optional[str] = Field(None, description="Optional transformation ID")
+    save_as_source: Optional[bool] = Field(None, description="Whether to save results as source")
+
+
+class ScheduledSearchResponse(BaseModel):
+    id: str
+    name: str
+    notebook_id: str
+    query: str
+    engine: str
+    interval: str
+    is_active: bool
+    last_run: Optional[str] = None
+    next_run: Optional[str] = None
+    run_count: int = 0
+    last_error: Optional[str] = None
+    transformation_id: Optional[str] = None
+    save_as_source: bool = True
+    created: str
+    updated: str
+
+
+# ============================================================
+# Project Delivery API models
+# ============================================================
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., description="Project name")
+    description: Optional[str] = Field("", description="Project description")
+    customer_id: Optional[str] = Field(None, description="Linked customer ID")
+    notebook_id: Optional[str] = Field(None, description="Linked notebook ID")
+    stage: Optional[str] = Field("planning", description="Project stage")
+    status: Optional[str] = Field("active", description="Project status")
+    project_type: Optional[str] = Field("", description="Project type")
+    priority: Optional[str] = Field("medium", description="Priority level")
+    start_date: Optional[str] = Field(None, description="Start date")
+    end_date: Optional[str] = Field(None, description="End date")
+    budget: Optional[float] = Field(None, description="Budget amount")
+    assigned_to: Optional[str] = Field("", description="Assigned team member")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Tags")
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Project name")
+    description: Optional[str] = Field(None, description="Project description")
+    customer_id: Optional[str] = Field(None, description="Linked customer ID")
+    notebook_id: Optional[str] = Field(None, description="Linked notebook ID")
+    stage: Optional[str] = Field(None, description="Project stage")
+    status: Optional[str] = Field(None, description="Project status")
+    project_type: Optional[str] = Field(None, description="Project type")
+    priority: Optional[str] = Field(None, description="Priority level")
+    start_date: Optional[str] = Field(None, description="Start date")
+    end_date: Optional[str] = Field(None, description="End date")
+    budget: Optional[float] = Field(None, description="Budget amount")
+    assigned_to: Optional[str] = Field(None, description="Assigned team member")
+    tags: Optional[List[str]] = Field(None, description="Tags")
+    progress: Optional[int] = Field(None, description="Progress percentage")
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = ""
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    stage: Optional[str] = "planning"
+    status: Optional[str] = "active"
+    project_type: Optional[str] = ""
+    priority: Optional[str] = "medium"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    budget: Optional[float] = None
+    assigned_to: Optional[str] = ""
+    tags: Optional[List[str]] = []
+    tasks: Optional[List[dict]] = []
+    progress: Optional[int] = 0
+    created: str
+    updated: str
+
+
+class TaskCreate(BaseModel):
+    title: str = Field(..., description="Task title")
+    description: Optional[str] = Field("", description="Task description")
+    status: Optional[str] = Field("todo", description="todo|in_progress|done")
+    priority: Optional[str] = Field("medium", description="Priority level")
+    assigned_to: Optional[str] = Field("", description="Assigned to")
+    due_date: Optional[str] = Field(None, description="Due date")
+    subtasks: Optional[List[dict]] = Field(default_factory=list, description="Subtasks")
+
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, description="Task title")
+    description: Optional[str] = Field(None, description="Task description")
+    status: Optional[str] = Field(None, description="Task status")
+    priority: Optional[str] = Field(None, description="Priority")
+    assigned_to: Optional[str] = Field(None, description="Assigned to")
+    due_date: Optional[str] = Field(None, description="Due date")
+
+
+# ============================================================
+# Research Intelligence API models
+# ============================================================
+
+
+class ResearchItemCreate(BaseModel):
+    name: str = Field(..., description="Research item name")
+    query: str = Field(..., description="Research query text")
+    description: Optional[str] = Field("", description="Description")
+    customer_id: Optional[str] = Field(None, description="Linked customer ID")
+    project_id: Optional[str] = Field(None, description="Linked project ID")
+    notebook_id: Optional[str] = Field(None, description="Linked notebook ID")
+    transformation_id: Optional[str] = Field(None, description="GTM Research template ID")
+    stage: Optional[str] = Field("queued", description="Research stage")
+    engine: Optional[str] = Field("perplexity", description="Primary search engine (backward compat)")
+    engines: Optional[List[str]] = Field(default_factory=list, description="Selected search engines")
+    formatting_instructions: Optional[str] = Field("", description="LLM output formatting instructions")
+    model_id: Optional[str] = Field(None, description="LLM model override")
+    interval: Optional[str] = Field(None, description="Recurrence interval")
+    is_recurring: Optional[bool] = Field(False, description="Is recurring")
+    save_as_source: Optional[bool] = Field(True, description="Save results as source")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Tags")
+
+
+class ResearchItemUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Research item name")
+    query: Optional[str] = Field(None, description="Research query")
+    description: Optional[str] = Field(None, description="Description")
+    customer_id: Optional[str] = Field(None, description="Linked customer ID")
+    project_id: Optional[str] = Field(None, description="Linked project ID")
+    notebook_id: Optional[str] = Field(None, description="Linked notebook ID")
+    transformation_id: Optional[str] = Field(None, description="GTM Research template ID")
+    stage: Optional[str] = Field(None, description="Research stage")
+    status: Optional[str] = Field(None, description="Status")
+    engine: Optional[str] = Field(None, description="Primary search engine")
+    engines: Optional[List[str]] = Field(None, description="Selected search engines")
+    formatting_instructions: Optional[str] = Field(None, description="LLM output formatting instructions")
+    model_id: Optional[str] = Field(None, description="LLM model override")
+    interval: Optional[str] = Field(None, description="Recurrence interval")
+    is_recurring: Optional[bool] = Field(None, description="Is recurring")
+    save_as_source: Optional[bool] = Field(None, description="Save as source")
+    tags: Optional[List[str]] = Field(None, description="Tags")
+    results_summary: Optional[str] = Field(None, description="Results summary")
+
+
+class ResearchItemResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    id: str
+    name: str
+    query: str
+    description: Optional[str] = ""
+    customer_id: Optional[str] = None
+    project_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    transformation_id: Optional[str] = None
+    stage: Optional[str] = "queued"
+    status: Optional[str] = "active"
+    engine: Optional[str] = "perplexity"
+    engines: Optional[List[str]] = []
+    formatting_instructions: Optional[str] = ""
+    model_id: Optional[str] = None
+    interval: Optional[str] = None
+    is_recurring: Optional[bool] = False
+    last_run: Optional[str] = None
+    next_run: Optional[str] = None
+    run_count: Optional[int] = 0
+    last_error: Optional[str] = None
+    results_summary: Optional[str] = ""
+    save_as_source: Optional[bool] = True
+    tags: Optional[List[str]] = []
+    created: str
+    updated: str
+
+
+class LinkRequest(BaseModel):
+    """Generic request for creating links between entities."""
+    target_id: str = Field(..., description="Target entity ID to link to")
+
+
+# Style Guide models
+class StyleGuideCreate(BaseModel):
+    name: str = Field(..., description="Style guide name")
+    description: Optional[str] = Field("", description="Description")
+    guide_type: Optional[str] = Field("report", description="report, landing_page, two_pager, memo")
+    title_font: Optional[str] = Field("Inter")
+    body_font: Optional[str] = Field("Inter")
+    title_size: Optional[str] = Field("24pt")
+    heading_size: Optional[str] = Field("18pt")
+    subheading_size: Optional[str] = Field("14pt")
+    body_size: Optional[str] = Field("11pt")
+    line_spacing: Optional[str] = Field("1.5")
+    logo_url: Optional[str] = Field("")
+    strapline: Optional[str] = Field("")
+    primary_color: Optional[str] = Field("#1a73e8")
+    secondary_color: Optional[str] = Field("#34a853")
+    accent_color: Optional[str] = Field("#fbbc04")
+    page_size: Optional[str] = Field("letter")
+    page_orientation: Optional[str] = Field("portrait")
+    margin_top: Optional[str] = Field("1in")
+    margin_bottom: Optional[str] = Field("1in")
+    margin_left: Optional[str] = Field("1in")
+    margin_right: Optional[str] = Field("1in")
+    heading_style: Optional[str] = Field("bold")
+    color_scheme: Optional[str] = Field("dark")
+    include_toc: Optional[bool] = Field(True)
+    include_page_numbers: Optional[bool] = Field(True)
+
+
+class StyleGuideUpdate(StyleGuideCreate):
+    pass
+
+
+class StyleGuideResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = ""
+    guide_type: Optional[str] = "report"
+    title_font: Optional[str] = "Inter"
+    body_font: Optional[str] = "Inter"
+    title_size: Optional[str] = "24pt"
+    heading_size: Optional[str] = "18pt"
+    subheading_size: Optional[str] = "14pt"
+    body_size: Optional[str] = "11pt"
+    line_spacing: Optional[str] = "1.5"
+    logo_url: Optional[str] = ""
+    strapline: Optional[str] = ""
+    primary_color: Optional[str] = "#1a73e8"
+    secondary_color: Optional[str] = "#34a853"
+    accent_color: Optional[str] = "#fbbc04"
+    page_size: Optional[str] = "letter"
+    page_orientation: Optional[str] = "portrait"
+    margin_top: Optional[str] = "1in"
+    margin_bottom: Optional[str] = "1in"
+    margin_left: Optional[str] = "1in"
+    margin_right: Optional[str] = "1in"
+    heading_style: Optional[str] = "bold"
+    color_scheme: Optional[str] = "dark"
+    include_toc: Optional[bool] = True
+    include_page_numbers: Optional[bool] = True
+    created: Optional[str] = None
+    updated: Optional[str] = None
+
+
+# Layer 1 Agent Framework models
+class AgentConfigCreate(BaseModel):
+    name: str = Field(..., description="Unique name of the agent")
+    description: str = Field(..., description="Description of the agent's function")
+    type: Literal["researcher", "coder", "analyst", "orchestrator"] = Field(..., description="Agent archetype type")
+    default_model: str = Field(..., description="Default LLM model to be used by the agent")
+    system_prompt: str = Field(..., description="Main system instructions and prompts")
+    allowed_tools: List[str] = Field(default_factory=list, description="List of authorized skills and MCP tools")
+    tenant_id: str = Field(..., description="Tenant workspace isolation identifier")
+
+
+class AgentConfigUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Unique name of the agent")
+    description: Optional[str] = Field(None, description="Description of the agent's function")
+    type: Optional[Literal["researcher", "coder", "analyst", "orchestrator"]] = Field(None, description="Agent archetype type")
+    default_model: Optional[str] = Field(None, description="Default LLM model to be used by the agent")
+    system_prompt: Optional[str] = Field(None, description="Main system instructions and prompts")
+    allowed_tools: Optional[List[str]] = Field(None, description="List of authorized skills and MCP tools")
+    tenant_id: Optional[str] = Field(None, description="Tenant workspace isolation identifier")
+
+
+class AgentConfigResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    type: Literal["researcher", "coder", "analyst", "orchestrator"]
+    default_model: str
+    system_prompt: str
+    allowed_tools: List[str]
+    tenant_id: str
+    created: str
+    updated: str
+
+
+class AgentExecutionResponse(BaseModel):
+    id: str
+    agent_config_id: str
+    status: Literal["queued", "running", "completed", "failed", "paused"]
+    input_params: Dict[str, Any]
+    output_results: Dict[str, Any]
+    started_at: str
+    completed_at: Optional[str] = None
+
+
+class AgentLogResponse(BaseModel):
+    id: str
+    execution_id: str
+    step_name: str
+    tool_call: Optional[str] = None
+    tool_input: Optional[Dict[str, Any]] = None
+    tool_output: Optional[Dict[str, Any]] = None
+    trace_level: Literal["info", "debug", "error"]
+    created: str
+
+
+# Layer 2 Skill Registry models
+class SkillRegistryCreate(BaseModel):
+    name: str = Field(..., description="Unique technical name of the skill")
+    description: str = Field(..., description="Description of the skill's function")
+    category: str = Field(..., description="Categorization of the skill")
+    enabled: Optional[bool] = Field(True, description="Enable or disable state")
+    config_vars: Dict[str, Any] = Field(default_factory=dict, description="Configuration variables")
+
+
+class SkillRegistryUpdate(BaseModel):
+    description: Optional[str] = Field(None, description="Description of the skill's function")
+    category: Optional[str] = Field(None, description="Categorization of the skill")
+    enabled: Optional[bool] = Field(None, description="Enable or disable state")
+    config_vars: Optional[Dict[str, Any]] = Field(None, description="Configuration variables")
+
+
+class SkillRegistryResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str
+    enabled: bool
+    config_vars: Dict[str, Any]
+    created: str
+    updated: str# Layer 1 Agent Prompt and Run Pipeline models
+class AgentPromptCreate(BaseModel):
+    notebook_id: str = Field(..., description="Dossier/Notebook database identifier")
+    agent_name: str = Field(..., description="Task/Agent config unique identifier")
+    prompt_text: str = Field(..., description="System prompt template text override")
+
+class AgentPromptResponse(BaseModel):
+    id: str
+    notebook_id: str
+    agent_name: str
+    prompt_text: str
+    created: str
+    updated: str
+
+class AgentRunPipelineRequest(BaseModel):
+    notebookId: str
+    sowContent: str
+    topology: Dict[str, Any]
+    agentConfigs: List[Dict[str, Any]]
+    customPrompts: Optional[Dict[str, str]] = None
+
+class AgentRunStepLog(BaseModel):
+    id: int
+    name: str
+    status: str
+    model: str
+    latency: int
+    tokens: int
+    timestamp: str
+    output: Optional[str] = None
+
+class AgentRunPipelineResponse(BaseModel):
+    success: bool
+    steps: List[AgentRunStepLog]
+    objections: List[Dict[str, Any]]
+    cost: float
