@@ -1,11 +1,17 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { MarkdownEditor } from '@/components/ui/markdown-editor'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { 
   ShieldAlert, 
   Cpu, 
@@ -29,11 +35,16 @@ import {
   Lock,
   Activity,
   Terminal,
-  Settings
+  Settings,
+  Loader2
 } from 'lucide-react'
 import { SourceListResponse } from '@/lib/types/api'
 import { B2BComplianceChecklist, ComplianceCheck } from './B2BComplianceChecklist'
 import { CSETNetworkCanvas } from './CSETNetworkCanvas'
+import { useModels } from '@/lib/hooks/use-models'
+import { SearchableModelSelect, type ModelOption } from '@/components/common/SearchableModelSelect'
+import apiClient from '@/lib/api/client'
+import { SECTOR_FRAMEWORK_MAP, COMPLIANCE_FRAMEWORKS } from '../../customers/[id]/data'
 
 interface B2BDraftingWorkspaceProps {
   notebookId: string
@@ -478,8 +489,19 @@ export function B2BDraftingWorkspace({
   })
 
   const [selectedCheck, setSelectedCheck] = useState<ComplianceCheck | null>(null)
-  const [activeTab, setActiveTab] = useState<'editor' | 'canvas' | 'ledger'>('editor')
+  const [activeTab, setActiveTab] = useState<'editor' | 'canvas' | 'ledger' | 'quiz'>('editor')
   const [activeThreatPaths, setActiveThreatPaths] = useState<string[][]>([])
+
+  // Quiz state variables
+  const [regulations, setRegulations] = useState<any[]>([])
+  const [selectedRegId, setSelectedRegId] = useState<string>('')
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const [quizQuestions, setQuizQuestions] = useState<any[]>([])
+  const [quizReport, setQuizReport] = useState<any | null>(null)
+  const [isQuizLoading, setIsQuizLoading] = useState<boolean>(false)
+  const [isSessionLocked, setIsSessionLocked] = useState<boolean>(false)
+  const [quizCategoryFilter, setQuizCategoryFilter] = useState<string>('all')
+  const [quizPurdueFilter, setQuizPurdueFilter] = useState<string>('all')
 
   // Agentic Cockpit States
   const [isCockpitOpen, setIsCockpitOpen] = useState(false)
@@ -537,27 +559,308 @@ export function B2BDraftingWorkspace({
   const [costBudgetCap, setCostBudgetCap] = useState<number>(1.50)
   const [isCustomAgentModalOpen, setIsCustomAgentModalOpen] = useState(false)
   const [newAgentName, setNewAgentName] = useState('')
-  const [newAgentModel, setNewAgentModel] = useState('claude-3-5-sonnet')
+  const [newAgentModel, setNewAgentModel] = useState('')
   const [newAgentTemp, setNewAgentTemp] = useState(0.5)
   const [newAgentPrompt, setNewAgentPrompt] = useState('')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [topologyGraph, setTopologyGraph] = useState<string>('{\n  "nodes": [],\n  "edges": []\n}')
 
-  // Integrated pricing helpers
-  const getModelPrice = (modelName: string) => {
-    switch (modelName) {
-      case 'claude-3-5-sonnet':
-        return { input: 15.0, output: 75.0 }
-      case 'gpt-4o':
-        return { input: 5.0, output: 15.0 }
-      case 'gpt-4o-mini':
-        return { input: 0.15, output: 0.60 }
-      case 'deepseek-chat':
-        return { input: 0.14, output: 0.28 }
-      default: // ollama/llama3
-        return { input: 0.0, output: 0.0 }
+  // SOW Drafting Copilot States and Action Handlers
+  const [copilotSelectedText, setCopilotSelectedText] = useState('')
+  const [copilotAction, setCopilotAction] = useState<'expand' | 'rewrite' | 'autocomplete'>('expand')
+  const [copilotSuggestion, setCopilotSuggestion] = useState('')
+  const [isCopilotLoading, setIsCopilotLoading] = useState(false)
+  const [copilotError, setCopilotError] = useState('')
+
+  const handleGrabSelection = useCallback(() => {
+    const sel = window.getSelection()
+    if (sel) {
+      const text = sel.toString().trim()
+      if (text) {
+        setCopilotSelectedText(text)
+        setCopilotError('')
+      }
+    }
+  }, [])
+
+  const handleGenerateSuggestion = async () => {
+    if (!copilotSelectedText.trim()) {
+      setCopilotError('Please highlight some text in the editor first, or write it below.')
+      return
+    }
+    setIsCopilotLoading(true)
+    setCopilotError('')
+    setCopilotSuggestion('')
+    try {
+      const response = await apiClient.post('/agents/draft/copilot', {
+        notebook_id: notebookId,
+        text: copilotSelectedText,
+        action: copilotAction
+      })
+      if (response.data && response.data.suggestion) {
+        setCopilotSuggestion(response.data.suggestion)
+      } else {
+        setCopilotError('No suggestion returned from copilot.')
+      }
+    } catch (err: any) {
+      console.error('Failed to run copilot:', err)
+      setCopilotError(err.response?.data?.detail || err.message || 'Failed to generate copilot suggestion.')
+    } finally {
+      setIsCopilotLoading(false)
     }
   }
+
+  const handleApplySuggestion = () => {
+    if (!copilotSuggestion) return
+    if (copilotSelectedText && documentContent.includes(copilotSelectedText)) {
+      setDocumentContent(documentContent.replace(copilotSelectedText, copilotSuggestion))
+    } else {
+      setDocumentContent(prev => prev + '\n\n' + copilotSuggestion)
+    }
+    setCopilotSuggestion('')
+    setCopilotSelectedText('')
+  }
+
+
+  // Dynamic model data from OpenRouter
+  const { data: allModels } = useModels()
+  const languageModelOptions: ModelOption[] = useMemo(() => {
+    if (!allModels) return []
+    return allModels
+      .filter((m) => m.type === 'language')
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        provider: m.provider,
+        context_length: m.context_length,
+        pricing_prompt: m.pricing_prompt,
+        pricing_completion: m.pricing_completion,
+        modality: m.modality,
+        description: m.description,
+      }))
+  }, [allModels])
+
+  // Dynamic pricing lookup from OpenRouter metadata
+  const getModelPrice = useCallback((modelId: string) => {
+    const model = allModels?.find((m) => m.id === modelId)
+    if (!model) return { input: 0.0, output: 0.0 }
+    const inputPrice = model.pricing_prompt ? parseFloat(model.pricing_prompt) * 1_000_000 : 0
+    const outputPrice = model.pricing_completion ? parseFloat(model.pricing_completion) * 1_000_000 : 0
+    return { input: inputPrice, output: outputPrice }
+  }, [allModels])
+
+  // Load custom prompts from database on mount
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const response = await apiClient.get(`/agents/prompts/${notebookId}`)
+        if (response.data && response.data.length > 0) {
+          const loadedPrompts: Record<string, string> = {}
+          response.data.forEach((p: any) => {
+            loadedPrompts[p.agent_name] = p.prompt_text
+          })
+          setEditedPrompts(prev => ({
+            ...prev,
+            ...loadedPrompts
+          }))
+          // Also update active text if it matches
+          if (loadedPrompts[activePromptAgent]) {
+            setActivePromptText(loadedPrompts[activePromptAgent])
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch custom prompts:', err)
+      }
+    }
+    fetchPrompts()
+  }, [notebookId, activePromptAgent])
+
+  // Load notebook and customer details to resolve CIF scoped frameworks
+  const [customer, setCustomer] = useState<any | null>(null)
+
+  useEffect(() => {
+    const fetchNotebookAndCustomer = async () => {
+      try {
+        const nbRes = await apiClient.get(`/notebooks/${notebookId}`)
+        const customerId = nbRes.data.customer_id
+        if (customerId) {
+          const custRes = await apiClient.get(`/customers/${customerId}`)
+          setCustomer(custRes.data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch notebook or customer data:', err)
+      }
+    }
+    fetchNotebookAndCustomer()
+  }, [notebookId])
+
+  // Load regulations on mount
+  useEffect(() => {
+    const fetchRegulations = async () => {
+      try {
+        const res = await apiClient.get('/regulations')
+        setRegulations(res.data)
+      } catch (err) {
+        console.error('Failed to fetch regulations:', err)
+      }
+    }
+    fetchRegulations()
+  }, [])
+
+  // Mapping database regulation IDs (without prefix) to frontend framework IDs
+  const DB_TO_FRONTEND_ID_MAP: Record<string, string[]> = useMemo(() => ({
+    'ISA_62443': ['IEC_62443_3_3', 'IEC_62443_4_2'],
+    'ISA_62443_4_1': ['IEC_62443_3_3', 'IEC_62443_4_2'],
+    'ISA_62443_4_1_2': ['IEC_62443_3_3', 'IEC_62443_4_2'],
+    'Cfats': ['CFATS_RBPS'],
+    'SP800_82_V3': ['NIST_800_82'],
+    'SP800_82_V2': ['NIST_800_82'],
+    'Tsa': ['TSA_PIPELINE'],
+    'TSA2018': ['TSA_PIPELINE', 'TSA_RAIL'],
+    'NCSF_V1': ['NIST_CSF'],
+    'NCSF_V2': ['NIST_CSF'],
+    'C800_53_R5_V2': ['NIST_800_53'],
+    'C800_53_R4_71': ['NIST_800_53'],
+    'CMMC': ['CMMC_L1', 'CMMC_L2', 'CMMC_L3'],
+    'COBIT_2019': ['COBIT_2019'],
+    'SOC_2': ['SOC_2'],
+  }), [])
+
+  // Calculate scoped framework IDs based on customer sectors & assigned frameworks
+  const scopedFrameworkIds = useMemo(() => {
+    if (!customer) return null
+    const assigned = customer.assigned_frameworks || []
+    
+    // Include both multi-selected sectors and primary sector/industry fallback
+    const sectors = Array.isArray(customer.sectors) ? customer.sectors : []
+    const primary = customer.primary_sector || customer.industry || ''
+    const customerSectors = Array.from(new Set([...sectors, primary].filter(Boolean)))
+    
+    const ids = new Set<string>(assigned)
+    for (const sector of customerSectors) {
+      const sectorFws = SECTOR_FRAMEWORK_MAP[sector] || []
+      for (const fwId of sectorFws) {
+        ids.add(fwId)
+      }
+    }
+    return ids
+  }, [customer])
+
+  // Filter regulations list dynamically
+  const selectableRegulations = useMemo(() => {
+    if (!scopedFrameworkIds) return regulations
+    return regulations.filter(reg => {
+      const cleanRegId = reg.id.replace('regulation:', '')
+      if (scopedFrameworkIds.has(cleanRegId)) return true
+      const mappedIds = DB_TO_FRONTEND_ID_MAP[cleanRegId] || []
+      return mappedIds.some(mId => scopedFrameworkIds.has(mId))
+    })
+  }, [regulations, scopedFrameworkIds, DB_TO_FRONTEND_ID_MAP])
+
+  // Set default selection from scoped list on calculation
+  useEffect(() => {
+    if (selectableRegulations.length > 0) {
+      if (!selectedRegId || !selectableRegulations.some(r => r.id === selectedRegId)) {
+        setSelectedRegId(selectableRegulations[0].id)
+      }
+    }
+  }, [selectableRegulations, selectedRegId])
+
+  const handleStartCSETQuiz = async (regId: string) => {
+    if (!regId) return
+    setIsQuizLoading(true)
+    try {
+      let customerId = customer?.id
+      if (!customerId) {
+        const custRes = await apiClient.get('/customers')
+        if (custRes.data && custRes.data.length > 0) {
+          customerId = custRes.data[0].id
+        } else {
+          const createCustRes = await apiClient.post('/customers', { name: 'ACME' })
+          customerId = createCustRes.data.id
+        }
+      }
+
+      const assessRes = await apiClient.post('/assessments', {
+        customer_id: customerId,
+        framework_id: regId
+      })
+      const assessmentId = assessRes.data.id
+
+      const sessionRes = await apiClient.post(`/assessments/${assessmentId}/sessions`, {
+        session_name: `Audit Session ${regId}`,
+        carry_forward_prior: true
+      })
+      const sessionId = sessionRes.data.id
+      setCurrentSessionId(sessionId)
+      setIsSessionLocked(sessionRes.data.status === 'COMPLETED')
+
+      const questionsRes = await apiClient.get(`/sessions/${sessionId}/questions`)
+      setQuizQuestions(questionsRes.data)
+
+      const reportRes = await apiClient.get(`/sessions/${sessionId}/report`)
+      setQuizReport(reportRes.data)
+
+      setQuizCategoryFilter('all')
+      setQuizPurdueFilter('all')
+    } catch (err) {
+      console.error('Failed to start CSET quiz:', err)
+    } finally {
+      setIsQuizLoading(false)
+    }
+  }
+
+  const handlePatchAnswer = async (questionId: string, answer: string, comments: string = '', evidenceUrl: string = '') => {
+    if (!currentSessionId) return
+    if (isSessionLocked) return
+
+    // Update local state instantly (optimistic)
+    setQuizQuestions(prev => prev.map(q => q.question_id === questionId ? { ...q, answer, comments, evidence_url: evidenceUrl } : q))
+
+    try {
+      await apiClient.patch(`/sessions/${currentSessionId}/answers/${questionId}`, {
+        answer,
+        comments,
+        evidence_url: evidenceUrl
+      })
+
+      // Refresh report stats
+      const reportRes = await apiClient.get(`/sessions/${currentSessionId}/report`)
+      setQuizReport(reportRes.data)
+    } catch (err) {
+      console.error('Failed to patch compliance answer:', err)
+    }
+  }
+
+  const handleLockSession = async () => {
+    if (!currentSessionId) return
+    try {
+      const res = await apiClient.post(`/sessions/${currentSessionId}/complete`)
+      if (res.data.status === 'COMPLETED') {
+        setIsSessionLocked(true)
+      }
+      const reportRes = await apiClient.get(`/sessions/${currentSessionId}/report`)
+      setQuizReport(reportRes.data)
+    } catch (err) {
+      console.error('Failed to complete audit session:', err)
+    }
+  }
+
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set<string>()
+    quizQuestions.forEach(q => {
+      if (q.category) cats.add(q.category)
+    })
+    return Array.from(cats).sort()
+  }, [quizQuestions])
+
+  const filteredQuestions = useMemo(() => {
+    return quizQuestions.filter(q => {
+      const matchCat = quizCategoryFilter === 'all' || q.category === quizCategoryFilter
+      const matchPurdue = quizPurdueFilter === 'all' || String(q.purdue_level) === quizPurdueFilter
+      return matchCat && matchPurdue
+    })
+  }, [quizQuestions, quizCategoryFilter, quizPurdueFilter])
 
   const calculatePipelineCost = useCallback(() => {
     let totalCost = 0
@@ -621,8 +924,8 @@ export function B2BDraftingWorkspace({
     setTimeout(() => setPromptFeedback(null), 3500)
   }, [newAgentName, newAgentModel, newAgentTemp, newAgentPrompt])
 
-  // Upgraded Dynamic visual workflow step logging and ReactFlow tracing simulator
-  const runWorkflowPipeline = useCallback(() => {
+  // Upgraded Dynamic visual workflow step logging and ReactFlow tracing
+  const runWorkflowPipeline = useCallback(async () => {
     // Check estimated budget limits before triggering pipeline
     const estimatedCost = calculatePipelineCost()
     if (estimatedCost > costBudgetCap) {
@@ -634,53 +937,68 @@ export function B2BDraftingWorkspace({
     }
 
     setIsWorkflowRunning(true)
-    // Step 1: Auditing all devices in parallel
-    setCurrentlyAuditedNodes(['node-ent-switch', 'node-ot-firewall', 'node-ops-hmi', 'node-field-plc'])
-    setCockpitSteps(prev => prev.map((step, idx) => ({
-      ...step,
-      status: idx === 0 ? 'running' : 'pending',
-      latency: 0
-    })))
-    
-    setTimeout(() => {
-      // Step 1 done -> Step 2 start: Purdue boundary threat paths visual glow highlights
-      setCurrentlyAuditedNodes(['node-ent-switch', 'node-ops-hmi'])
-      setCockpitSteps(prev => prev.map((step, idx) => {
-        const matchingConfig = agentConfigs.find(c => c.task === step.name || c.task.includes(step.name.split(' ')[0]))
-        const currentModel = matchingConfig ? matchingConfig.model : step.model
-        if (idx === 0) return { ...step, status: 'success', latency: 125, model: currentModel }
-        if (idx === 1) return { ...step, status: 'running', model: currentModel }
-        return step
-      }))
+
+    let parsedTopology = { nodes: [], edges: [] }
+    try {
+      parsedTopology = JSON.parse(topologyGraph)
+    } catch (e) {
+      console.error('Failed to parse topologyGraph:', e)
+    }
+
+    try {
+      const payload = {
+        notebookId,
+        topology: parsedTopology,
+        sowContent: documentContent,
+        agentConfigs: agentConfigs,
+        customPrompts: editedPrompts
+      }
       
+      const response = await apiClient.post('/agents/run-pipeline', payload)
+      const data = response.data
+
+      if (data.success) {
+        // Map backend steps to cockpitSteps
+        setCockpitSteps(data.steps.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          status: s.status,
+          model: s.model,
+          latency: s.latency,
+          tokens: s.tokens,
+          timestamp: s.timestamp
+        })))
+
+        // Map backend objections to arbiterObjections
+        setArbiterObjections(data.objections)
+
+        setPromptFeedback({
+          type: 'success',
+          message: `Multi-agent pipeline completed successfully! Cost: $${data.cost.toFixed(4)}`
+        })
+      } else {
+        setPromptFeedback({
+          type: 'error',
+          message: 'Pipeline run completed but reported failure.'
+        })
+      }
+    } catch (err: any) {
+      console.error('Failed to run agent pipeline:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: `Pipeline Execution Failed: ${err.response?.data?.detail || err.message}`
+      })
+    } finally {
+      setIsWorkflowRunning(false)
+      // Auto clear feedback after 5 seconds
       setTimeout(() => {
-        // Step 2 done -> Step 3 start: RAG Grounding field zone compliance checks
-        setCurrentlyAuditedNodes(['node-ops-hmi', 'node-field-plc'])
-        setCockpitSteps(prev => prev.map((step, idx) => {
-          const matchingConfig = agentConfigs.find(c => c.task === step.name || c.task.includes(step.name.split(' ')[0]))
-          const currentModel = matchingConfig ? matchingConfig.model : step.model
-          if (idx === 1) return { ...step, status: 'success', latency: 740, model: currentModel }
-          if (idx === 2) return { ...step, status: 'running', model: currentModel }
-          return step
-        }))
-        
-        setTimeout(() => {
-          // Step 3 done: Clean highlights and clear workflow running state
-          setCurrentlyAuditedNodes([])
-          setCockpitSteps(prev => prev.map((step, idx) => {
-            const matchingConfig = agentConfigs.find(c => c.task === step.name || c.task.includes(step.name.split(' ')[0]))
-            const currentModel = matchingConfig ? matchingConfig.model : step.model
-            if (idx === 2) return { ...step, status: 'success', latency: 410, model: currentModel }
-            return step
-          }))
-          setIsWorkflowRunning(false)
-        }, 800)
-      }, 800)
-    }, 600)
-  }, [agentConfigs, costBudgetCap, calculatePipelineCost])
+        setPromptFeedback(null)
+      }, 5000)
+    }
+  }, [agentConfigs, costBudgetCap, calculatePipelineCost, topologyGraph, documentContent, editedPrompts, notebookId])
 
   // Handle live prompt template overrides with validation checks
-  const handleApplyPrompt = useCallback(() => {
+  const handleApplyPrompt = useCallback(async () => {
     // Basic backend Jinja variable checks simulator
     const activeText = activePromptText
     let requiredVar = ''
@@ -696,20 +1014,34 @@ export function B2BDraftingWorkspace({
       return
     }
 
-    setEditedPrompts(prev => ({
-      ...prev,
-      [activePromptAgent]: activeText
-    }))
-    setPromptFeedback({
-      type: 'success',
-      message: 'System prompt updated dynamically. New guidelines bound to future graph runs.'
-    })
+    try {
+      await apiClient.post('/agents/prompts', {
+        notebook_id: notebookId,
+        agent_name: activePromptAgent,
+        prompt_text: activeText
+      })
+
+      setEditedPrompts(prev => ({
+        ...prev,
+        [activePromptAgent]: activeText
+      }))
+      setPromptFeedback({
+        type: 'success',
+        message: 'System prompt updated and persisted dynamically. New guidelines bound to future graph runs.'
+      })
+    } catch (err) {
+      console.error('Failed to persist system prompt:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: 'Database Error: Failed to persist system prompt.'
+      })
+    }
 
     // Auto clear feedback after 3 seconds
     setTimeout(() => {
       setPromptFeedback(null)
     }, 3000)
-  }, [activePromptText, activePromptAgent])
+  }, [activePromptText, activePromptAgent, notebookId])
 
   // Sync active text box on agent select change
   const handleSelectPromptAgent = useCallback((agentName: string) => {
@@ -717,9 +1049,9 @@ export function B2BDraftingWorkspace({
     setActivePromptText(editedPrompts[agentName] || '')
   }, [editedPrompts])
 
-  const handleLocateObjection = useCallback((obj: any) => {
+  const handleLocateObjection = useCallback((obj: { targetTab?: string; targetNodeId?: string; agent: string }) => {
     if (obj.targetTab) {
-      setActiveTab(obj.targetTab as any)
+      setActiveTab(obj.targetTab as 'editor' | 'canvas' | 'ledger')
       if (obj.targetNodeId && obj.targetTab === 'canvas') {
         setSelectedNodeId(obj.targetNodeId)
         setCurrentlyAuditedNodes([obj.targetNodeId])
@@ -733,7 +1065,7 @@ export function B2BDraftingWorkspace({
     }
   }, [])
 
-  const handleValidationSuccess = useCallback((verifiedIds: string[], threatPaths: string[][], rawPayload?: any) => {
+  const handleValidationSuccess = useCallback((verifiedIds: string[], threatPaths: string[][], rawPayload?: Record<string, unknown>) => {
     setActiveThreatPaths(threatPaths || [])
     if (rawPayload) {
       setTopologyGraph(JSON.stringify(rawPayload, null, 2))
@@ -864,55 +1196,111 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
   // 3. Exporter handlers
   const isExportReady = Object.values(checklist).every(v => v === true)
 
-  const handleExportDocx = () => {
+  const handleExportDocx = async () => {
     if (!isExportReady) return
 
     // Strip out the custom parameter highlighter HTML span wrappers back to plain text for corporate export
     let cleanMd = documentContent.replace(/<span[^>]*>(.*?)<\/span>/g, '$1')
-    
-    // Parse cleaned markdown to standard Word HTML compilation
-    const htmlBody = parseMarkdownToHtml(cleanMd)
-    
-    const docxHeader = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <title>Tetrel Security SOW Draft</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          body { font-family: 'Calibri', 'Arial', sans-serif; line-height: 1.6; color: #1e293b; padding: 40px; }
-          h1 { color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; margin-top: 30px; font-size: 22pt; font-weight: bold; }
-          h2 { color: #0284c7; margin-top: 24px; font-size: 16pt; font-weight: bold; }
-          h3 { color: #334155; margin-top: 18px; font-size: 13pt; font-weight: bold; }
-          p, li { margin-bottom: 12px; font-size: 11pt; }
-          table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-          th, td { border: 1px solid #cbd5e1; padding: 10px 14px; text-align: left; font-size: 10pt; }
-          th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
-          .confidential-header { text-align: right; color: #ef4444; font-size: 9pt; font-weight: bold; letter-spacing: 1px; margin-bottom: 30px; }
-          .signature-title { font-weight: bold; margin-top: 25px; margin-bottom: 5px; }
-        </style>
-      </head>
-      <body>
-        <div class="confidential-header">TETREL SECURITY INC. - STRICTLY CONFIDENTIAL</div>
-        ${htmlBody}
-      </body>
-      </html>
-    `
 
-    const blob = new Blob(['\ufeff' + docxHeader], { type: 'application/msword' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `SOW_${params.clientName.replace(/\s+/g, '_')}_Tetrel.doc`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    try {
+      const response = await apiClient.post('/notebooks/export', {
+        markdown: cleanMd,
+        clientName: params.clientName
+      }, {
+        responseType: 'blob'
+      })
+
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `SOW_${params.clientName.replace(/\s+/g, '_')}_Tetrel.docx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      setPromptFeedback({
+        type: 'success',
+        message: 'Statement of Work document compiled and downloaded successfully!'
+      })
+      setTimeout(() => setPromptFeedback(null), 3000)
+    } catch (err) {
+      console.error('Failed to export standard Word document:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: 'Compilation Error: Failed to compile and download Word document.'
+      })
+      setTimeout(() => setPromptFeedback(null), 4000)
+    }
+  }
+
+  const handleExportMarkdown = async () => {
+    if (!isExportReady) return
+
+    let cleanMd = documentContent.replace(/<span[^>]*>(.*?)<\/span>/g, '$1')
+
+    try {
+      const response = await apiClient.post('/notebooks/export/markdown', {
+        markdown: cleanMd,
+        clientName: params.clientName
+      }, {
+        responseType: 'blob'
+      })
+
+      const blob = new Blob([response.data], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `SOW_${params.clientName.replace(/\s+/g, '_')}_Tetrel.md`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      setPromptFeedback({
+        type: 'success',
+        message: 'Statement of Work document compiled as Markdown and downloaded successfully!'
+      })
+      setTimeout(() => setPromptFeedback(null), 3000)
+    } catch (err) {
+      console.error('Failed to export Markdown document:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: 'Compilation Error: Failed to compile and download Markdown document.'
+      })
+      setTimeout(() => setPromptFeedback(null), 4000)
+    }
+  }
+
+  const handleExportGoogleDocs = async () => {
+    if (!isExportReady) return
+
+    let cleanMd = documentContent.replace(/<span[^>]*>(.*?)<\/span>/g, '$1')
+
+    try {
+      const response = await apiClient.post('/notebooks/export/gdocs', {
+        markdown: cleanMd,
+        clientName: params.clientName
+      })
+
+      const data = response.data
+      if (data.success) {
+        window.open(data.doc_url, '_blank')
+        setPromptFeedback({
+          type: 'success',
+          message: data.message
+        })
+      } else {
+        throw new Error(data.message)
+      }
+      setTimeout(() => setPromptFeedback(null), 4000)
+    } catch (err) {
+      console.error('Failed to export to Google Docs:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: 'Google Docs Error: Failed to export proposal.'
+      })
+      setTimeout(() => setPromptFeedback(null), 4000)
+    }
   }
 
   const handlePrintPdf = () => {
@@ -1230,6 +1618,109 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
 
         {/* Right column: massive SOW Editor */}
         <div className="lg:col-span-8 flex flex-col h-full min-h-0 border rounded-xl bg-slate-950/40 border-white/5 overflow-hidden">
+          {/* SOW Drafting Copilot Panel */}
+          <div className="p-4 border-b border-white/5 bg-slate-950/60 backdrop-blur-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <Sparkles className="h-4 w-4 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Drafting Copilot</h3>
+                  <p className="text-[10px] text-muted-foreground">Highlight SOW text, grab it, and use AI to expand, rewrite, or autocomplete.</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGrabSelection}
+                className="text-[11px] h-7 border-white/10 hover:border-cyan-500/30 hover:text-cyan-400"
+              >
+                Grab Highlighted Text
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2 relative">
+                <textarea
+                  value={copilotSelectedText}
+                  onChange={(e) => setCopilotSelectedText(e.target.value)}
+                  placeholder="Selected text context appears here..."
+                  className="w-full h-10 px-3 py-1.5 text-xs rounded border border-white/5 bg-slate-950/40 text-foreground focus:outline-none focus:border-cyan-500/40 placeholder:text-muted-foreground/50 resize-none font-sans"
+                />
+                {copilotSelectedText && (
+                  <button
+                    onClick={() => setCopilotSelectedText('')}
+                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <select
+                  value={copilotAction}
+                  onChange={(e) => setCopilotAction(e.target.value as any)}
+                  className="flex-1 px-2.5 h-10 rounded border border-white/5 bg-slate-950/80 text-xs font-semibold text-foreground focus:outline-none focus:border-cyan-500/40 cursor-pointer"
+                >
+                  <option value="expand">Expand Milestones</option>
+                  <option value="rewrite">Professional Rewrite</option>
+                  <option value="autocomplete">Autocomplete SOW</option>
+                </select>
+
+                <Button
+                  onClick={handleGenerateSuggestion}
+                  disabled={isCopilotLoading || !copilotSelectedText.trim()}
+                  className="h-10 px-4 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                >
+                  {isCopilotLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Cpu className="h-3.5 w-3.5" />
+                  )}
+                  <span>Generate</span>
+                </Button>
+              </div>
+            </div>
+
+            {copilotError && (
+              <p className="text-[10px] font-mono text-rose-400 bg-rose-950/20 border border-rose-900/30 px-2 py-1 rounded">
+                ⚠️ {copilotError}
+              </p>
+            )}
+
+            {/* Generated Suggestion Preview Block */}
+            {copilotSuggestion && (
+              <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold font-mono tracking-widest text-cyan-400 uppercase">AI Suggestion</span>
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      onClick={handleApplySuggestion}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] h-6 px-2.5 font-semibold gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      <span>Apply to SOW</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCopilotSuggestion('')}
+                      className="text-[11px] h-6 px-2.5 border-white/10 hover:bg-white/5"
+                    >
+                      Discard
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-xs text-foreground/95 bg-slate-950/60 p-2.5 rounded border border-white/5 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto leading-relaxed">
+                  {copilotSuggestion}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex-1 overflow-y-auto p-4 [&_.w-md-editor]:!static [&_.w-md-editor]:!w-full [&_.w-md-editor]:!h-full [&_.w-md-editor-content]:overflow-y-auto">
             <MarkdownEditor
               value={documentContent}
@@ -1249,6 +1740,7 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
     return (
       <div className="w-full h-full border rounded-xl bg-slate-950/40 border-white/5 overflow-hidden flex flex-col">
         <CSETNetworkCanvas 
+          notebookId={notebookId}
           onValidationSuccess={handleValidationSuccess} 
           currentlyAuditedNodes={currentlyAuditedNodes}
           activeThreatPaths={activeThreatPaths}
@@ -1258,10 +1750,284 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
     )
   }
 
+  const renderQuizView = () => {
+    if (isQuizLoading) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center space-y-4 max-h-[calc(100vh-220px)]">
+          <RotateCcw className="h-8 w-8 text-cyan-400 animate-spin" />
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+            Loading CSET Audit Session...
+          </p>
+        </div>
+      )
+    }
+
+    if (!currentSessionId) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-6 max-h-[calc(100vh-220px)] overflow-y-auto">
+          <Card className="max-w-md w-full border-white/5 bg-slate-900/60 backdrop-blur-md shadow-2xl p-6 space-y-6">
+            <div className="text-center space-y-2">
+              <div className="p-3 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 inline-block">
+                <ShieldAlert className="h-8 w-8" />
+              </div>
+              <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-foreground">
+                CSET Compliance Audit
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Initialize a cyber security evaluation session. Verify requirements against industrial regulations.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                  Select Regulatory Framework
+                </label>
+                <select
+                  value={selectedRegId}
+                  onChange={(e) => setSelectedRegId(e.target.value)}
+                  className="w-full h-9 text-xs font-mono bg-slate-950 border border-white/10 rounded px-2.5 text-slate-200 focus:ring-1 focus:ring-cyan-500/30 focus:border-cyan-500/40"
+                >
+                  <option value="">Choose framework...</option>
+                  {selectableRegulations.map((reg) => {
+                    const cleanRegId = reg.id.replace('regulation:', '')
+                    const mappedIds = DB_TO_FRONTEND_ID_MAP[cleanRegId] || []
+                    const mappedNames = mappedIds
+                      .map(id => COMPLIANCE_FRAMEWORKS.find(f => f.id === id)?.name)
+                      .filter(Boolean)
+                    const displayName = mappedNames.length > 0
+                      ? `${mappedNames.join(' / ')} (${reg.name})`
+                      : reg.fullName || reg.name
+                    return (
+                      <option key={reg.id} value={reg.id}>
+                        {displayName} ({reg.questionCount} Questions)
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+
+              <Button
+                onClick={() => handleStartCSETQuiz(selectedRegId)}
+                disabled={!selectedRegId}
+                className="w-full h-9 font-mono font-bold text-xs uppercase tracking-wider active:scale-[0.98] bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/20 text-white shadow-lg shadow-cyan-500/10"
+              >
+                Start CSET Compliance Audit
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )
+    }
+
+    const compliancePercent = quizReport?.stats?.compliance_score !== undefined
+      ? Math.round(quizReport.stats.compliance_score)
+      : 0
+    
+    return (
+      <div className="w-full h-full flex flex-col min-h-0 overflow-hidden max-h-[calc(100vh-220px)] space-y-4">
+        {/* Top Status Bar */}
+        <div className="flex flex-wrap items-center justify-between p-4 border rounded-xl bg-slate-900/60 backdrop-blur-md border-white/5 shadow-2xl gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold font-mono tracking-wider uppercase text-foreground">
+                Audit Session: {regulations.find(r => r.id === selectedRegId)?.fullName || selectedRegId}
+              </h4>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest mt-0.5">
+                {isSessionLocked ? 'Locked & Finalized' : 'Active Assessment Session'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                Compliance Progress:
+              </span>
+              <span className="text-xs font-mono font-extrabold text-cyan-400">
+                {compliancePercent}%
+              </span>
+              <div className="w-24 h-2 bg-slate-950 rounded-full border border-white/5 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-500"
+                  style={{ width: `${compliancePercent}%` }}
+                />
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              disabled={isSessionLocked}
+              onClick={handleLockSession}
+              className={`h-7 px-3 font-mono font-bold text-[10px] uppercase tracking-wider active:scale-[0.98] ${
+                isSessionLocked
+                  ? 'bg-slate-800 text-muted-foreground border-white/5 cursor-not-allowed'
+                  : 'bg-red-900/40 hover:bg-red-800/50 border border-red-500/20 text-red-300'
+              }`}
+            >
+              <Lock className="h-3 w-3 mr-1" />
+              {isSessionLocked ? 'Audit Locked' : 'Lock and Finalize Audit Session'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3 p-3 border rounded-xl bg-slate-900/40 border-white/5 flex-shrink-0 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
+              Category:
+            </span>
+            <select
+              value={quizCategoryFilter}
+              onChange={(e) => setQuizCategoryFilter(e.target.value)}
+              className="h-7 text-[10px] font-mono bg-slate-950 border border-white/10 rounded px-2 text-slate-200"
+            >
+              <option value="all">All Categories</option>
+              {uniqueCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
+              Purdue Level:
+            </span>
+            <select
+              value={quizPurdueFilter}
+              onChange={(e) => setQuizPurdueFilter(e.target.value)}
+              className="h-7 text-[10px] font-mono bg-slate-950 border border-white/10 rounded px-2 text-slate-200"
+            >
+              <option value="all">All Levels</option>
+              {[0, 1, 2, 3, 4, 5].map(lvl => (
+                <option key={lvl} value={String(lvl)}>Level {lvl}</option>
+              ))}
+            </select>
+          </div>
+
+          <span className="text-[9px] font-mono text-muted-foreground/60 ml-auto uppercase">
+            Showing {filteredQuestions.length} of {quizQuestions.length} Questions
+          </span>
+        </div>
+
+        {/* Questions Grid */}
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          {filteredQuestions.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
+              {filteredQuestions.map((q) => (
+                <div key={q.question_id} className="p-4 rounded-xl border border-white/5 bg-slate-900/40 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className="font-mono text-[9px] border-cyan-500/20 bg-cyan-500/5 text-cyan-400">
+                        {q.standard_code}
+                      </Badge>
+                      <Badge variant="outline" className="font-mono text-[9px] border-white/10 bg-slate-950 text-muted-foreground">
+                        Level {q.purdue_level}
+                      </Badge>
+                      <Badge variant="outline" className="font-mono text-[9px] border-white/10 bg-slate-950 text-muted-foreground">
+                        {q.category}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-200 leading-normal font-sans pt-1">
+                      {q.question_text}
+                    </p>
+                    {q.description && (
+                      <p className="text-[10px] text-muted-foreground leading-normal font-sans">
+                        {q.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Y', 'N', 'ALT', 'NA'].map((option) => {
+                        const optionLabel = option === 'Y' ? 'Yes' : option === 'N' ? 'No' : option === 'ALT' ? 'Alt' : 'N/A'
+                        const isActive = q.answer === option
+                        return (
+                          <Button
+                            key={option}
+                            size="sm"
+                            type="button"
+                            variant={isActive ? 'default' : 'outline'}
+                            disabled={isSessionLocked}
+                            onClick={() => handlePatchAnswer(q.question_id, option, q.comments, q.evidence_url)}
+                            className={`h-7 px-3 text-[10px] font-mono font-bold uppercase transition-all ${
+                              isActive
+                                ? option === 'Y'
+                                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400/20 shadow-lg shadow-emerald-500/10'
+                                  : option === 'N'
+                                  ? 'bg-red-600 hover:bg-red-500 text-white border-red-400/20 shadow-lg shadow-red-500/10'
+                                  : option === 'ALT'
+                                  ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-400/20 shadow-lg shadow-amber-500/10'
+                                  : 'bg-cyan-600 hover:bg-cyan-500 text-white border-cyan-400/20 shadow-lg shadow-cyan-500/10'
+                                : 'border-white/5 hover:bg-slate-800 text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {optionLabel}
+                          </Button>
+                        )
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-mono text-muted-foreground uppercase">Comments</label>
+                        <Input
+                          type="text"
+                          value={q.comments || ''}
+                          disabled={isSessionLocked}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setQuizQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, comments: val } : item))
+                          }}
+                          onBlur={() => handlePatchAnswer(q.question_id, q.answer, q.comments, q.evidence_url)}
+                          placeholder="Remediation notes..."
+                          className="h-6 text-[9px] font-mono bg-slate-950 border-white/5 text-slate-200"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-mono text-muted-foreground uppercase">Evidence URL</label>
+                        <Input
+                          type="text"
+                          value={q.evidence_url || ''}
+                          disabled={isSessionLocked}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setQuizQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, evidence_url: val } : item))
+                          }}
+                          onBlur={() => handlePatchAnswer(q.question_id, q.answer, q.comments, q.evidence_url)}
+                          placeholder="http://evidence.io/..."
+                          className="h-6 text-[9px] font-mono bg-slate-950 border-white/5 text-slate-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-2 border border-dashed border-white/5 rounded-xl">
+              <ShieldAlert className="h-8 w-8 text-muted-foreground/30 animate-pulse" />
+              <p className="text-xs font-bold font-mono tracking-wider uppercase text-muted-foreground">
+                No Questions Match Filters
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 max-w-[200px] leading-normal">
+                Try adjusting your category or Purdue level filter selections.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const renderLedgerView = () => {
     const verifiedChecksCount = activeChecks.filter(c => c.checked).length
     const totalChecksCount = activeChecks.length
-    const globalPercent = totalChecksCount > 0 ? Math.round((verifiedChecksCount / totalChecksCount) * 100) : 0
+    const globalPercent = quizReport ? Math.round(quizReport.stats.compliance_score) : (totalChecksCount > 0 ? Math.round((verifiedChecksCount / totalChecksCount) * 100) : 0)
     
     // Donut chart math
     const radius = 50
@@ -1309,12 +2075,12 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
                   {globalPercent}%
                 </span>
                 <span className="text-[9px] font-mono tracking-widest text-muted-foreground uppercase mt-1">
-                  VERIFIED
+                  {quizReport ? 'CSET SCORE' : 'VERIFIED'}
                 </span>
               </div>
             </div>
             <div className="text-center pt-2 border-t border-white/5 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-              {verifiedChecksCount} OF {totalChecksCount} SAFETY TARGETS ACTIVE
+              {quizReport ? 'CSET AUDIT SCORE ACTIVE' : `${verifiedChecksCount} OF ${totalChecksCount} SAFETY TARGETS ACTIVE`}
             </div>
           </Card>
 
@@ -1531,6 +2297,28 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
 
         {/* Cockpit Inner Scroll */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 min-h-0">
+          {/* CSET Compliance Score Card */}
+          {quizReport && (
+            <div className="p-3 border border-cyan-500/20 bg-slate-950/60 rounded-lg space-y-2">
+              <div className="flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">
+                <span>CSET Compliance Score</span>
+                <span className="text-cyan-400 font-extrabold text-xs">{Math.round(quizReport.stats.compliance_score)}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-900 border border-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-500"
+                  style={{ width: `${quizReport.stats.compliance_score}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[8px] font-mono text-muted-foreground/60 uppercase">
+                <span>{quizReport.stats.yes_count} YES</span>
+                <span>{quizReport.stats.no_count} NO</span>
+                <span>{quizReport.stats.na_count} N/A</span>
+                <span>{quizReport.stats.alt_count} ALT</span>
+              </div>
+            </div>
+          )}
+
           {/* Dispatch Controls & Status */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -1729,11 +2517,10 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
                       onChange={(e) => setNewAgentModel(e.target.value)}
                       className="w-full h-7 text-[9px] font-mono bg-slate-900 border border-white/5 rounded px-1 text-slate-200"
                     >
-                      <option value="claude-3-5-sonnet">Sonnet 3.5</option>
-                      <option value="gpt-4o">GPT-4o</option>
-                      <option value="gpt-4o-mini">GPT-4o-Mini</option>
-                      <option value="deepseek-chat">DeepSeek Chat</option>
-                      <option value="ollama/llama3">Llama3 Local</option>
+                      <option value="">Select model...</option>
+                      {allModels?.filter(m => m.type === 'language').map((m) => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -1797,11 +2584,10 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
                         }}
                         className="h-6 text-[10px] font-mono font-bold bg-slate-900 border border-white/10 rounded px-1 text-cyan-405 focus:ring-0 focus:border-cyan-500/50"
                       >
-                        <option value="claude-3-5-sonnet">Sonnet 3.5</option>
-                        <option value="gpt-4o">GPT-4o</option>
-                        <option value="gpt-4o-mini">GPT-4o-Mini</option>
-                        <option value="deepseek-chat">DeepSeek Chat</option>
-                        <option value="ollama/llama3">Llama3 Local</option>
+                        <option value="">Select model...</option>
+                        {allModels?.filter(m => m.type === 'language').map((m) => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -2076,9 +2862,16 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
           </div>
           <div>
             <h2 className="text-sm font-bold font-mono tracking-wider uppercase text-foreground">B2B Compliance Drafting Workspace</h2>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-              Industrial Utilitarian • Verified Grounding Hub
-            </p>
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                Industrial Utilitarian • Verified Grounding Hub
+              </p>
+              {quizReport && (
+                <span className="text-[9px] font-mono font-bold text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                  CSET SCORE: {Math.round(quizReport.stats.compliance_score)}%
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2119,6 +2912,18 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
             <BookOpen className="h-3.5 w-3.5" />
             Regulatory Ledger
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('quiz')}
+            className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              activeTab === 'quiz'
+                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            CSET Compliance Quiz
+          </button>
         </div>
 
         {/* Exporter & Cockpit Actions */}
@@ -2128,19 +2933,33 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
               PENDING VERIFICATION
             </span>
           )}
-          <Button
-            size="sm"
-            disabled={!isExportReady}
-            onClick={handleExportDocx}
-            className={`h-8 font-mono font-bold text-xs uppercase tracking-wider active:scale-[0.98] ${
-              isExportReady 
-                ? 'bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/20 text-white shadow-lg shadow-cyan-500/10' 
-                : 'bg-slate-800 text-muted-foreground border border-white/5 cursor-not-allowed'
-            }`}
-          >
-            <FileDown className="h-4 w-4 mr-1.5" />
-            Export DOCX
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                disabled={!isExportReady}
+                className={`h-8 font-mono font-bold text-xs uppercase tracking-wider active:scale-[0.98] ${
+                  isExportReady 
+                    ? 'bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/20 text-white shadow-lg shadow-cyan-500/10' 
+                    : 'bg-slate-800 text-muted-foreground border border-white/5 cursor-not-allowed'
+                }`}
+              >
+                <FileDown className="h-4 w-4 mr-1.5" />
+                Export SOW
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-slate-900 border-white/10 text-foreground">
+              <DropdownMenuItem onClick={handleExportDocx} className="hover:bg-slate-800 cursor-pointer font-mono text-xs uppercase text-slate-200">
+                Download Word (.docx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportMarkdown} className="hover:bg-slate-800 cursor-pointer font-mono text-xs uppercase text-slate-200">
+                Download Markdown (.md)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportGoogleDocs} className="hover:bg-slate-800 cursor-pointer font-mono text-xs uppercase text-slate-200">
+                Export to Google Docs
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             size="sm"
@@ -2173,6 +2992,7 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
           {activeTab === 'editor' && renderDraftsmanView()}
           {activeTab === 'canvas' && renderCanvasView()}
           {activeTab === 'ledger' && renderLedgerView()}
+          {activeTab === 'quiz' && renderQuizView()}
         </div>
 
         {/* Agentic Workflow Cockpit Side Drawer */}
