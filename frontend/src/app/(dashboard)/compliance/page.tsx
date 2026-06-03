@@ -29,7 +29,7 @@ import { MaturityWizard } from './components/MaturityWizard'
 
 export default function CompliancePage() {
   const { t } = useTranslation()
-  const [frameworks, setFrameworks] = useState<CSETFramework[]>(CSET_FRAMEWORKS)
+  const [frameworks, setFrameworks] = useState<CSETFramework[]>([])
   const [activeQuestions, setActiveQuestions] = useState<CSETQuestion[]>([])
   const [loadingFrameworks, setLoadingFrameworks] = useState<boolean>(false)
   const [loadingQuestions, setLoadingQuestions] = useState<boolean>(false)
@@ -150,6 +150,7 @@ export default function CompliancePage() {
         }
       } catch (err) {
         console.error('Error fetching CSET frameworks from API:', err)
+        setFrameworks(CSET_FRAMEWORKS)
       } finally {
         setLoadingFrameworks(false)
       }
@@ -345,6 +346,7 @@ export default function CompliancePage() {
               setViewMode={setViewMode}
               filteredFrameworks={filteredFrameworks}
               setSelectedFramework={setSelectedFramework}
+              loadingFrameworks={loadingFrameworks}
             />
           )}
 

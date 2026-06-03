@@ -24,6 +24,7 @@ export interface FrameworkGridProps {
   setViewMode: (mode: ViewMode) => void
   filteredFrameworks: CSETFramework[]
   setSelectedFramework: (fw: CSETFramework) => void
+  loadingFrameworks?: boolean
 }
 
 export function FrameworkGrid({
@@ -36,6 +37,7 @@ export function FrameworkGrid({
   setViewMode,
   filteredFrameworks,
   setSelectedFramework,
+  loadingFrameworks = false,
 }: FrameworkGridProps) {
   const { t } = useTranslation()
 
@@ -75,14 +77,36 @@ export function FrameworkGrid({
       </div>
 
       {/* Grid of CSET Framework Cards */}
-      {viewMode === 'cards' && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredFrameworks.map(fw => (
-          <Card 
-            key={fw.id} 
-            className="shadow-lg border-white/5 bg-slate-900/60 hover:border-cyan-500/20 hover:bg-slate-900/80 transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden"
-            onClick={() => setSelectedFramework(fw)}
-          >
+      {loadingFrameworks ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <Card key={idx} className="shadow-lg border-white/5 bg-slate-900/30 animate-pulse flex flex-col justify-between h-[200px]">
+              <div className="p-5 space-y-4 flex-1">
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-slate-800 rounded w-1/3" />
+                  <div className="h-4 bg-slate-800 rounded w-1/4" />
+                </div>
+                <div className="h-5 bg-slate-850 rounded w-3/4" />
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 bg-slate-800 rounded w-full" />
+                  <div className="h-3 bg-slate-800 rounded w-5/6" />
+                </div>
+              </div>
+              <div className="border-t border-white/5 p-4 flex justify-between">
+                <div className="h-3 bg-slate-800 rounded w-1/2" />
+                <div className="h-3 bg-slate-800 rounded w-4" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredFrameworks.map(fw => (
+            <Card 
+              key={fw.id} 
+              className="shadow-lg border-white/5 bg-slate-900/60 hover:border-cyan-500/20 hover:bg-slate-900/80 transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden"
+              onClick={() => setSelectedFramework(fw)}
+            >
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             
             <CardHeader className="pb-2">
@@ -125,7 +149,7 @@ export function FrameworkGrid({
           </Card>
         ))}
       </div>
-      )}
+      ) : null}
 
       {viewMode === 'table' && (
         <DataTable

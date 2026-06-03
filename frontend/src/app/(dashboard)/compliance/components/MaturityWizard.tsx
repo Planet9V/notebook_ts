@@ -18,6 +18,7 @@ import {
   Filter
 } from 'lucide-react'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import ReactMarkdown from 'react-markdown'
 import { CSETFramework, CSETQuestion, ManualData, getFrameworkManual } from '../data'
 
 export interface MaturityWizardProps {
@@ -344,8 +345,12 @@ export function MaturityWizard({
                                         </Button>
                                       </div>
                                       
-                                      <div className="bg-slate-950/60 border border-white/5 rounded-lg p-3 font-sans text-[10.5px] text-muted-foreground/90 leading-relaxed whitespace-pre-line border-l-2 border-l-cyan-500/30">
-                                        {q.description || t('compliance.wizard.noGuidance')}
+                                      <div className="bg-slate-950/60 border border-white/5 rounded-lg p-3 font-sans text-[10.5px] text-muted-foreground/90 leading-relaxed border-l-2 border-l-cyan-500/30 prose prose-invert max-w-none prose-sm prose-p:leading-relaxed prose-headings:mt-2 prose-headings:mb-1">
+                                        {q.description ? (
+                                          <ReactMarkdown>{q.description}</ReactMarkdown>
+                                        ) : (
+                                          t('compliance.wizard.noGuidance')
+                                        )}
                                       </div>
                                     </div>
                                   );
@@ -591,8 +596,12 @@ export function MaturityWizard({
 
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase">{t('compliance.wizard.csetGuidelines')}</span>
-                  <div className="bg-slate-950 p-4 border border-white/5 rounded-lg text-muted-foreground font-sans leading-relaxed text-[11px] whitespace-pre-line">
-                    {drawerQuestion.description}
+                  <div className="bg-slate-950 p-4 border border-white/5 rounded-lg text-muted-foreground font-sans leading-relaxed text-[11px] prose prose-invert max-w-none prose-sm prose-p:leading-relaxed prose-headings:mt-2 prose-headings:mb-1">
+                    {drawerQuestion.description ? (
+                      <ReactMarkdown>{drawerQuestion.description}</ReactMarkdown>
+                    ) : (
+                      t('compliance.wizard.noGuidance')
+                    )}
                   </div>
                 </div>
               </div>

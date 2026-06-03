@@ -49,8 +49,8 @@ async def get_regulation_questions(regulation_id: str):
             raise HTTPException(status_code=404, detail="Regulation not found")
             
         results = await repo_query(
-            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($regulation_id) ORDER BY standard_code ASC",
-            {"regulation_id": regulation_id}
+            "SELECT * FROM question WHERE regulation_id = $regulation_id ORDER BY standard_code ASC",
+            {"regulation_id": str(target_id)}
         )
         
         questions = []

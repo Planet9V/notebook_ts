@@ -372,7 +372,7 @@ async def get_session_questions(session_id: str):
 
         # Load all standard questions
         questions = await repo_query(
-            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id) ORDER BY standard_code ASC",
+            "SELECT * FROM question WHERE regulation_id = $fw_id ORDER BY standard_code ASC",
             {"fw_id": fw_id}
         )
         
@@ -508,7 +508,7 @@ async def complete_session(session_id: str):
 
         # Load standard questions & custom fields
         questions = await repo_query(
-            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id)",
+            "SELECT * FROM question WHERE regulation_id = $fw_id",
             {"fw_id": fw_id}
         )
         
@@ -668,7 +668,7 @@ async def get_session_report(session_id: str):
         
         # Load standard questions & custom fields
         questions = await repo_query(
-            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id)",
+            "SELECT * FROM question WHERE regulation_id = $fw_id",
             {"fw_id": fw_id}
         )
         
@@ -877,7 +877,7 @@ async def get_assessment_trends(assessment_id: str):
             
             # Load answers & questions for scoring
             q_count_res = await repo_query(
-                "SELECT count() FROM question WHERE type::string(regulation_id) = type::string($fw_id) GROUP ALL",
+                "SELECT count() FROM question WHERE regulation_id = $fw_id GROUP ALL",
                 {"fw_id": fw_id}
             )
             total_questions = q_count_res[0]["count"] if q_count_res else 0
