@@ -10,6 +10,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     UploadFile,
 )
 from fastapi.responses import FileResponse, Response
@@ -306,6 +307,7 @@ async def get_sources(
 
 @router.post("/sources", response_model=SourceResponse)
 async def create_source(
+    request: Request,
     form_data: tuple[SourceCreate, Optional[UploadFile]] = Depends(
         parse_source_form_data
     ),
@@ -445,13 +447,17 @@ async def create_source(
                 elif source_data.type == "link":
                     source_file_path = source_data.url or ""
 
+                ip_address = request.client.host if request.client else None
+                user_agent = request.headers.get("user-agent")
                 await log_file_action(
                     user_id=None,
                     org_id=org_id,
                     action="upload",
                     target_type="source",
                     target_id=str(source.id),
-                    file_path=source_file_path
+                    file_path=source_file_path,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
                 )
 
                 # Return source with command info
@@ -564,13 +570,17 @@ async def create_source(
                 elif source_data.type == "link":
                     source_file_path = source_data.url or ""
 
+                ip_address = request.client.host if request.client else None
+                user_agent = request.headers.get("user-agent")
                 await log_file_action(
                     user_id=None,
                     org_id=org_id,
                     action="upload",
                     target_type="source",
                     target_id=str(source.id),
-                    file_path=source_file_path
+                    file_path=source_file_path,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
                 )
 
                 embedded_chunks = await processed_source.get_embedded_chunks()
@@ -640,11 +650,11 @@ async def create_source(
 
 
 @router.post("/sources/json", response_model=SourceResponse)
-async def create_source_json(source_data: SourceCreate):
+async def create_source_json(request: Request, source_data: SourceCreate):
     """Create a new source using JSON payload (legacy endpoint for backward compatibility)."""
     # Convert to form data format and call main endpoint
     form_data = (source_data, None)
-    return await create_source(form_data)
+    return await create_source(request=request, form_data=form_data)
 
 
 async def _resolve_source_file(source_id: str) -> tuple[str, str]:
@@ -691,7 +701,7 @@ def _is_source_file_available(source: Source) -> Optional[bool]:
 
 
 @router.get("/sources/{source_id}", response_model=SourceResponse)
-async def get_source(source_id: str):
+async def get_source(source_id: str, request: Request):
     """Get a specific source by ID."""
     try:
         source = await Source.get(source_id)
@@ -704,13 +714,17 @@ async def get_source(source_id: str):
         if source.asset:
             source_file_path = source.asset.file_path or source.asset.url or ""
 
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
         await log_file_action(
             user_id=None,
             org_id=org_id,
             action="read",
             target_type="source",
             target_id=source_id,
-            file_path=source_file_path
+            file_path=source_file_path,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         # Get status information if command exists
@@ -779,20 +793,24 @@ async def check_source_file(source_id: str):
 
 
 @router.get("/sources/{source_id}/download")
-async def download_source_file(source_id: str):
+async def download_source_file(source_id: str, request: Request):
     """Download the original file associated with an uploaded source."""
     try:
         resolved_path, filename = await _resolve_source_file(source_id)
 
         # Log download action
         org_id = await _get_source_org_id(source_id)
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
         await log_file_action(
             user_id=None,
             org_id=org_id,
             action="download",
             target_type="source",
             target_id=source_id,
-            file_path=str(resolved_path)
+            file_path=str(resolved_path),
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         return FileResponse(
@@ -870,7 +888,7 @@ async def get_source_status(source_id: str):
 
 
 @router.put("/sources/{source_id}", response_model=SourceResponse)
-async def update_source(source_id: str, source_update: SourceUpdate):
+async def update_source(source_id: str, source_update: SourceUpdate, request: Request):
     """Update a source."""
     try:
         source = await Source.get(source_id)
@@ -891,13 +909,17 @@ async def update_source(source_id: str, source_update: SourceUpdate):
         if source.asset:
             source_file_path = source.asset.file_path or source.asset.url or ""
 
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
         await log_file_action(
             user_id=None,
             org_id=org_id,
             action="modify",
             target_type="source",
             target_id=source_id,
-            file_path=source_file_path
+            file_path=source_file_path,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         embedded_chunks = await source.get_embedded_chunks()
@@ -1052,7 +1074,7 @@ async def retry_source_processing(source_id: str):
 
 
 @router.delete("/sources/{source_id}")
-async def delete_source(source_id: str):
+async def delete_source(source_id: str, request: Request):
     """Delete a source."""
     try:
         source = await Source.get(source_id)
@@ -1066,13 +1088,17 @@ async def delete_source(source_id: str):
             source_file_path = source.asset.file_path or source.asset.url or ""
 
         # Log delete action
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
         await log_file_action(
             user_id=None,
             org_id=org_id,
             action="delete",
             target_type="source",
             target_id=source_id,
-            file_path=source_file_path
+            file_path=source_file_path,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         await source.delete()

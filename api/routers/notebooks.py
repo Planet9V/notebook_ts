@@ -1,6 +1,6 @@
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from loguru import logger
 
 from api.models import (
@@ -27,6 +27,29 @@ from open_notebook.exceptions import InvalidInputError
 from api.routers.activity_emitter import emit_activity
 
 router = APIRouter()
+
+
+async def verify_notebook_org(notebook_id: str, organization_id: Optional[str]):
+    if not organization_id:
+        return
+
+    nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+    try:
+        result = await repo_query("SELECT organization FROM $id", {"id": ensure_record_id(nb_rec)})
+    except Exception:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
+    nb_org = result[0].get("organization")
+    if nb_org is None:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
+    nb_org_str = str(nb_org)
+    if nb_org_str != organization_id:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
 
 
 @router.get("/notebooks", response_model=List[NotebookResponse])
@@ -208,9 +231,11 @@ async def get_notebook_delete_preview(notebook_id: str):
 
 
 @router.get("/notebooks/{notebook_id}", response_model=NotebookResponse)
-async def get_notebook(notebook_id: str):
+async def get_notebook(notebook_id: str, organization_id: Optional[str] = Query(None)):
     """Get a specific notebook by ID."""
+    await verify_notebook_org(notebook_id, organization_id)
     try:
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
         # Query with counts for single notebook
         query = """
             SELECT *,
@@ -218,7 +243,7 @@ async def get_notebook(notebook_id: str):
             count(<-artifact.in) as note_count
             FROM $notebook_id
         """
-        result = await repo_query(query, {"notebook_id": ensure_record_id(notebook_id)})
+        result = await repo_query(query, {"notebook_id": ensure_record_id(nb_rec)})
 
         if not result:
             raise HTTPException(status_code=404, detail="Notebook not found")
@@ -257,10 +282,13 @@ async def update_notebook(
     notebook_id: str,
     notebook_update: NotebookUpdate,
     background_tasks: BackgroundTasks,
+    organization_id: Optional[str] = Query(None),
 ):
     """Update a notebook."""
+    await verify_notebook_org(notebook_id, organization_id)
     try:
-        notebook = await Notebook.get(notebook_id)
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+        notebook = await Notebook.get(nb_rec)
         if not notebook:
             raise HTTPException(status_code=404, detail="Notebook not found")
 
@@ -320,7 +348,7 @@ async def update_notebook(
             count(<-artifact.in) as note_count
             FROM $notebook_id
         """
-        result = await repo_query(query, {"notebook_id": ensure_record_id(notebook_id)})
+        result = await repo_query(query, {"notebook_id": ensure_record_id(nb_rec)})
 
         if result:
             nb = result[0]
@@ -467,6 +495,7 @@ async def delete_notebook(
         False,
         description="Whether to delete sources that belong only to this notebook",
     ),
+    organization_id: Optional[str] = Query(None),
 ):
     """
     Delete a notebook with cascade deletion.
@@ -475,8 +504,10 @@ async def delete_notebook(
     If delete_exclusive_sources is True, also deletes sources that belong only
     to this notebook (not linked to any other notebooks).
     """
+    await verify_notebook_org(notebook_id, organization_id)
     try:
-        notebook = await Notebook.get(notebook_id)
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+        notebook = await Notebook.get(nb_rec)
         if not notebook:
             raise HTTPException(status_code=404, detail="Notebook not found")
 
@@ -1154,11 +1185,17 @@ def _format_datetime(val: Any) -> str:
 
 
 @router.post("/notebooks/{notebook_id}/assets", response_model=AssetResponse)
-async def save_notebook_asset(notebook_id: str, asset: AssetCreate):
+async def save_notebook_asset(
+    notebook_id: str,
+    asset: AssetCreate,
+    request: Request,
+    organization_id: Optional[str] = Query(None),
+):
     """
     Create or update an asset associated with a notebook.
     This serves as an upsert based on notebook_id and node_id.
     """
+    await verify_notebook_org(notebook_id, organization_id)
     try:
         # Check if notebook exists. If not, auto-create it for testing/convenience.
         nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
@@ -1223,13 +1260,17 @@ async def save_notebook_asset(notebook_id: str, asset: AssetCreate):
             org_id = nb_org_query[0].get("organization")
 
         action = "modify" if existing else "upload"
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
         await log_file_action(
             user_id=None,
             org_id=org_id,
             action=action,
             target_type="source",
             target_id=asset.node_id,
-            file_path="canvas/" + asset.node_id
+            file_path="canvas/" + asset.node_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         return AssetResponse(
@@ -1263,10 +1304,14 @@ async def save_notebook_asset(notebook_id: str, asset: AssetCreate):
 
 
 @router.get("/notebooks/{notebook_id}/assets", response_model=List[AssetResponse])
-async def list_notebook_assets(notebook_id: str):
+async def list_notebook_assets(
+    notebook_id: str,
+    organization_id: Optional[str] = Query(None),
+):
     """
     List all assets under a specific notebook.
     """
+    await verify_notebook_org(notebook_id, organization_id)
     try:
         # Verify notebook exists
         nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
@@ -1314,10 +1359,16 @@ async def list_notebook_assets(notebook_id: str):
 
 
 @router.delete("/notebooks/{notebook_id}/assets/{node_id}")
-async def delete_notebook_asset(notebook_id: str, node_id: str):
+async def delete_notebook_asset(
+    notebook_id: str,
+    node_id: str,
+    request: Request,
+    organization_id: Optional[str] = Query(None),
+):
     """
     Delete an asset associated with a notebook by its node_id.
     """
+    await verify_notebook_org(notebook_id, organization_id)
     try:
         # Verify notebook exists
         nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
@@ -1344,13 +1395,17 @@ async def delete_notebook_asset(notebook_id: str, node_id: str):
         if nb_org_query:
             org_id = nb_org_query[0].get("organization")
 
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
         await log_file_action(
             user_id=None,
             org_id=org_id,
             action="delete",
             target_type="source",
             target_id=node_id,
-            file_path="canvas/" + node_id
+            file_path="canvas/" + node_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         return {"message": "Asset deleted successfully"}
