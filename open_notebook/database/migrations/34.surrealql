@@ -1,0 +1,2 @@
+-- Migration 34: Pipeline type field
+DEFINE FIELD IF NOT EXISTS pipeline_type ON TABLE notebook TYPE string DEFAULT 'sales';

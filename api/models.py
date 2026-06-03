@@ -60,6 +60,9 @@ class NotebookCreate(BaseModel):
     close_date: Optional[str] = Field(
         None, description="Optional close date YYYY-MM-DD"
     )
+    pipeline_type: Optional[str] = Field(
+        "sales", description="Pipeline category workflow"
+    )
 
 
 
@@ -98,6 +101,9 @@ class NotebookUpdate(BaseModel):
     close_date: Optional[str] = Field(
         None, description="Optional close date YYYY-MM-DD"
     )
+    pipeline_type: Optional[str] = Field(
+        None, description="Pipeline category workflow"
+    )
 
 
 
@@ -121,6 +127,7 @@ class NotebookResponse(BaseModel):
     organization: Optional[str] = None
     assigned_to: Optional[str] = None
     close_date: Optional[str] = None
+    pipeline_type: str = "sales"
 
 
 # Asset models

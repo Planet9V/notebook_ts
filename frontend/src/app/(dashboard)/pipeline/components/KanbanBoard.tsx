@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { NotebookResponse } from '@/lib/types/api'
 import { useUpdateNotebook } from '@/lib/hooks/use-notebooks'
 import { useTranslation } from '@/lib/hooks/use-translation'
-import { PIPELINE_STAGES, STAGE_LABELS, PipelineStage } from '@/lib/constants/stages'
+import { PIPELINE_COLUMNS, PipelineType } from '@/lib/constants/pipelines'
 import { toast } from 'sonner'
 import { CreateNotebookDialog } from '@/components/notebooks/CreateNotebookDialog'
 import { DealDrawer } from './DealDrawer'
@@ -31,6 +31,7 @@ import { useUsers } from '@/lib/hooks/use-users'
 interface KanbanBoardProps {
   notebooks: NotebookResponse[]
   onCardClick?: (id: string) => void
+  pipelineType?: PipelineType
 }
 
 interface Column {
@@ -163,13 +164,17 @@ function DealCard({ nb, index, onClick, t }: DealCardProps) {
   )
 }
 
-export function KanbanBoard({ notebooks, onCardClick }: KanbanBoardProps) {
+export function KanbanBoard({ notebooks, onCardClick, pipelineType = 'sales' }: KanbanBoardProps) {
   const { t } = useTranslation()
   const updateNotebook = useUpdateNotebook()
 
+  const currentPipeline = pipelineType
+  const config = PIPELINE_COLUMNS[currentPipeline]
+  const stages = config.stages
+
   // Local state for optimistic UI updates during drags
   const [boardData, setBoardData] = useState<Record<string, NotebookResponse[]>>(
-    () => Object.fromEntries(PIPELINE_STAGES.map((s) => [s, []]))
+    () => Object.fromEntries(config.stages.map((s) => [s, []]))
   )
 
   // Selected deal for drawer
@@ -178,103 +183,62 @@ export function KanbanBoard({ notebooks, onCardClick }: KanbanBoardProps) {
 
   // Create notebook modal settings
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [selectedStageForNewNotebook, setSelectedStageForNewNotebook] = useState<string>('lead')
+  const [selectedStageForNewNotebook, setSelectedStageForNewNotebook] = useState<string>('')
 
-  const STAGE_COLORS: Record<PipelineStage, { colorClass: string; borderClass: string; badgeClass: string }> = {
-    bulk_import: {
-      colorClass: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
-      borderClass: 'border-t-slate-500',
-      badgeClass: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-    },
-    data_enrichment: {
-      colorClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-      borderClass: 'border-t-orange-500',
-      badgeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    },
-    lead: {
-      colorClass: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-      borderClass: 'border-t-amber-500',
-      badgeClass: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    },
-    research: {
-      colorClass: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/30',
-      borderClass: 'border-t-cyan-500',
-      badgeClass: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
-    },
-    technical_discovery: {
-      colorClass: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-      borderClass: 'border-t-blue-500',
-      badgeClass: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    },
-    proposal: {
-      colorClass: 'bg-violet-500/10 text-violet-500 border-violet-500/30',
-      borderClass: 'border-t-violet-500',
-      badgeClass: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
-    },
-    won: {
-      colorClass: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-      borderClass: 'border-t-emerald-500',
-      badgeClass: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    },
-  }
-
-  const STAGE_TITLES: Record<PipelineStage, string> = {
-    bulk_import: 'Import Staging',
-    data_enrichment: 'Data Enrichment',
-    lead: 'Leads Prospecting',
-    research: 'Client Research',
-    technical_discovery: 'Technical Discovery',
-    proposal: 'Proposal Drafts',
-    won: 'Contract Won',
-  }
-
-  const STAGE_EMPTY_MSG: Record<PipelineStage, string> = {
-    bulk_import: 'No imported records',
-    data_enrichment: 'No records enriching',
-    lead: 'No active dossiers',
-    research: 'No active dossiers',
-    technical_discovery: 'No active dossiers',
-    proposal: 'No active dossiers',
-    won: 'No active dossiers',
-  }
+  // Initialize selectedStageForNewNotebook on mount or when pipelineType changes
+  useEffect(() => {
+    setSelectedStageForNewNotebook(stages[0] || '')
+  }, [pipelineType, stages])
 
   const columns: Column[] = useMemo(() =>
-    PIPELINE_STAGES.map((stage) => ({
-      id: stage,
-      title: t(`pipeline.stage.${stage}`, STAGE_TITLES[stage]),
-      ...STAGE_COLORS[stage],
-    })),
-  [t])
+    stages.map((stage) => {
+      const colorInfo = config.colors[stage] || {
+        colorClass: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+        borderClass: 'border-t-slate-500',
+        badgeClass: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+      }
+      return {
+        id: stage,
+        title: t(`pipeline.stage.${stage}`, config.titles[stage] || stage),
+        ...colorInfo,
+      }
+    }),
+  [stages, config, t])
 
-  // Categorize notebooks into columns whenever they update from server queries
+  // Categorize notebooks into columns whenever they update from server queries or pipelineType changes
   useEffect(() => {
     const categorized: Record<string, NotebookResponse[]> = Object.fromEntries(
-      PIPELINE_STAGES.map((s) => [s, []])
+      stages.map((s) => [s, []])
     )
 
     notebooks.forEach((nb) => {
       if (nb.archived) return
-      const stage = nb.stage || 'lead'
+      const nbPipelineType = nb.pipeline_type || 'sales'
+      if (nbPipelineType !== currentPipeline) return
+
+      const stage = nb.stage || stages[0]
       if (categorized[stage]) {
         categorized[stage].push(nb)
       } else {
-        categorized['lead'].push(nb) // Fallback to Lead column
+        categorized[stages[0]].push(nb) // Fallback to initial column
       }
     })
 
     setBoardData(categorized)
-  }, [notebooks])
+  }, [notebooks, currentPipeline, stages])
 
   // Compute total estimated deal values per column
   const columnTotals = useMemo(() => {
     const totals: Record<string, number> = Object.fromEntries(
-      PIPELINE_STAGES.map((s) => [s, 0])
+      stages.map((s) => [s, 0])
     )
     Object.keys(boardData).forEach((colId) => {
-      totals[colId] = boardData[colId].reduce((sum, nb) => sum + (nb.estimated_value || 0), 0)
+      if (totals[colId] !== undefined) {
+        totals[colId] = boardData[colId].reduce((sum, nb) => sum + (nb.estimated_value || 0), 0)
+      }
     })
     return totals
-  }, [boardData])
+  }, [boardData, stages])
 
   // Handle Drag End event
   const handleDragEnd = async (result: DropResult) => {
@@ -321,11 +285,13 @@ export function KanbanBoard({ notebooks, onCardClick }: KanbanBoardProps) {
       toast.error('Failed to move deal — reverted')
       // Rollback to original sync state by re-triggering from prop notebooks
       const rollback: Record<string, NotebookResponse[]> = Object.fromEntries(
-        PIPELINE_STAGES.map((s) => [s, []])
+        stages.map((s) => [s, []])
       )
       notebooks.forEach((nb) => {
         if (nb.archived) return
-        const stage = nb.stage || 'lead'
+        const nbPipelineType = nb.pipeline_type || 'sales'
+        if (nbPipelineType !== currentPipeline) return
+        const stage = nb.stage || stages[0]
         if (rollback[stage]) rollback[stage].push(nb)
       })
       setBoardData(rollback)
@@ -353,7 +319,13 @@ export function KanbanBoard({ notebooks, onCardClick }: KanbanBoardProps) {
       {/* Board Canvas */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">
-        <div className="grid grid-cols-7 min-w-[1400px] gap-4 items-start h-[calc(100vh-270px)] min-h-[500px]">
+        <div
+          className="grid gap-4 items-start h-[calc(100vh-270px)] min-h-[500px]"
+          style={{
+            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+            minWidth: `${columns.length * 200}px`,
+          }}
+        >
           {columns.map((col) => (
             <div
               key={col.id}
@@ -423,14 +395,14 @@ export function KanbanBoard({ notebooks, onCardClick }: KanbanBoardProps) {
                           ) : (
                             <Plus className="h-6 w-6 mb-1 opacity-20 text-primary" />
                           )}
-                          <p className="text-[11px] font-semibold">{STAGE_EMPTY_MSG[col.id as PipelineStage]}</p>
+                          <p className="text-[11px] font-semibold">{config.emptyMsgs[col.id] || 'No active records'}</p>
                           <Button
                             variant="link"
                             size="sm"
                             onClick={() => openCreateDialog(col.id)}
                             className="text-[10px] text-primary p-0 h-auto mt-1"
                           >
-                            + Add Deal
+                            + Add Item
                           </Button>
                         </div>
                       )}

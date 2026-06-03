@@ -17,6 +17,7 @@ export interface NotebookResponse {
   assigned_to?: string
   close_date?: string
   customer_id?: string | null
+  pipeline_type?: string
 }
 
 export interface NoteResponse {
@@ -83,6 +84,7 @@ export interface CreateNotebookRequest {
   assigned_to?: string | null
   close_date?: string | null
   customer_id?: string | null
+  pipeline_type?: string
 }
 
 export interface UpdateNotebookRequest {
@@ -99,6 +101,7 @@ export interface UpdateNotebookRequest {
   assigned_to?: string | null
   close_date?: string | null
   customer_id?: string | null
+  pipeline_type?: string
 }
 
 export interface NotebookDeletePreview {

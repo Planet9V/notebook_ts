@@ -30,6 +30,7 @@ class Notebook(ObjectModel):
     organization: Optional[str] = None
     assigned_to: Optional[str] = None
     close_date: Optional[str] = None
+    pipeline_type: Optional[str] = "sales"
 
     @field_validator("name")
     @classmethod

@@ -1,0 +1,2 @@
+-- Migration 34 Down: Remove pipeline type field
+REMOVE FIELD pipeline_type ON TABLE notebook;

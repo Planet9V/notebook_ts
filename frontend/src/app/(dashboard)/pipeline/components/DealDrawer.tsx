@@ -59,6 +59,7 @@ import {
 import Link from 'next/link'
 import { ENGINE_LABELS } from '@/lib/constants/research-stages'
 import { toast } from 'sonner'
+import { PIPELINE_COLUMNS, PipelineType } from '@/lib/constants/pipelines'
 
 interface DealDrawerProps {
   notebookId: string | null
@@ -370,24 +371,22 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
     }
   }
 
-  const stageOptions = [
-    { value: 'lead', label: t('pipeline.stage.lead', 'Lead Prospect') },
-    { value: 'research', label: t('pipeline.stage.research', 'Client Research') },
-    { value: 'proposal', label: t('pipeline.stage.proposal', 'Proposal Draft') },
-    { value: 'won', label: t('pipeline.stage.won', 'Contract Won') },
-  ]
+  const currentPipelineType = (notebook?.pipeline_type || 'sales') as PipelineType
+
+  const stageOptions = useMemo(() => {
+    const config = PIPELINE_COLUMNS[currentPipelineType]
+    if (!config) return []
+    return config.stages.map((stage) => ({
+      value: stage,
+      label: t(`pipeline.stage.${stage}`, config.titles[stage] || stage),
+    }))
+  }, [currentPipelineType, t])
 
   const getStageColor = (stage?: string) => {
-    switch (stage) {
-      case 'won':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-      case 'proposal':
-        return 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-      case 'research':
-        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-      default:
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-    }
+    if (!stage) return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+    const config = PIPELINE_COLUMNS[currentPipelineType]
+    const colorInfo = config?.colors[stage]
+    return colorInfo?.badgeClass || 'bg-amber-500/10 text-amber-400 border-amber-500/20'
   }
 
   return (
@@ -411,7 +410,7 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                       Client Dossier
                     </span>
                     <Badge variant="outline" className={getStageColor(notebook.stage)}>
-                      {stageOptions.find((opt) => opt.value === notebook.stage)?.label || 'Lead'}
+                      {stageOptions.find((opt) => opt.value === notebook.stage)?.label || notebook.stage || 'Lead'}
                     </Badge>
                   </div>
                   <SheetTitle className="text-xl font-bold tracking-tight text-foreground truncate" title={notebook.name}>
@@ -543,7 +542,7 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                       <Label htmlFor="deal-stage" className="text-sm font-semibold">
                         {t('pipeline.field.stage', 'Pipeline Stage')}
                       </Label>
-                      <Select value={notebook.stage || 'lead'} onValueChange={handleStageChange}>
+                      <Select value={notebook.stage || stageOptions[0]?.value || 'lead'} onValueChange={handleStageChange}>
                         <SelectTrigger id="deal-stage" className="bg-background/50 border-sidebar-border hover:border-muted-foreground/30 focus:border-primary">
                           <SelectValue placeholder="Select stage" />
                         </SelectTrigger>

@@ -38,39 +38,33 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { PIPELINE_COLUMNS, PipelineType } from '@/lib/constants/pipelines'
 
 // Dynamically import KanbanBoard to bypass SSR and avoid hydration errors with drag-and-drop
 const KanbanBoard = dynamic(() => import('./components/KanbanBoard').then(mod => mod.KanbanBoard), {
   ssr: false,
 })
 
-const STAGE_COLORS: Record<string, string> = {
-  bulk_import: 'border-slate-500/30 bg-slate-500/10 text-slate-400',
-  data_enrichment: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
-  lead: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400',
-  research: 'border-sky-500/30 bg-sky-500/10 text-sky-400',
-  technical_discovery: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-  proposal: 'border-violet-500/30 bg-violet-500/10 text-violet-400',
-  won: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
-}
-
-const STAGE_TEXT_COLORS: Record<string, string> = {
-  bulk_import: 'text-slate-400 border-slate-500/30 bg-slate-500/10',
-  data_enrichment: 'text-indigo-400 border-indigo-500/30 bg-indigo-500/10',
-  lead: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10',
-  research: 'text-sky-400 border-sky-500/30 bg-sky-500/10',
-  technical_discovery: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-  proposal: 'text-violet-400 border-violet-500/30 bg-violet-500/10',
-  won: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-}
-
 export default function PipelinePage() {
   const { t } = useTranslation()
   const { data: notebooks, isLoading, refetch } = useNotebooks(false)
   const { data: users } = useUsers()
-  
+
+  const getInitials = (name?: string) => {
+    if (!name) return '?'
+    return name.slice(0, 2).toUpperCase()
+  }
+
   const [viewMode, setViewMode] = useState<ViewMode>('kanban')
-  
+  const [activePipelineType, setActivePipelineType] = useState<PipelineType>('sales')
+
   // Hoisted state for deal drawer
   const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -83,28 +77,54 @@ export default function PipelinePage() {
     setDrawerOpen(true)
   }
 
-  // Calculate pipeline-wide KPI analytics
-  const metrics = useMemo(() => {
-    if (!notebooks) return { totalValue: 0, activeDeals: 0, wonValue: 0, winRate: 0 }
+  // Filter notebooks by active pipeline type
+  const filteredNotebooks = useMemo(() => {
+    if (!notebooks) return []
+    return notebooks.filter((nb) => {
+      const type = nb.pipeline_type || 'sales'
+      return type === activePipelineType
+    })
+  }, [notebooks, activePipelineType])
 
-    const activeList = notebooks.filter(nb => !nb.archived)
-    const totalValue = activeList.reduce((sum, nb) => sum + (nb.estimated_value || 0), 0)
-    const activeDeals = activeList.filter(nb => (nb.stage || 'lead') !== 'won').length
-    const wonList = activeList.filter(nb => nb.stage === 'won')
-    const wonCount = wonList.length
+  // Calculate dynamic metrics based on active pipeline type
+  const currentMetrics = useMemo(() => {
+    const list = filteredNotebooks
+    const total = list.length
+    if (activePipelineType === 'research') {
+      const active = list.filter(nb => nb.stage === 'researching' || nb.stage === 'analyzing').length
+      const completed = list.filter(nb => nb.stage === 'completed').length
+      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
+      return [
+        { label: t('pipeline.totalResearch', 'Total Research Tasks'), value: total.toString(), icon: Briefcase, iconColor: 'text-amber-500', bgIcon: 'bg-amber-500/10 border-amber-500/20' },
+        { label: t('pipeline.activeResearch', 'Active Research'), value: active.toString(), icon: TrendingUp, iconColor: 'text-cyan-500', bgIcon: 'bg-cyan-500/10 border-cyan-500/20' },
+        { label: t('pipeline.completedResearch', 'Completed Tasks'), value: completed.toString(), icon: Award, iconColor: 'text-emerald-500', bgIcon: 'bg-emerald-500/10 border-emerald-500/20' },
+        { label: t('pipeline.completionRate', 'Completion Rate'), value: `${completionRate}%`, icon: Award, iconColor: 'text-violet-500', bgIcon: 'bg-violet-500/10 border-violet-500/20' },
+      ]
+    }
+    if (activePipelineType === 'publication') {
+      const active = list.filter(nb => nb.stage === 'review' || nb.stage === 'refinement').length
+      const published = list.filter(nb => nb.stage === 'publish').length
+      const publicationRate = total > 0 ? Math.round((published / total) * 100) : 0
+      return [
+        { label: t('pipeline.totalPublications', 'Total Publications'), value: total.toString(), icon: Briefcase, iconColor: 'text-amber-500', bgIcon: 'bg-amber-500/10 border-amber-500/20' },
+        { label: t('pipeline.inReview', 'In Review / Editing'), value: active.toString(), icon: TrendingUp, iconColor: 'text-cyan-500', bgIcon: 'bg-cyan-500/10 border-cyan-500/20' },
+        { label: t('pipeline.publishedDocs', 'Published Docs'), value: published.toString(), icon: Award, iconColor: 'text-emerald-500', bgIcon: 'bg-emerald-500/10 border-emerald-500/20' },
+        { label: t('pipeline.publicationRate', 'Publication Rate'), value: `${publicationRate}%`, icon: Award, iconColor: 'text-violet-500', bgIcon: 'bg-violet-500/10 border-violet-500/20' },
+      ]
+    }
+    // Sales pipeline metrics
+    const totalValue = list.reduce((sum, nb) => sum + (nb.estimated_value || 0), 0)
+    const activeDeals = list.filter(nb => nb.stage !== 'won').length
+    const wonList = list.filter(nb => nb.stage === 'won')
     const wonValue = wonList.reduce((sum, nb) => sum + (nb.estimated_value || 0), 0)
-    
-    const totalDeals = activeList.length
-    const winRate = totalDeals > 0 ? Math.round((wonCount / totalDeals) * 100) : 0
-
-    return { totalValue, activeDeals, wonValue, winRate }
-  }, [notebooks])
-
-  const getInitials = (name?: string) => {
-    if (!name) return '?'
-    return name.slice(0, 2).toUpperCase()
-  }
-
+    const winRate = total > 0 ? Math.round((wonList.length / total) * 100) : 0
+    return [
+      { label: t('pipeline.totalPipeline', 'Total Pipeline'), value: `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: TrendingUp, iconColor: 'text-amber-500', bgIcon: 'bg-amber-500/10 border-amber-500/20' },
+      { label: t('pipeline.activeDeals', 'Active Deals'), value: activeDeals.toString(), icon: Briefcase, iconColor: 'text-cyan-500', bgIcon: 'bg-cyan-500/10 border-cyan-500/20' },
+      { label: t('pipeline.wonValue', 'Closed Won Value'), value: `$${wonValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: DollarSign, iconColor: 'text-emerald-500', bgIcon: 'bg-emerald-500/10 border-emerald-500/20' },
+      { label: t('pipeline.winRate', 'Conversion Rate'), value: `${winRate}%`, icon: Award, iconColor: 'text-violet-500', bgIcon: 'bg-violet-500/10 border-violet-500/20' },
+    ]
+  }, [filteredNotebooks, activePipelineType, t])
   // Calendar helpers
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth)
@@ -116,14 +136,33 @@ export default function PipelinePage() {
   }, [currentMonth])
 
   const getDealsForDay = (day: Date) => {
-    if (!notebooks) return []
     const dayStr = format(day, 'yyyy-MM-dd')
-    return notebooks.filter(nb => !nb.archived && nb.close_date === dayStr)
+    return filteredNotebooks.filter(nb => !nb.archived && nb.close_date === dayStr)
   }
 
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
   const goToday = () => setCurrentMonth(new Date())
+
+  const pipelineInfo = useMemo(() => {
+    switch (activePipelineType) {
+      case 'research':
+        return {
+          title: t('pipeline.research.title', 'Research Pipeline'),
+          subtitle: t('pipeline.research.subtitle', 'Track literature, data analyses, domain papers, and academic pipelines'),
+        }
+      case 'publication':
+        return {
+          title: t('pipeline.publication.title', 'Publication Queue'),
+          subtitle: t('pipeline.publication.subtitle', 'Coordinate editorial refinement, peer reviews, drafts, and release tracking'),
+        }
+      default:
+        return {
+          title: t('pipeline.sales.title', 'Sales Pipeline'),
+          subtitle: t('pipeline.sales.subtitle', 'Prospect intelligence tracking, visual deal flow, and client alignment'),
+        }
+    }
+  }, [activePipelineType, t])
 
   return (
     <AppShell>
@@ -133,13 +172,23 @@ export default function PipelinePage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">
-                {t('pipeline.title', 'B2B Sales Pipeline')}
+                {pipelineInfo.title}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {t('pipeline.subtitle', 'Prospect intelligence tracking, visual deal flow, and client alignment')}
+                {pipelineInfo.subtitle}
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Select value={activePipelineType} onValueChange={(v) => setActivePipelineType(v as PipelineType)}>
+                <SelectTrigger className="w-[200px] bg-background/55 backdrop-blur-md border-sidebar-border hover:bg-background/80 transition-colors">
+                  <SelectValue placeholder="Select Pipeline" />
+                </SelectTrigger>
+                <SelectContent className="bg-background/95 backdrop-blur-lg border-sidebar-border">
+                  <SelectItem value="sales">Sales Pipeline</SelectItem>
+                  <SelectItem value="research">Research Pipeline</SelectItem>
+                  <SelectItem value="publication">Publication Queue</SelectItem>
+                </SelectContent>
+              </Select>
               <ViewToggle value={viewMode} onChange={setViewMode} showKanban={true} showList={true} showCalendar={true} />
               <Button variant="outline" size="sm" onClick={() => refetch()} className="border-sidebar-border hover:bg-sidebar-accent">
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -150,72 +199,28 @@ export default function PipelinePage() {
 
           {/* Metric Grid */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-background/40 backdrop-blur-md border-sidebar-border shadow-md">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="rounded-lg p-2 bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('pipeline.totalPipeline', 'Total Pipeline')}
-                  </p>
-                  <p className="text-xl font-semibold mt-1 font-mono tracking-tight text-foreground">
-                    ${metrics.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background/40 backdrop-blur-md border-sidebar-border shadow-md">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="rounded-lg p-2 bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
-                  <Briefcase className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('pipeline.activeDeals', 'Active Deals')}
-                  </p>
-                  <p className="text-xl font-semibold mt-1 font-mono tracking-tight text-foreground">
-                    {metrics.activeDeals}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background/40 backdrop-blur-md border-sidebar-border shadow-md">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="rounded-lg p-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  <DollarSign className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('pipeline.wonValue', 'Closed Won Value')}
-                  </p>
-                  <p className="text-xl font-semibold mt-1 font-mono tracking-tight text-foreground">
-                    ${metrics.wonValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background/40 backdrop-blur-md border-sidebar-border shadow-md">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="rounded-lg p-2 bg-violet-500/10 text-violet-500 border border-violet-500/20">
-                  <Award className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t('pipeline.winRate', 'Conversion Rate')}
-                  </p>
-                  <p className="text-xl font-semibold mt-1 font-mono tracking-tight text-foreground">
-                    {metrics.winRate}%
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {currentMetrics.map((m, idx) => {
+              const Icon = m.icon
+              return (
+                <Card key={idx} className="bg-background/40 backdrop-blur-md border-sidebar-border shadow-md">
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className={`rounded-lg p-2 ${m.iconColor} ${m.bgIcon}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        {m.label}
+                      </p>
+                      <p className="text-xl font-semibold mt-1 font-mono tracking-tight text-foreground">
+                        {m.value}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
-          {/* Board / Table / List / Calendar Container */}
           <div className="relative">
             {isLoading ? (
               <div className="grid grid-cols-5 gap-4">
@@ -235,20 +240,22 @@ export default function PipelinePage() {
                   </div>
                 ))}
               </div>
+
             ) : viewMode === 'table' ? (
               <DataTable
                 columns={notebookColumns}
-                data={notebooks || []}
-                searchPlaceholder="Search deals..."
+                data={filteredNotebooks}
+                searchPlaceholder="Search items..."
                 isLoading={isLoading}
-                emptyMessage="No deals in pipeline"
+                emptyMessage="No items in pipeline"
               />
             ) : viewMode === 'list' ? (
               /* Custom List View */
               <div className="space-y-2">
-                {notebooks?.filter(nb => !nb.archived).map((nb) => {
-                  const stage = nb.stage || 'lead'
-                  const colorClass = STAGE_COLORS[stage] || 'border-white/10 bg-slate-800/40 text-slate-400'
+                {filteredNotebooks.map((nb) => {
+                  const stage = nb.stage || PIPELINE_COLUMNS[activePipelineType].stages[0]
+                  const colorInfo = PIPELINE_COLUMNS[activePipelineType].colors[stage]
+                  const colorClass = colorInfo?.colorClass || 'border-white/10 bg-slate-800/40 text-slate-400'
                   const assignedUser = users?.find(u => u.id === nb.assigned_to)
                   
                   return (
@@ -279,7 +286,7 @@ export default function PipelinePage() {
                       <div className="flex items-center gap-4 shrink-0 flex-wrap sm:flex-nowrap justify-between lg:justify-end">
                         {/* Value */}
                         <div className="flex flex-col text-left font-mono min-w-[100px]">
-                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Value</span>
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Value</span>
                           <span className="text-xs font-bold text-emerald-400 mt-0.5">
                             ${nb.estimated_value?.toLocaleString() || '0'}
                           </span>
@@ -287,7 +294,7 @@ export default function PipelinePage() {
 
                         {/* Close Date */}
                         <div className="flex flex-col text-left font-mono min-w-[120px]">
-                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Close Date</span>
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Close Date</span>
                           {nb.close_date ? (
                             <span className="text-xs font-bold text-amber-400 flex items-center gap-1 mt-0.5">
                               <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
@@ -347,9 +354,9 @@ export default function PipelinePage() {
                     </div>
                   )
                 })}
-                {(!notebooks || notebooks.filter(nb => !nb.archived).length === 0) && (
+                {filteredNotebooks.length === 0 && (
                   <div className="text-center py-12 border border-dashed border-sidebar-border rounded-xl">
-                    <p className="text-sm text-muted-foreground">No deals in pipeline</p>
+                    <p className="text-sm text-muted-foreground">No records in pipeline</p>
                   </div>
                 )}
               </div>
@@ -417,8 +424,9 @@ export default function PipelinePage() {
                           {/* Deal List */}
                           <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[120px] pr-0.5 scrollbar-thin">
                             {dayDeals.map((nb) => {
-                              const stage = nb.stage || 'lead'
-                              const textClass = STAGE_TEXT_COLORS[stage] || 'text-slate-400 bg-slate-800/40 border-slate-500/20'
+                              const stage = nb.stage || PIPELINE_COLUMNS[activePipelineType].stages[0]
+                              const colorInfo = PIPELINE_COLUMNS[activePipelineType].colors[stage]
+                              const colorClass = colorInfo?.colorClass || 'text-slate-400 bg-slate-800/40 border-slate-500/20'
                               
                               return (
                                 <div
@@ -427,7 +435,7 @@ export default function PipelinePage() {
                                     e.stopPropagation()
                                     handleDealClick(nb.id)
                                   }}
-                                  className={`px-1.5 py-1 rounded text-[10px] font-medium border cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all flex flex-col gap-0.5 truncate ${textClass}`}
+                                  className={`px-1.5 py-1 rounded text-[10px] font-medium border cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all flex flex-col gap-0.5 truncate ${colorClass}`}
                                   title={`${nb.name} (${nb.client_name || 'No client'})`}
                                 >
                                   <span className="font-semibold truncate leading-tight">{nb.name}</span>
@@ -447,7 +455,7 @@ export default function PipelinePage() {
                 </div>
               </div>
             ) : (
-              <KanbanBoard notebooks={notebooks || []} onCardClick={handleDealClick} />
+              <KanbanBoard notebooks={filteredNotebooks} onCardClick={handleDealClick} pipelineType={activePipelineType} />
             )}
           </div>
         </div>

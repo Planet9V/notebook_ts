@@ -31,9 +31,10 @@ interface CreateNotebookDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultStage?: string
+  defaultPipelineType?: string
 }
 
-export function CreateNotebookDialog({ open, onOpenChange, defaultStage }: CreateNotebookDialogProps) {
+export function CreateNotebookDialog({ open, onOpenChange, defaultStage, defaultPipelineType }: CreateNotebookDialogProps) {
   const { t } = useTranslation()
   const createNotebook = useCreateNotebook()
   const {
@@ -56,6 +57,7 @@ export function CreateNotebookDialog({ open, onOpenChange, defaultStage }: Creat
     await createNotebook.mutateAsync({
       ...data,
       stage: defaultStage,
+      pipeline_type: defaultPipelineType || 'sales',
     })
     closeDialog()
     reset()
