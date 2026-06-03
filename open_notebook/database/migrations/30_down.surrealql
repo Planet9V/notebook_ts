@@ -1,0 +1,8 @@
+-- Migration 30 Down: Revert CSET Zone containment and Link properties schema
+REMOVE TABLE asset_edge;
+REMOVE INDEX unique_edge ON asset_edge;
+REMOVE FIELD parentId ON asset;
+REMOVE FIELD width ON asset;
+REMOVE FIELD height ON asset;
+REMOVE FIELD zone_sal ON asset;
+REMOVE FIELD zone_type ON asset;

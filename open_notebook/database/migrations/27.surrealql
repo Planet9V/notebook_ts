@@ -1,0 +1,30 @@
+-- Agent Configuration Table
+DEFINE TABLE agent_config SCHEMAFULL;
+DEFINE FIELD name ON agent_config TYPE string;
+DEFINE FIELD description ON agent_config TYPE string;
+DEFINE FIELD type ON agent_config TYPE string ASSERT $value INSIDE ["researcher", "coder", "analyst", "orchestrator"];
+DEFINE FIELD default_model ON agent_config TYPE string;
+DEFINE FIELD system_prompt ON agent_config TYPE string;
+DEFINE FIELD allowed_tools ON agent_config TYPE array;
+DEFINE FIELD tenant_id ON agent_config TYPE string;
+DEFINE FIELD created ON agent_config TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated ON agent_config TYPE datetime DEFAULT time::now() VALUE time::now();
+
+-- Agent Execution Table
+DEFINE TABLE agent_execution SCHEMAFULL;
+DEFINE FIELD agent_config_id ON agent_execution TYPE record<agent_config>;
+DEFINE FIELD status ON agent_execution TYPE string ASSERT $value INSIDE ["queued", "running", "completed", "failed", "paused"];
+DEFINE FIELD input_params ON agent_execution TYPE object;
+DEFINE FIELD output_results ON agent_execution TYPE object;
+DEFINE FIELD started_at ON agent_execution TYPE datetime DEFAULT time::now();
+DEFINE FIELD completed_at ON agent_execution TYPE option<datetime>;
+
+-- Agent Log Table
+DEFINE TABLE agent_log SCHEMAFULL;
+DEFINE FIELD execution_id ON agent_log TYPE record<agent_execution>;
+DEFINE FIELD step_name ON agent_log TYPE string;
+DEFINE FIELD tool_call ON agent_log TYPE option<string>;
+DEFINE FIELD tool_input ON agent_log TYPE option<object>;
+DEFINE FIELD tool_output ON agent_log TYPE option<object>;
+DEFINE FIELD trace_level ON agent_log TYPE string ASSERT $value INSIDE ["info", "debug", "error"];
+DEFINE FIELD created ON agent_log TYPE datetime DEFAULT time::now();

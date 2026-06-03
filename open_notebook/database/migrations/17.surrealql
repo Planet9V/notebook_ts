@@ -1,0 +1,24 @@
+-- Migration 17: Create scheduled_search table for recurring search automation
+-- Supports hourly, daily, weekly, monthly intervals
+-- Links to notebooks and search providers
+
+DEFINE TABLE IF NOT EXISTS scheduled_search SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS name ON TABLE scheduled_search TYPE string;
+DEFINE FIELD IF NOT EXISTS notebook_id ON TABLE scheduled_search TYPE string;
+DEFINE FIELD IF NOT EXISTS query ON TABLE scheduled_search TYPE string;
+DEFINE FIELD IF NOT EXISTS engine ON TABLE scheduled_search TYPE string DEFAULT 'valyu';
+DEFINE FIELD IF NOT EXISTS interval ON TABLE scheduled_search TYPE string DEFAULT 'daily';
+DEFINE FIELD IF NOT EXISTS is_active ON TABLE scheduled_search TYPE bool DEFAULT true;
+DEFINE FIELD IF NOT EXISTS last_run ON TABLE scheduled_search TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS next_run ON TABLE scheduled_search TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS run_count ON TABLE scheduled_search TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS last_error ON TABLE scheduled_search TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS transformation_id ON TABLE scheduled_search TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS save_as_source ON TABLE scheduled_search TYPE bool DEFAULT true;
+DEFINE FIELD IF NOT EXISTS created ON TABLE scheduled_search TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated ON TABLE scheduled_search TYPE option<datetime> DEFAULT time::now();
+
+-- Indexes for efficient lookups
+DEFINE INDEX IF NOT EXISTS idx_scheduled_search_notebook ON TABLE scheduled_search FIELDS notebook_id;
+DEFINE INDEX IF NOT EXISTS idx_scheduled_search_active ON TABLE scheduled_search FIELDS is_active;
+DEFINE INDEX IF NOT EXISTS idx_scheduled_search_next_run ON TABLE scheduled_search FIELDS next_run;

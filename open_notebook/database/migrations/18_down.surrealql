@@ -1,0 +1,8 @@
+-- Migration 18 rollback: Drop contact table and customer indexes
+
+REMOVE INDEX IF EXISTS idx_customer_import_batch ON TABLE customer;
+REMOVE INDEX IF EXISTS idx_customer_industry ON TABLE customer;
+REMOVE INDEX IF EXISTS idx_customer_status ON TABLE customer;
+REMOVE INDEX IF EXISTS idx_customer_name ON TABLE customer;
+
+REMOVE TABLE IF EXISTS contact;

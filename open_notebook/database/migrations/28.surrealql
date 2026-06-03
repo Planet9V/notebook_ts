@@ -1,0 +1,9 @@
+-- Skill Registry Table
+DEFINE TABLE skill_registry SCHEMAFULL;
+DEFINE FIELD name ON skill_registry TYPE string;
+DEFINE FIELD description ON skill_registry TYPE string;
+DEFINE FIELD category ON skill_registry TYPE string;
+DEFINE FIELD enabled ON skill_registry TYPE bool DEFAULT true;
+DEFINE FIELD config_vars ON skill_registry TYPE object;
+DEFINE FIELD created ON skill_registry TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated ON skill_registry TYPE datetime DEFAULT time::now() VALUE time::now();

@@ -1,0 +1,27 @@
+-- Voice settings singleton
+DEFINE TABLE voice_settings SCHEMAFULL;
+DEFINE FIELD tts_engine ON voice_settings TYPE string DEFAULT 'kokoro';
+DEFINE FIELD stt_engine ON voice_settings TYPE string DEFAULT 'whisper';
+DEFINE FIELD kokoro_default_voice ON voice_settings TYPE string DEFAULT 'af_heart';
+DEFINE FIELD kokoro_default_speed ON voice_settings TYPE number DEFAULT 1.0;
+DEFINE FIELD openai_tts_voice ON voice_settings TYPE string DEFAULT 'alloy';
+DEFINE FIELD openai_tts_model ON voice_settings TYPE string DEFAULT 'tts-1';
+DEFINE FIELD openai_tts_speed ON voice_settings TYPE number DEFAULT 1.0;
+DEFINE FIELD elevenlabs_voice_id ON voice_settings TYPE string DEFAULT 'JBFqnCBsd6RMkjVDRZzb';
+DEFINE FIELD elevenlabs_model_id ON voice_settings TYPE string DEFAULT 'eleven_v3';
+DEFINE FIELD elevenlabs_stability ON voice_settings TYPE number DEFAULT 0.5;
+DEFINE FIELD elevenlabs_similarity_boost ON voice_settings TYPE number DEFAULT 0.75;
+DEFINE FIELD deepgram_tts_voice ON voice_settings TYPE string DEFAULT 'aura-2-thalia-en';
+DEFINE FIELD openai_stt_model ON voice_settings TYPE string DEFAULT 'gpt-4o-transcribe';
+DEFINE FIELD openai_stt_language ON voice_settings TYPE string DEFAULT 'en';
+DEFINE FIELD deepgram_stt_model ON voice_settings TYPE string DEFAULT 'nova-3';
+DEFINE FIELD deepgram_stt_language ON voice_settings TYPE string DEFAULT 'en';
+DEFINE FIELD deepgram_smart_format ON voice_settings TYPE bool DEFAULT true;
+DEFINE FIELD deepgram_punctuate ON voice_settings TYPE bool DEFAULT true;
+DEFINE FIELD deepgram_diarize ON voice_settings TYPE bool DEFAULT false;
+DEFINE FIELD whisper_model ON voice_settings TYPE string DEFAULT 'Systran/faster-whisper-large-v3';
+DEFINE FIELD whisper_compute_type ON voice_settings TYPE string DEFAULT 'int8';
+DEFINE FIELD livekit_mode ON voice_settings TYPE string DEFAULT 'local';
+DEFINE FIELD livekit_remote_ws_url ON voice_settings TYPE string DEFAULT '';
+DEFINE FIELD livekit_remote_api_key ON voice_settings TYPE string DEFAULT '';
+DEFINE FIELD voice_enabled ON voice_settings TYPE bool DEFAULT true;

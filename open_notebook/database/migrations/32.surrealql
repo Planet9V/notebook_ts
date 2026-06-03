@@ -1,0 +1,11 @@
+-- Migration 32: Scheduled Episodes for Podcast Automation
+DEFINE TABLE scheduled_episode SCHEMALESS;
+DEFINE FIELD notebook ON scheduled_episode TYPE record<notebook>;
+DEFINE FIELD name ON scheduled_episode TYPE string;
+DEFINE FIELD episode_profile ON scheduled_episode TYPE string;
+DEFINE FIELD speaker_profile ON scheduled_episode TYPE string;
+DEFINE FIELD schedule ON scheduled_episode TYPE string; -- cron or 'immediate' / 'daily' / 'weekly'
+DEFINE FIELD status ON scheduled_episode TYPE string ASSERT $value INSIDE ['active', 'paused', 'completed', 'failed'];
+DEFINE FIELD last_run ON scheduled_episode TYPE option<datetime>;
+DEFINE FIELD next_run ON scheduled_episode TYPE option<datetime>;
+DEFINE FIELD created ON scheduled_episode TYPE datetime DEFAULT time::now();

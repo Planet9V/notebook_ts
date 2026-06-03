@@ -1,0 +1,75 @@
+-- Migration 20: Three-Workflow CRM Expansion
+-- Creates project and research_item tables with full indexing.
+-- Creates graph edge tables for CIF/Account cross-linking.
+-- Transformation table is SCHEMALESS so new fields are additive.
+
+-- ============================================================
+-- PROJECT table — Project Delivery workflow
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS project SCHEMALESS;
+
+DEFINE FIELD IF NOT EXISTS name ON TABLE project TYPE string;
+DEFINE FIELD IF NOT EXISTS description ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS customer_id ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS notebook_id ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS stage ON TABLE project TYPE option<string> DEFAULT 'planning';
+DEFINE FIELD IF NOT EXISTS status ON TABLE project TYPE option<string> DEFAULT 'active';
+DEFINE FIELD IF NOT EXISTS project_type ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS priority ON TABLE project TYPE option<string> DEFAULT 'medium';
+DEFINE FIELD IF NOT EXISTS start_date ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS end_date ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS budget ON TABLE project TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS assigned_to ON TABLE project TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS tags ON TABLE project TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS tasks ON TABLE project TYPE option<array>;
+DEFINE FIELD IF NOT EXISTS progress ON TABLE project TYPE option<int> DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS created ON TABLE project TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated ON TABLE project TYPE option<datetime> DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_project_customer ON TABLE project FIELDS customer_id;
+DEFINE INDEX IF NOT EXISTS idx_project_status ON TABLE project FIELDS status;
+DEFINE INDEX IF NOT EXISTS idx_project_stage ON TABLE project FIELDS stage;
+DEFINE INDEX IF NOT EXISTS idx_project_type ON TABLE project FIELDS project_type;
+DEFINE INDEX IF NOT EXISTS idx_project_priority ON TABLE project FIELDS priority;
+
+-- ============================================================
+-- RESEARCH_ITEM table — Research Intelligence workflow
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS research_item SCHEMALESS;
+
+DEFINE FIELD IF NOT EXISTS name ON TABLE research_item TYPE string;
+DEFINE FIELD IF NOT EXISTS description ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS query ON TABLE research_item TYPE string;
+DEFINE FIELD IF NOT EXISTS customer_id ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS project_id ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS notebook_id ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS transformation_id ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS stage ON TABLE research_item TYPE option<string> DEFAULT 'queued';
+DEFINE FIELD IF NOT EXISTS status ON TABLE research_item TYPE option<string> DEFAULT 'active';
+DEFINE FIELD IF NOT EXISTS engine ON TABLE research_item TYPE option<string> DEFAULT 'perplexity';
+DEFINE FIELD IF NOT EXISTS model_id ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS interval ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS is_recurring ON TABLE research_item TYPE option<bool> DEFAULT false;
+DEFINE FIELD IF NOT EXISTS last_run ON TABLE research_item TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS next_run ON TABLE research_item TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS run_count ON TABLE research_item TYPE option<int> DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS last_error ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS results_summary ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS save_as_source ON TABLE research_item TYPE option<bool> DEFAULT true;
+DEFINE FIELD IF NOT EXISTS tags ON TABLE research_item TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS created ON TABLE research_item TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated ON TABLE research_item TYPE option<datetime> DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_ri_customer ON TABLE research_item FIELDS customer_id;
+DEFINE INDEX IF NOT EXISTS idx_ri_project ON TABLE research_item FIELDS project_id;
+DEFINE INDEX IF NOT EXISTS idx_ri_status ON TABLE research_item FIELDS status;
+DEFINE INDEX IF NOT EXISTS idx_ri_stage ON TABLE research_item FIELDS stage;
+DEFINE INDEX IF NOT EXISTS idx_ri_engine ON TABLE research_item FIELDS engine;
+DEFINE INDEX IF NOT EXISTS idx_ri_recurring ON TABLE research_item FIELDS is_recurring;
+
+-- ============================================================
+-- Graph edge tables for CIF/Account cross-linking
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS customer_project SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS customer_research SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS project_research SCHEMALESS;

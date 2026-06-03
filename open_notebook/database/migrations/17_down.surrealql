@@ -1,0 +1,3 @@
+-- Migration 17 down: Drop scheduled_search table
+
+REMOVE TABLE IF EXISTS scheduled_search;

@@ -15,6 +15,7 @@ from open_notebook.exceptions import DatabaseOperationError, InvalidInputError
 
 class Notebook(ObjectModel):
     table_name: ClassVar[str] = "notebook"
+    nullable_fields: ClassVar[set[str]] = {"customer_id", "organization", "assigned_to", "close_date"}
     name: str
     description: str
     archived: Optional[bool] = False
@@ -27,6 +28,8 @@ class Notebook(ObjectModel):
     suggested_contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list)
     customer_id: Optional[str] = None
     organization: Optional[str] = None
+    assigned_to: Optional[str] = None
+    close_date: Optional[str] = None
 
     @field_validator("name")
     @classmethod
@@ -39,6 +42,8 @@ class Notebook(ObjectModel):
         data = super()._prepare_save_data()
         if data.get("organization") is not None:
             data["organization"] = ensure_record_id(data["organization"])
+        if data.get("assigned_to") is not None:
+            data["assigned_to"] = ensure_record_id(data["assigned_to"])
         return data
 
     async def get_sources(self) -> List["Source"]:

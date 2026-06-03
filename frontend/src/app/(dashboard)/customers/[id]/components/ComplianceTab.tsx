@@ -1,0 +1,839 @@
+'use client'
+
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  ShieldAlert,
+  ShieldCheck,
+  BookOpen,
+  Plus,
+  Settings2,
+  TrendingUp,
+  BarChart2,
+  Bookmark,
+  Clock,
+  ClipboardCheck,
+} from 'lucide-react'
+import { Customer, COMPLIANCE_FRAMEWORKS, SECTOR_FRAMEWORK_MAP, SECTOR_COLORS, SECTOR_GUIDELINES } from '../data'
+
+interface ComplianceTabProps {
+  customer: Customer
+  wizardMode: boolean
+  setWizardMode: (v: boolean) => void
+  reportMode: boolean
+  setReportMode: (v: boolean) => void
+  assessments: any[]
+  activeAssessment: any | null
+  setActiveAssessment: (v: any | null) => void
+  sessions: any[]
+  activeSession: any | null
+  sessionQuestions: any[]
+  currentQuestionIndex: number
+  setCurrentQuestionIndex: (v: number) => void
+  savingAnswer: boolean
+  reportData: any | null
+  trends: any[]
+  newSessionName: string
+  setNewSessionName: (v: string) => void
+  carryForward: boolean
+  setCarryForward: (v: boolean) => void
+  unifiedFrameworks: { frameworkId: string; frameworkName: string; assessment: any | null; source: 'assigned' | 'sector' | 'both' }[]
+  setActiveTab: (tab: 'profile' | 'contacts' | 'projects' | 'threats' | 'compliance' | 'education') => void
+  handleCreateAssessment: (frameworkId: string) => void
+  handleCreateSession: () => void
+  launchWizard: (session: { id: string; session_name?: string; status?: string }) => void
+  launchReport: (session: { id: string; session_name?: string; status?: string }) => void
+  handleSaveAnswer: (val: 'Y' | 'N' | 'NA' | 'ALT', comments?: string, evidence?: string) => void
+  handleLockSession: () => void
+}
+
+export function ComplianceTab({
+  customer,
+  wizardMode,
+  setWizardMode,
+  reportMode,
+  setReportMode,
+  assessments,
+  activeAssessment,
+  setActiveAssessment,
+  sessions,
+  activeSession,
+  sessionQuestions,
+  currentQuestionIndex,
+  setCurrentQuestionIndex,
+  savingAnswer,
+  reportData,
+  trends,
+  newSessionName,
+  setNewSessionName,
+  carryForward,
+  setCarryForward,
+  unifiedFrameworks,
+  setActiveTab,
+  handleCreateAssessment,
+  handleCreateSession,
+  launchWizard,
+  launchReport,
+  handleSaveAnswer,
+  handleLockSession,
+}: ComplianceTabProps) {
+  return (
+    <>
+      {/* Assessment List View */}
+      {!wizardMode && !reportMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-mono text-xs">
+          
+          {/* Active Assessments ledger */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
+              <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Audited Regulatory Frameworks</CardTitle>
+                <div className="flex items-center gap-2">
+                  {unifiedFrameworks.filter(f => f.source === 'sector').length > 0 && (
+                    <Badge variant="outline" className="border-violet-500/20 bg-violet-500/5 text-violet-400 text-[8px] font-mono">
+                      {unifiedFrameworks.filter(f => f.source === 'sector').length} Sector-Linked
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-[8px] font-mono">
+                    {unifiedFrameworks.length} Total
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {unifiedFrameworks.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground italic space-y-2">
+                    <ShieldAlert className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
+                    <p>No compliance frameworks assigned.</p>
+                    <p className="text-[9px]">Go to <span className="text-cyan-400 font-bold cursor-pointer" role="button" tabIndex={0} onClick={() => setActiveTab('profile')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab('profile'); } }}>PROFILE STAKEHOLDERS</span> → Edit Sectors &amp; Standards to assign frameworks.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {unifiedFrameworks.map(uf => {
+                      const hasAssessment = uf.assessment !== null
+                      const isSelected = hasAssessment && activeAssessment?.id === uf.assessment?.id
+                      return (
+                        <div key={uf.frameworkId} className={`tetrel-border-beam p-4 hover:bg-slate-900/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${isSelected ? 'tetrel-border-beam-active bg-cyan-500/5 border-l-2 border-cyan-500' : ''}`}>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-200 text-sm uppercase tracking-tight">{uf.frameworkName}</p>
+                              {hasAssessment ? (
+                                <Badge variant="outline" className="text-[7.5px] font-mono border-emerald-500/20 bg-emerald-500/5 text-emerald-400">
+                                  ACTIVE
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[7.5px] font-mono border-amber-500/20 bg-amber-500/5 text-amber-400">
+                                  PENDING
+                                </Badge>
+                              )}
+                              {uf.source === 'sector' && (
+                                <Badge variant="outline" className="text-[7px] font-mono border-violet-500/20 bg-violet-500/5 text-violet-400">
+                                  SECTOR-LINKED
+                                </Badge>
+                              )}
+                              {uf.source === 'both' && (
+                                <Badge variant="outline" className="text-[7px] font-mono border-cyan-500/20 bg-cyan-500/5 text-cyan-300">
+                                  ASSIGNED + SECTOR
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground font-sans">
+                              {hasAssessment
+                                ? 'Authoritative CSET library mapped and hydrated inside database records.'
+                                : uf.source === 'sector'
+                                  ? 'Derived from mapped CISA sector. Initialize to begin auditing against this standard.'
+                                  : 'Assigned from profile. Initialize to begin auditing against this standard.'
+                              }
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasAssessment ? (
+                              <Button 
+                                size="sm"
+                                onClick={() => {
+                                  setActiveAssessment(uf.assessment)
+                                  setNewSessionName(`${uf.frameworkName} Audit Q${Math.floor(new Date().getMonth() / 3) + 1} 2026`)
+                                }}
+                                className="h-7 px-3 bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800 text-[10px]"
+                              >
+                                Manage Milestones
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm"
+                                onClick={() => handleCreateAssessment(uf.frameworkId)}
+                                className="h-7 px-3 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-[10px] gap-1"
+                              >
+                                <Plus className="h-3 w-3" />
+                                Initialize Assessment
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Active Sessions Ledger for Selected Assessment */}
+            {activeAssessment && (
+              <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md animate-in slide-in-from-bottom duration-300">
+                <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Audit Milestones: {activeAssessment.framework_id.replace('regulation:', '')}
+                    </CardTitle>
+                  </div>
+                  <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-[8px] font-mono">
+                    {sessions.length} Milestones
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  {/* Start New Session Form */}
+                  <div className="p-3 border border-white/5 bg-slate-950/40 rounded-lg flex flex-col md:flex-row md:items-center gap-3 justify-between">
+                    <div className="flex-1 space-y-2">
+                      <span className="text-[9.5px] font-bold text-slate-300 block uppercase">Start Audit Milestone</span>
+                      <input 
+                        type="text" 
+                        placeholder="Audit Milestone Name (e.g. Q2 2026 Assessment)"
+                        value={newSessionName}
+                        onChange={(e) => setNewSessionName(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
+                      />
+                      <label className="flex items-center gap-2 cursor-pointer text-[9.5px] text-muted-foreground select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={carryForward}
+                          onChange={() => setCarryForward(!carryForward)}
+                          className="rounded bg-slate-950 border-white/10 text-cyan-500 focus:ring-0 focus:ring-offset-0 h-3 w-3"
+                        />
+                        <span>Carry forward answers from previous completed session (Recommended)</span>
+                      </label>
+                    </div>
+                    <Button 
+                      onClick={handleCreateSession}
+                      disabled={!newSessionName.trim()}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-[10px] py-2.5 px-4 rounded h-10 w-full md:w-fit uppercase"
+                    >
+                      Launch Milestone
+                    </Button>
+                  </div>
+
+                  {/* Sessions List */}
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {sessions.length === 0 ? (
+                      <p className="text-[10px] text-muted-foreground italic text-center py-4">No audit milestones started yet for this regulation.</p>
+                    ) : (
+                      sessions.map(sess => {
+                        const isCompleted = sess.status === 'COMPLETED'
+                        return (
+                          <div key={sess.id} className="p-3 border border-white/5 bg-slate-950/60 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div className="space-y-1 pl-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-200 text-xs">{sess.session_name}</span>
+                                <Badge variant="outline" className={`text-[8px] font-mono font-bold ${
+                                  isCompleted ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400' : 'border-amber-500/20 bg-amber-500/5 text-amber-400'
+                                }`}>
+                                  {sess.status}
+                                </Badge>
+                              </div>
+                              <p className="text-[9.5px] text-muted-foreground flex items-center gap-1 font-mono">
+                                <Clock className="h-3 w-3" />
+                                Started: {new Date(sess.created_at).toLocaleDateString()} 
+                                {sess.completed_at && ` • Closed: ${new Date(sess.completed_at).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-1.5">
+                              {!isCompleted && (
+                                <Button 
+                                  size="sm"
+                                  onClick={() => launchWizard(sess)}
+                                  className="h-7 text-[9px] bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-mono font-bold uppercase"
+                                >
+                                  Wizard Interface
+                                </Button>
+                              )}
+                              <Button 
+                                size="sm"
+                                onClick={() => launchReport(sess)}
+                                className="h-7 text-[9px] bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 font-mono font-bold uppercase"
+                              >
+                                Gap Report Card
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Side Auditing Overview & Trends */}
+          <div className="lg:col-span-1 space-y-4">
+            
+            {/* Trends Timeline */}
+            {activeAssessment && (
+              <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md animate-in slide-in-from-right duration-300">
+                <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="h-4 w-4 text-cyan-400" />
+                    Compliance Trend & Deltas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  {trends.length === 0 ? (
+                    <p className="text-[10px] text-muted-foreground italic text-center py-4">Close audit sessions to generate chronological trend tracking.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Simple inline visual chart representation */}
+                      <div className="h-28 flex items-end justify-between px-2 pt-4 border-b border-white/10 relative">
+                        {trends.map((t, idx) => {
+                          const heightPercent = Math.max(10, Math.min(100, t.compliance_score))
+                          return (
+                            <div key={t.session_id} className="flex flex-col items-center flex-1 group relative">
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full mb-1 bg-slate-950 border border-cyan-500/20 text-[9px] text-cyan-400 font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg">
+                                {t.compliance_score.toFixed(1)}% ({t.delta >= 0 ? `+${t.delta.toFixed(1)}%` : `${t.delta.toFixed(1)}%`})
+                              </div>
+                              {/* Bar element */}
+                              <div 
+                                style={{ height: `${heightPercent}px` }} 
+                                className="w-4 bg-gradient-to-t from-cyan-600/30 to-cyan-400 rounded-t border-t border-cyan-300/30 group-hover:to-cyan-300 transition-all cursor-pointer relative"
+                              >
+                                {t.delta !== 0 && (
+                                  <span className={`absolute -top-4 left-1/2 -translate-x-1/2 text-[8px] font-bold ${
+                                    t.delta >= 0 ? 'text-emerald-400' : 'text-red-400'
+                                  }`}>
+                                    {t.delta >= 0 ? `+${Math.round(t.delta)}` : Math.round(t.delta)}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[7.5px] text-muted-foreground mt-1 truncate max-w-[60px]">{t.session_name}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      {/* Detailed milestones stats ledger */}
+                      <div className="space-y-2">
+                        <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-widest block">Audit History Logs</span>
+                        {trends.map(t => (
+                          <div key={t.session_id} className="flex items-center justify-between text-[10px] p-2 bg-slate-950/40 rounded border border-white/5">
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-slate-200 block">{t.session_name}</span>
+                              <span className="text-[8.5px] text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-bold text-cyan-400 block">{t.compliance_score.toFixed(1)}%</span>
+                              <span className={`text-[8.5px] font-semibold ${t.delta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {t.delta === 0 ? 'Baseline' : (t.delta > 0 ? `+${t.delta.toFixed(1)}%` : `${t.delta.toFixed(1)}%`)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sector & Frameworks Context */}
+            <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
+              <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-cyan-400" />
+                  Profile Compliance Scope
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-widest block">Primary Sector</span>
+                  <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 font-bold text-[9px]">
+                    {customer.primary_sector || customer.industry || 'Energy'}
+                  </Badge>
+                </div>
+                {customer.sectors && customer.sectors.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-widest block">Additional Sectors</span>
+                    <div className="flex flex-wrap gap-1">
+                      {customer.sectors.filter(s => s !== (customer.primary_sector || customer.industry)).map(s => (
+                        <Badge key={s} variant="outline" className="border-slate-700 bg-slate-800/40 text-slate-300 text-[8px]">
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <Separator className="bg-white/5" />
+                <div className="space-y-2">
+                  <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-widest block">Assigned Frameworks ({(customer.assigned_frameworks || []).length})</span>
+                  <div className="flex flex-wrap gap-1">
+                    {(customer.assigned_frameworks || []).length > 0 ? (
+                      customer.assigned_frameworks!.map(fw => {
+                        const fwDef = COMPLIANCE_FRAMEWORKS.find(f => f.id === fw)
+                        const hasAssess = assessments.some(a => a.framework_id?.replace('regulation:', '') === fw)
+                        return (
+                          <Badge key={fw} variant="outline" className={`text-[8px] font-mono ${
+                            hasAssess 
+                              ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+                              : 'border-amber-500/20 bg-amber-500/5 text-amber-400'
+                          }`}>
+                            {fwDef?.name || fw}
+                          </Badge>
+                        )
+                      })
+                    ) : (
+                      <p className="text-[9px] text-muted-foreground italic">None assigned — edit Profile Stakeholders to add.</p>
+                    )}
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setActiveTab('profile')}
+                  className="w-full text-[9px] text-cyan-400 hover:text-cyan-300 font-mono uppercase mt-1 h-7"
+                >
+                  <Settings2 className="h-3 w-3 mr-1" />
+                  Edit in Profile Stakeholders
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Dynamic Sector-Aware CSET Standards Panel */}
+            <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden">
+              <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Bookmark className="h-4 w-4 text-cyan-400" />
+                  CSET Sector Standards
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3">
+                {/* Dynamic sector badges with context */}
+                {(customer.sectors && customer.sectors.length > 0 ? customer.sectors : [customer.primary_sector || customer.industry || 'Energy']).map(sector => {
+                  const colors = SECTOR_COLORS[sector] || SECTOR_COLORS['Cross-Sector']
+                  const guideline = SECTOR_GUIDELINES[sector]
+                  const sectorFws = SECTOR_FRAMEWORK_MAP[sector] || []
+                  return (
+                    <div key={sector} className={`p-2.5 rounded-lg border ${colors.border} ${colors.bg} space-y-2 relative overflow-hidden`}>
+                      <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${colors.glow} via-transparent to-transparent`} />
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className={`h-3.5 w-3.5 ${colors.text} shrink-0`} />
+                        <span className={`text-[9px] font-bold uppercase tracking-widest ${colors.text}`}>{sector}</span>
+                      </div>
+                      {guideline && (
+                        <p className="text-[9px] text-muted-foreground/80 font-sans leading-relaxed pl-5">
+                          {guideline.title}
+                        </p>
+                      )}
+                      {sectorFws.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pl-5">
+                          {sectorFws.slice(0, 4).map(fwId => {
+                            const fwDef = COMPLIANCE_FRAMEWORKS.find(f => f.id === fwId)
+                            return (
+                              <span key={fwId} className="text-[7.5px] px-1.5 py-0.5 rounded bg-slate-950/60 border border-white/5 text-muted-foreground font-mono">
+                                {fwDef?.name || fwId}
+                              </span>
+                            )
+                          })}
+                          {sectorFws.length > 4 && (
+                            <span className="text-[7.5px] px-1.5 py-0.5 text-muted-foreground/60 font-mono">+{sectorFws.length - 4} more</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                <Separator className="bg-white/5" />
+
+                <div className="font-sans text-[9.5px] leading-relaxed text-muted-foreground/70 space-y-1.5">
+                  <p>
+                    Standards linked from CISA CSET logic repository. Answering <span className="font-bold text-emerald-400">YES</span> or <span className="font-bold text-amber-400">ALT</span> counts positively.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: CSET-Style Question Auditing Wizard (WIZARD MODE) */}
+      {wizardMode && activeSession && (
+        <div className="font-mono text-xs space-y-4 animate-in fade-in duration-300">
+          
+          {/* Wizard Title Bar */}
+          <div className="p-4 bg-slate-900 border border-white/5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">Active CSET Auditing Wizard</span>
+              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                {activeSession.session_name}
+                <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-[8.5px]">
+                  QUESTION {currentQuestionIndex + 1} OF {sessionQuestions.length}
+                </Badge>
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              {savingAnswer && (
+                <span className="flex items-center gap-1.5 text-emerald-400 text-[10px] font-semibold mr-2 select-none">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                  Autosaving response...
+                </span>
+              )}
+              <Button 
+                size="sm"
+                onClick={() => setWizardMode(false)}
+                className="bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-900 text-[9.5px] uppercase font-bold px-3 h-8"
+              >
+                Close Wizard
+              </Button>
+            </div>
+          </div>
+
+          {/* Wizard Main Grid */}
+          {sessionQuestions.length > 0 && sessionQuestions[currentQuestionIndex] ? (
+            (() => {
+              const activeQ = sessionQuestions[currentQuestionIndex]
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Left/Middle: Question Card */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden relative">
+                      {/* Top glow border */}
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+                      
+                      <CardHeader className="pb-3 border-b border-white/5 bg-slate-950/20">
+                        <div className="flex items-center justify-between text-[9px]">
+                          <span className="font-bold text-cyan-400 uppercase tracking-widest">FAMILY: {activeQ.category}</span>
+                          <Badge variant="outline" className="text-[8px] font-mono border-slate-700 bg-slate-800/40 text-slate-300">
+                            PURDUE LEVEL {activeQ.purdue_level}
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-base font-bold text-slate-100 font-mono tracking-tight mt-2.5 select-all">
+                          {activeQ.standard_code}
+                        </CardTitle>
+                      </CardHeader>
+                      
+                      <CardContent className="p-6 space-y-6">
+                        {/* Actual Question Text */}
+                        <div className="p-4 bg-slate-950/60 border border-white/5 rounded-xl text-sm text-slate-200 font-sans leading-relaxed select-text">
+                          {activeQ.question_text}
+                        </div>
+
+                        {/* Wizard Choice Action Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {[
+                            { key: 'Y', label: 'YES', sub: 'Compliant', color: 'border-emerald-500/20 hover:border-emerald-500/60 text-emerald-400 hover:bg-emerald-500/5', activeColor: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-bold' },
+                            { key: 'N', label: 'NO', sub: 'Non-Compliant', color: 'border-red-500/20 hover:border-red-500/60 text-red-400 hover:bg-red-500/5', activeColor: 'border-red-500/40 bg-red-500/10 text-red-400 font-bold' },
+                            { key: 'NA', label: 'N/A', sub: 'Bypass Standard', color: 'border-slate-500/20 hover:border-slate-500/60 text-slate-400 hover:bg-slate-500/5', activeColor: 'border-slate-500/40 bg-slate-500/10 text-slate-200 font-bold' },
+                            { key: 'ALT', label: 'ALT', sub: 'Compensating Control', color: 'border-amber-500/20 hover:border-amber-500/60 text-amber-400 hover:bg-amber-500/5', activeColor: 'border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold' }
+                          ].map(choice => {
+                            const isSelected = activeQ.answer === choice.key
+                            return (
+                              <button 
+                                key={choice.key}
+                                onClick={() => handleSaveAnswer(choice.key as any, activeQ.comments, activeQ.evidence_url)}
+                                className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 select-none ${
+                                  isSelected ? choice.activeColor : choice.color
+                                }`}
+                              >
+                                <span className="text-sm tracking-widest">{choice.label}</span>
+                                <span className="text-[8.5px] opacity-75 font-sans whitespace-nowrap">{choice.sub}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        {/* Comments Input */}
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Observations / Auditor Notes</label>
+                          <textarea 
+                            value={activeQ.comments}
+                            onChange={(e) => handleSaveAnswer(activeQ.answer as any, e.target.value, activeQ.evidence_url)}
+                            placeholder="Enter observations, gaps identified, or implementation details..."
+                            rows={3}
+                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-slate-200 font-mono text-xs select-text focus:border-cyan-500/50 focus:ring-0"
+                          />
+                        </div>
+
+                        {/* Evidence Link Input */}
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Evidence Attachment / Document Reference Link</label>
+                          <input 
+                            type="text" 
+                            value={activeQ.evidence_url}
+                            onChange={(e) => handleSaveAnswer(activeQ.answer as any, activeQ.comments, e.target.value)}
+                            placeholder="URL (e.g. S3 link, filepath, SharePoint node reference)"
+                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs select-all focus:border-cyan-500/50 focus:ring-0"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Wizard Navigation Controls */}
+                    <div className="flex items-center justify-between">
+                      <Button 
+                        onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+                        disabled={currentQuestionIndex === 0}
+                        className="bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 text-[10px] uppercase font-bold py-2 px-4 h-9 font-mono"
+                      >
+                        Previous Question
+                      </Button>
+                      
+                      {currentQuestionIndex < sessionQuestions.length - 1 ? (
+                        <Button 
+                          onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
+                          className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-[10px] uppercase font-bold py-2 px-5 h-9 font-mono"
+                        >
+                          Save &amp; Next
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={handleLockSession}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[10px] uppercase font-bold py-2 px-5 h-9 font-mono"
+                        >
+                          Finalize &amp; Lock Audit
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Explanatory Guidance / Details Panel */}
+                  <div className="lg:col-span-1">
+                    <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md h-full overflow-hidden">
+                      <CardHeader className="pb-2 border-b border-white/5 bg-slate-955/20 flex flex-row items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-cyan-400" />
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanatory Guidance</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 space-y-4">
+                        <div className="space-y-1">
+                          <span className="text-[8.5px] font-bold text-muted-foreground uppercase block">Guidance Description</span>
+                          <p className="text-[10.5px] text-slate-300 font-sans leading-relaxed select-text">
+                            {activeQ.description || 'No specific technical guidance descriptions are currently cataloged for this requirement standard.'}
+                          </p>
+                        </div>
+                        
+                        <Separator className="bg-white/5" />
+                        
+                        <div className="space-y-2">
+                          <span className="text-[8.5px] font-bold text-muted-foreground uppercase block">Purdue Level Security Controls</span>
+                          <div className="p-3 border border-white/5 bg-slate-955/30 rounded-lg font-sans text-[10px] text-muted-foreground leading-relaxed">
+                            {activeQ.purdue_level === 1 || activeQ.purdue_level === 2 ? (
+                              <span className="text-orange-400 font-bold block mb-1">LEVEL 1 &amp; 2: KINETIC FIELD CONTROL BOUNDARY</span>
+                            ) : activeQ.purdue_level === 3 ? (
+                              <span className="text-cyan-400 font-bold block mb-1">LEVEL 3: INDUSTRIAL SUPERVISORY CONTROL ENCLAVE</span>
+                            ) : (
+                              <span className="text-slate-300 font-bold block mb-1">LEVEL 4: ENTERPRISE BUSINESS NETWORK BOUNDARY</span>
+                            )}
+                            Controls at this level specify concrete field isolation requirements to secure physical actuators, telemetry links, and PLC enclaves.
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )
+            })()
+          ) : (
+            <div className="p-8 text-center text-muted-foreground italic bg-slate-900/40 rounded-lg">
+              Loading question list...
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: CSET-Style Report Card & Gap Analysis (REPORT MODE) */}
+      {reportMode && reportData && activeSession && (
+        <div className="font-mono text-xs space-y-6 animate-in fade-in duration-300">
+          
+          {/* Report Header Bar */}
+          <div className="p-4 bg-slate-900 border border-white/5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">authoritative assessment report card</span>
+              <h2 className="text-sm font-bold text-slate-100">
+                {reportData.session_name} Gap Analysis
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm"
+                onClick={() => setReportMode(false)}
+                className="bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-900 text-[9.5px] uppercase font-bold px-3 h-8"
+              >
+                Return to Ledger
+              </Button>
+              {activeSession.status === 'IN_PROGRESS' && (
+                <Button 
+                  size="sm"
+                  onClick={handleLockSession}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[9.5px] uppercase font-bold px-3.5 h-8"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                  Finalize &amp; Lock Milestone
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Score Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { title: 'Compliance Rating Index', val: `${reportData.stats.compliance_score.toFixed(1)}%`, desc: 'YES + ALT compliance ratio', color: 'text-cyan-400' },
+              { title: 'Milestone Progress', val: `${reportData.stats.completion_percentage.toFixed(1)}%`, desc: 'Questions answered', color: 'text-slate-300' },
+              { title: 'Yes / ALT Compliances', val: `${reportData.stats.yes_count} / ${reportData.stats.alt_count}`, desc: 'Total positive ratings', color: 'text-emerald-400' },
+              { title: 'Identified Security Gaps', val: `${reportData.stats.no_count}`, desc: 'YES count compared to baseline', color: 'text-red-400' }
+            ].map((stat, idx) => (
+              <Card key={idx} className="shadow-lg border-white/5 bg-slate-900/40 p-4 relative overflow-hidden">
+                <div className="absolute top-0 left-0 bottom-0 w-0.5 bg-cyan-500/20" />
+                <span className="text-[8.5px] text-muted-foreground uppercase tracking-widest block font-bold">{stat.title}</span>
+                <p className={`text-xl font-bold font-mono tracking-tight mt-1 ${stat.color}`}>{stat.val}</p>
+                <span className="text-[9px] text-muted-foreground/80 font-sans mt-0.5 block">{stat.desc}</span>
+              </Card>
+            ))}
+          </div>
+
+          {/* Radar Grid and Category Bars */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Radar Gap Graphic */}
+            <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md p-4 flex flex-col justify-between">
+              <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Compliance Radar Spider Grid</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 flex-1 flex items-center justify-center">
+                {/* Beautiful responsive custom SVG Radar visualization */}
+                <div className="w-full max-w-[280px] py-4 relative group">
+                  <svg viewBox="0 0 400 400" className="w-full h-auto">
+                    {/* Inner grid lines */}
+                    <polygon points="200,20 380,110 380,290 200,380 20,290 20,110" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
+                    <polygon points="200,80 320,140 320,260 200,320 80,260 80,140" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                    <polygon points="200,140 260,170 260,230 200,260 140,230 140,170" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                    
+                    {/* Axes */}
+                    <line x1="200" y1="20" x2="200" y2="380" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    <line x1="20" y1="110" x2="380" y2="290" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    <line x1="380" y1="110" x2="20" y2="290" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    
+                    {/* Dynamic points based on compliance score mapping */}
+                    {(() => {
+                      const score = reportData.stats.compliance_score
+                      // Map score (0-100) to web radius coordinates
+                      const radFactor = score / 100
+                      const p1 = `${200},${200 - 180 * radFactor * 0.9}`
+                      const p2 = `${200 + 180 * radFactor * 0.8},${200 - 90 * radFactor * 0.8}`
+                      const p3 = `${200 + 180 * radFactor * 0.9},${200 + 90 * radFactor * 0.9}`
+                      const p4 = `${200},${200 + 180 * radFactor * 0.8}`
+                      const p5 = `${200 - 180 * radFactor * 0.75},${200 + 90 * radFactor * 0.75}`
+                      const p6 = `${200 - 180 * radFactor * 0.85},${200 - 90 * radFactor * 0.85}`
+                      
+                      return (
+                        <polygon 
+                          points={`${p1} ${p2} ${p3} ${p4} ${p5} ${p6}`}
+                          fill="rgba(6,182,212,0.15)"
+                          stroke="rgb(6,182,212)"
+                          strokeWidth="2.5"
+                          className="transition-all duration-1000 animate-pulse"
+                        />
+                      )
+                    })()}
+                  </svg>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Category Coverage Bars */}
+            <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md p-4 lg:col-span-2">
+              <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Compliance Coverage Index by Category</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3.5 max-h-[280px] overflow-y-auto pr-1">
+                {reportData.category_coverage.map((cat: { category: string; yes_count: number; total: number; score: number }) => (
+                  <div key={cat.category} className="space-y-1.5 font-mono text-[10.5px]">
+                    <div className="flex items-center justify-between text-muted-foreground text-[10px]">
+                      <span className="font-bold text-slate-300 truncate max-w-[70%]">{cat.category.toUpperCase()}</span>
+                      <span>{cat.yes_count} / {cat.total} COMPLIANT ({cat.score.toFixed(0)}%)</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-950 rounded overflow-hidden border border-white/5 relative">
+                      <div 
+                        style={{ width: `${cat.score}%` }} 
+                        className={`h-full rounded-l transition-all duration-1000 ${
+                          cat.score >= 80 ? 'bg-emerald-500' : (cat.score >= 50 ? 'bg-cyan-500' : 'bg-red-500')
+                        }`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Prioritized Recommendations */}
+          <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden animate-in slide-in-from-bottom duration-300">
+            <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <ClipboardCheck className="h-4 w-4 text-cyan-400" />
+                Prioritized Remediation Roadmap (Gap Fixes)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {reportData.prioritized_recommendations.length === 0 ? (
+                <div className="p-8 text-center text-emerald-400 font-bold italic">
+                  🏆 outstanding! All standards are 100% compliant. 0 Gaps identified.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-slate-950/40 text-muted-foreground uppercase text-[9px] tracking-wider font-semibold">
+                        <th className="p-3 w-16">Priority</th>
+                        <th className="p-3 w-28">Standard Code</th>
+                        <th className="p-3 w-1/3">Requirement Directive Description</th>
+                        <th className="p-3 w-1/4">Category Family</th>
+                        <th className="p-3 w-16 text-center">Purdue</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-slate-300">
+                      {reportData.prioritized_recommendations.map((rec: { question_id: string; priority: string; standard_code?: string; question_text?: string; text?: string; description?: string; category?: string; purdue_level?: number }) => {
+                        const isCritical = rec.priority === 'Critical'
+                        const isHigh = rec.priority === 'High'
+                        return (
+                          <tr key={rec.question_id} className="hover:bg-slate-800/10 transition-all">
+                            <td className="p-3 font-bold select-none">
+                              <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold ${
+                                isCritical ? 'bg-red-500/10 text-red-400 border border-red-500/20' : (isHigh ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-slate-800 text-slate-400')
+                              }`}>
+                                {rec.priority.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="p-3 font-bold font-mono text-[10.5px] select-all">{rec.standard_code}</td>
+                            <td className="p-3 font-sans text-muted-foreground/90 leading-relaxed select-text">
+                              <p className="font-semibold text-slate-200">{rec.question_text}</p>
+                              <p className="text-[10px] text-muted-foreground/70 mt-1 select-none font-mono">Guidance: {rec.description}</p>
+                            </td>
+                            <td className="p-3 text-[10px] font-semibold">{rec.category}</td>
+                            <td className="p-3 text-center text-slate-400 font-bold select-none">{rec.purdue_level}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
+  )
+}

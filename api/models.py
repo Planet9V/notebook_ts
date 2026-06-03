@@ -54,6 +54,13 @@ class NotebookCreate(BaseModel):
     organization: Optional[str] = Field(
         None, description="Optional Organization ID this notebook belongs to"
     )
+    assigned_to: Optional[str] = Field(
+        None, description="Optional User ID assigned to this notebook"
+    )
+    close_date: Optional[str] = Field(
+        None, description="Optional close date YYYY-MM-DD"
+    )
+
 
 
 class NotebookUpdate(BaseModel):
@@ -85,6 +92,13 @@ class NotebookUpdate(BaseModel):
     organization: Optional[str] = Field(
         None, description="Optional Organization ID this notebook belongs to"
     )
+    assigned_to: Optional[str] = Field(
+        None, description="Optional User ID assigned to this notebook"
+    )
+    close_date: Optional[str] = Field(
+        None, description="Optional close date YYYY-MM-DD"
+    )
+
 
 
 class NotebookResponse(BaseModel):
@@ -105,6 +119,8 @@ class NotebookResponse(BaseModel):
     suggested_contacts: List[Dict[str, str]]
     customer_id: Optional[str] = None
     organization: Optional[str] = None
+    assigned_to: Optional[str] = None
+    close_date: Optional[str] = None
 
 
 # Asset models

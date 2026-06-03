@@ -1,0 +1,14 @@
+-- Migration 23: Add missing CRM fields to notebook table
+-- Bug discovered by integration tests: Python model defines these fields
+-- but SurrealDB schema was never updated, causing silent data loss on save.
+--
+-- Missing fields: stage, client_name, estimated_value, prospect_website,
+--                 contacts, crawl_failed, suggested_contacts
+
+DEFINE FIELD IF NOT EXISTS stage ON TABLE notebook TYPE option<string> DEFAULT 'lead';
+DEFINE FIELD IF NOT EXISTS client_name ON TABLE notebook TYPE option<string> DEFAULT '';
+DEFINE FIELD IF NOT EXISTS estimated_value ON TABLE notebook TYPE option<float> DEFAULT 0.0;
+DEFINE FIELD IF NOT EXISTS prospect_website ON TABLE notebook TYPE option<string> DEFAULT '';
+DEFINE FIELD IF NOT EXISTS contacts ON TABLE notebook TYPE option<array> DEFAULT [];
+DEFINE FIELD IF NOT EXISTS crawl_failed ON TABLE notebook TYPE option<bool> DEFAULT false;
+DEFINE FIELD IF NOT EXISTS suggested_contacts ON TABLE notebook TYPE option<array> DEFAULT [];

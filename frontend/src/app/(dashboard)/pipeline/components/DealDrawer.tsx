@@ -9,6 +9,8 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 import { useTransformations } from '@/lib/hooks/use-transformations'
 import { useResearchItems, useCreateResearchItem, useExecuteResearch } from '@/lib/hooks/use-research-items'
 import { useProjects } from '@/lib/hooks/use-projects'
+import { useUsers } from '@/lib/hooks/use-users'
+import { useCustomers } from '@/lib/hooks/use-customers'
 import {
   Sheet,
   SheetContent,
@@ -75,6 +77,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   const { data: sources = [], isLoading: sourcesLoading } = useSources(notebookId || undefined)
   const { data: notes = [], isLoading: notesLoading } = useNotes(notebookId || '')
 
+  // Fetch users and active customers
+  const { data: users } = useUsers()
+  const { data: customers } = useCustomers()
+
   // GTM Research: fetch templates and linked items
   const { data: allTransformations = [] } = useTransformations()
   const gtmTemplates = useMemo(
@@ -107,11 +113,18 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   const [estimatedValue, setEstimatedValue] = useState('')
   const [description, setDescription] = useState('')
   const [prospectWebsite, setProspectWebsite] = useState('')
+  const [closeDate, setCloseDate] = useState('')
+  const [assignedTo, setAssignedTo] = useState('')
+  const [customerId, setCustomerId] = useState('')
+  
   const [saveStatus, setSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'saved'>>({
     client_name: 'idle',
     estimated_value: 'idle',
     description: 'idle',
     prospect_website: 'idle',
+    close_date: 'idle',
+    assigned_to: 'idle',
+    customer_id: 'idle',
   })
 
   // Contact list inputs
@@ -131,6 +144,9 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
       setEstimatedValue(notebook.estimated_value?.toString() || '0')
       setDescription(notebook.description || '')
       setProspectWebsite(notebook.prospect_website || '')
+      setCloseDate(notebook.close_date || '')
+      setAssignedTo(notebook.assigned_to || '')
+      setCustomerId(notebook.customer_id || '')
     }
   }, [notebook])
 
@@ -166,11 +182,13 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
     }
   }, [sources, notes, chat.tokenCount, chat.charCount])
 
-  // Handle single field blur updates (client_name, estimated_value, description, prospect_website)
-  const handleFieldBlur = async (field: 'client_name' | 'estimated_value' | 'description' | 'prospect_website') => {
+  // Handle single field blur updates
+  const handleFieldBlur = async (
+    field: 'client_name' | 'estimated_value' | 'description' | 'prospect_website' | 'close_date'
+  ) => {
     if (!notebookId || !notebook) return
 
-    let value: string | number = ''
+    let value: any = ''
     if (field === 'client_name') {
       if (clientName === notebook.client_name) return
       value = clientName
@@ -185,6 +203,9 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
     } else if (field === 'prospect_website') {
       if (prospectWebsite === notebook.prospect_website) return
       value = prospectWebsite
+    } else if (field === 'close_date') {
+      if (closeDate === notebook.close_date) return
+      value = closeDate === '' ? null : closeDate
     }
 
     try {
@@ -193,6 +214,32 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
         id: notebookId,
         data: { [field]: value },
       })
+      setSaveStatus((prev) => ({ ...prev, [field]: 'saved' }))
+      toast.success(t('pipeline.toast.fieldSaved', 'Field updated successfully'))
+      setTimeout(() => {
+        setSaveStatus((prev) => ({ ...prev, [field]: 'idle' }))
+      }, 2000)
+    } catch {
+      setSaveStatus((prev) => ({ ...prev, [field]: 'idle' }))
+      toast.error('Failed to save')
+    }
+  }
+
+  // Handle select change updates
+  const handleSelectChange = async (field: 'assigned_to' | 'customer_id', value: string) => {
+    if (!notebookId || !notebook) return
+    const actualValue = value === 'none' ? null : value
+    const currentVal = notebook[field]
+    if (currentVal === actualValue) return
+
+    try {
+      setSaveStatus((prev) => ({ ...prev, [field]: 'saving' }))
+      await updateNotebook.mutateAsync({
+        id: notebookId,
+        data: { [field]: actualValue },
+      })
+      if (field === 'assigned_to') setAssignedTo(value)
+      if (field === 'customer_id') setCustomerId(value)
       setSaveStatus((prev) => ({ ...prev, [field]: 'saved' }))
       toast.success(t('pipeline.toast.fieldSaved', 'Field updated successfully'))
       setTimeout(() => {
@@ -508,6 +555,94 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Close Date Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="close-date" className="text-sm font-semibold flex justify-between">
+                        <span>Close Date</span>
+                        {saveStatus.close_date === 'saving' && <span className="text-xs font-normal text-muted-foreground">Saving...</span>}
+                        {saveStatus.close_date === 'saved' && (
+                          <span className="text-xs font-normal text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Saved
+                          </span>
+                        )}
+                      </Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="close-date"
+                          type="date"
+                          value={closeDate}
+                          onChange={(e) => setCloseDate(e.target.value)}
+                          onBlur={() => handleFieldBlur('close_date')}
+                          className="pl-9 bg-background/50 border-sidebar-border hover:border-muted-foreground/30 focus-visible:border-primary text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Assigned User Selector */}
+                    <div className="space-y-2">
+                      <Label htmlFor="assigned-to" className="text-sm font-semibold flex justify-between">
+                        <span>Assigned Member</span>
+                        {saveStatus.assigned_to === 'saving' && <span className="text-xs font-normal text-muted-foreground">Saving...</span>}
+                        {saveStatus.assigned_to === 'saved' && (
+                          <span className="text-xs font-normal text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Saved
+                          </span>
+                        )}
+                      </Label>
+                      <Select value={assignedTo || 'none'} onValueChange={(v) => handleSelectChange('assigned_to', v)}>
+                        <SelectTrigger id="assigned-to" className="bg-background/50 border-sidebar-border hover:border-muted-foreground/30 focus:border-primary">
+                          <SelectValue placeholder="Unassigned" />
+                        </SelectTrigger>
+                        <SelectContent className="border-sidebar-border">
+                          <SelectItem value="none">Unassigned</SelectItem>
+                          {users?.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Linked Customer Selector */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="customer-id" className="text-sm font-semibold flex justify-between">
+                        <span>Linked Customer Account</span>
+                        {saveStatus.customer_id === 'saving' && <span className="text-xs font-normal text-muted-foreground">Saving...</span>}
+                        {saveStatus.customer_id === 'saved' && (
+                          <span className="text-xs font-normal text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Saved
+                          </span>
+                        )}
+                      </Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Select value={customerId || 'none'} onValueChange={(v) => handleSelectChange('customer_id', v)}>
+                            <SelectTrigger id="customer-id" className="bg-background/50 border-sidebar-border hover:border-muted-foreground/30 focus:border-primary">
+                              <SelectValue placeholder="Not linked" />
+                            </SelectTrigger>
+                            <SelectContent className="border-sidebar-border">
+                              <SelectItem value="none">Not linked</SelectItem>
+                              {customers?.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name || c.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {notebook.customer_id && (
+                          <Link href={`/customers/${notebook.customer_id.replace(/^customer:/, '')}`} passHref>
+                            <Button type="button" variant="outline" className="border-sidebar-border hover:bg-sidebar-accent shrink-0 text-xs font-semibold gap-1.5 h-10">
+                              View Account
+                              <ArrowUpRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
 

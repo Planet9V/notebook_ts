@@ -1,0 +1,9 @@
+-- Migration 23 rollback: Remove CRM fields from notebook table
+
+REMOVE FIELD IF EXISTS stage ON TABLE notebook;
+REMOVE FIELD IF EXISTS client_name ON TABLE notebook;
+REMOVE FIELD IF EXISTS estimated_value ON TABLE notebook;
+REMOVE FIELD IF EXISTS prospect_website ON TABLE notebook;
+REMOVE FIELD IF EXISTS contacts ON TABLE notebook;
+REMOVE FIELD IF EXISTS crawl_failed ON TABLE notebook;
+REMOVE FIELD IF EXISTS suggested_contacts ON TABLE notebook;

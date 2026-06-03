@@ -1,0 +1,7 @@
+-- Migration 24 down: Remove GTM Research extension fields from transformation table
+
+REMOVE FIELD category ON transformation;
+REMOVE FIELD search_engine ON transformation;
+REMOVE FIELD search_model_id ON transformation;
+REMOVE FIELD color_tag ON transformation;
+REMOVE FIELD target_context ON transformation;

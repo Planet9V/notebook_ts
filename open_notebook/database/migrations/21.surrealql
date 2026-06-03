@@ -1,0 +1,18 @@
+-- Migration 21: Model Metadata Extension
+-- Adds OpenRouter-style metadata fields to the model table for
+-- context length, pricing, modality, and input/output capabilities.
+
+-- ============================================================
+-- Extended metadata fields on model table
+-- ============================================================
+DEFINE FIELD IF NOT EXISTS context_length ON TABLE model TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS max_completion_tokens ON TABLE model TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS pricing_prompt ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pricing_completion ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS modality ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS input_modalities ON TABLE model TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS output_modalities ON TABLE model TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS description ON TABLE model TYPE option<string>;
+
+-- Index for filtering by modality
+DEFINE INDEX IF NOT EXISTS idx_model_modality ON TABLE model FIELDS modality;

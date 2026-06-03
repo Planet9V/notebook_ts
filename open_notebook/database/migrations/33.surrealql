@@ -1,0 +1,3 @@
+-- Migration 33: Pipeline assigned_to and close_date fields
+DEFINE FIELD IF NOT EXISTS assigned_to ON TABLE notebook TYPE option<record<user>>;
+DEFINE FIELD IF NOT EXISTS close_date ON TABLE notebook TYPE option<string>;

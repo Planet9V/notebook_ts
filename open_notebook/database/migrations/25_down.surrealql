@@ -1,0 +1,5 @@
+-- Rollback: remove activity table and indexes
+REMOVE INDEX IF EXISTS idx_activity_created ON activity;
+REMOVE INDEX IF EXISTS idx_activity_type ON activity;
+REMOVE INDEX IF EXISTS idx_activity_customer ON activity;
+REMOVE TABLE IF EXISTS activity;

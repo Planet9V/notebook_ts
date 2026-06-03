@@ -1,0 +1,20 @@
+-- Migration 22 DOWN: Remove OpenRouter extended model metadata fields
+REMOVE FIELD IF EXISTS pricing_image ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_audio ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_web_search ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_internal_reasoning ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_input_cache_read ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_input_cache_write ON TABLE model;
+REMOVE FIELD IF EXISTS tokenizer ON TABLE model;
+REMOVE FIELD IF EXISTS instruct_type ON TABLE model;
+REMOVE FIELD IF EXISTS hugging_face_id ON TABLE model;
+REMOVE FIELD IF EXISTS canonical_slug ON TABLE model;
+REMOVE FIELD IF EXISTS knowledge_cutoff ON TABLE model;
+REMOVE FIELD IF EXISTS expiration_date ON TABLE model;
+REMOVE FIELD IF EXISTS supported_parameters ON TABLE model;
+REMOVE FIELD IF EXISTS is_moderated ON TABLE model;
+REMOVE FIELD IF EXISTS provider_context_length ON TABLE model;
+REMOVE FIELD IF EXISTS openrouter_created_at ON TABLE model;
+REMOVE FIELD IF EXISTS last_synced_at ON TABLE model;
+REMOVE INDEX IF EXISTS idx_sync_status_provider ON TABLE sync_status;
+REMOVE TABLE IF EXISTS sync_status;

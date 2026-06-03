@@ -14,6 +14,9 @@ export interface NotebookResponse {
   crawl_failed?: boolean
   suggested_contacts?: Array<Record<string, string>>
   prospect_website?: string
+  assigned_to?: string
+  close_date?: string
+  customer_id?: string | null
 }
 
 export interface NoteResponse {
@@ -77,6 +80,9 @@ export interface CreateNotebookRequest {
   crawl_failed?: boolean
   suggested_contacts?: Array<Record<string, string>>
   prospect_website?: string
+  assigned_to?: string | null
+  close_date?: string | null
+  customer_id?: string | null
 }
 
 export interface UpdateNotebookRequest {
@@ -90,6 +96,9 @@ export interface UpdateNotebookRequest {
   crawl_failed?: boolean
   suggested_contacts?: Array<Record<string, string>>
   prospect_website?: string
+  assigned_to?: string | null
+  close_date?: string | null
+  customer_id?: string | null
 }
 
 export interface NotebookDeletePreview {
@@ -260,3 +269,12 @@ export interface BuildContextResponse {
   token_count: number
   char_count: number
 }
+
+export interface User {
+  id: string
+  username: string
+  email?: string | null
+  role?: string | null
+  organization?: string | null
+}
+

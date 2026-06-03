@@ -1,0 +1,12 @@
+-- Migration 24: Add GTM Research extension fields to transformation table
+-- These fields were added to the Pydantic domain model but missing from the
+-- SurrealDB schema (SCHEMAFULL table), causing values to be silently dropped.
+
+DEFINE FIELD category ON transformation TYPE option<string> DEFAULT 'transformation' PERMISSIONS FULL;
+DEFINE FIELD search_engine ON transformation TYPE option<string> PERMISSIONS FULL;
+DEFINE FIELD search_model_id ON transformation TYPE option<string> PERMISSIONS FULL;
+DEFINE FIELD color_tag ON transformation TYPE option<string> PERMISSIONS FULL;
+DEFINE FIELD target_context ON transformation TYPE option<string> PERMISSIONS FULL;
+
+-- Backfill existing records that have NULL category
+UPDATE transformation SET category = 'transformation' WHERE category IS NONE OR category IS NULL;

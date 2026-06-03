@@ -1,0 +1,10 @@
+-- Migration 21 Down: Remove model metadata fields
+REMOVE INDEX IF EXISTS idx_model_modality ON TABLE model;
+REMOVE FIELD IF EXISTS context_length ON TABLE model;
+REMOVE FIELD IF EXISTS max_completion_tokens ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_prompt ON TABLE model;
+REMOVE FIELD IF EXISTS pricing_completion ON TABLE model;
+REMOVE FIELD IF EXISTS modality ON TABLE model;
+REMOVE FIELD IF EXISTS input_modalities ON TABLE model;
+REMOVE FIELD IF EXISTS output_modalities ON TABLE model;
+REMOVE FIELD IF EXISTS description ON TABLE model;

@@ -1,0 +1,2 @@
+REMOVE FIELD assigned_to ON TABLE notebook;
+REMOVE FIELD close_date ON TABLE notebook;

@@ -1,0 +1,12 @@
+-- Migration 19: Add missing CRM indexes for filtering performance
+
+-- Contact: composite name index (replaces the single last_name index for better search)
+DEFINE INDEX IF NOT EXISTS idx_contact_name ON TABLE contact FIELDS last_name, first_name;
+
+-- Contact: import batch index for batch operations
+DEFINE INDEX IF NOT EXISTS idx_contact_batch ON TABLE contact FIELDS import_batch_id;
+
+-- Customer: classification indexes for filtering
+DEFINE INDEX IF NOT EXISTS idx_customer_type ON TABLE customer FIELDS customer_type;
+DEFINE INDEX IF NOT EXISTS idx_customer_tier ON TABLE customer FIELDS tier;
+DEFINE INDEX IF NOT EXISTS idx_customer_salesperson ON TABLE customer FIELDS salesperson;

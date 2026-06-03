@@ -1,0 +1,14 @@
+-- Activity table for customer touchpoint logging
+DEFINE TABLE activity SCHEMAFULL;
+DEFINE FIELD customer_id ON activity TYPE string;
+DEFINE FIELD activity_type ON activity TYPE string;
+DEFINE FIELD description ON activity TYPE string;
+DEFINE FIELD metadata ON activity TYPE option<object>;
+DEFINE FIELD actor ON activity TYPE string DEFAULT 'system';
+DEFINE FIELD created ON activity TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD updated ON activity TYPE option<datetime> DEFAULT time::now();
+
+-- Indexes for fast customer-scoped queries
+DEFINE INDEX idx_activity_customer ON activity FIELDS customer_id;
+DEFINE INDEX idx_activity_type ON activity FIELDS activity_type;
+DEFINE INDEX idx_activity_created ON activity FIELDS created;

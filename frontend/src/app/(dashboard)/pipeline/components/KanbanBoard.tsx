@@ -26,9 +26,11 @@ import {
   DatabaseZap,
 } from 'lucide-react'
 import { useNotebookScanningStatus } from '@/lib/hooks/use-pipeline'
+import { useUsers } from '@/lib/hooks/use-users'
 
 interface KanbanBoardProps {
   notebooks: NotebookResponse[]
+  onCardClick?: (id: string) => void
 }
 
 interface Column {
@@ -48,6 +50,17 @@ interface DealCardProps {
 
 function DealCard({ nb, index, onClick, t }: DealCardProps) {
   const { data: status } = useNotebookScanningStatus(nb.id)
+  const { data: users } = useUsers()
+
+  const assignedUser = useMemo(() => {
+    if (!nb.assigned_to || !users) return null
+    return users.find((u) => u.id === nb.assigned_to)
+  }, [nb.assigned_to, users])
+
+  const getInitials = (name?: string) => {
+    if (!name) return '?'
+    return name.slice(0, 2).toUpperCase()
+  }
 
   return (
     <Draggable key={nb.id} draggableId={nb.id} index={index}>
@@ -114,16 +127,34 @@ function DealCard({ nb, index, onClick, t }: DealCardProps) {
 
             {/* Date Footer & Scanning Status */}
             <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono pt-2 border-t border-sidebar-border/10">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{new Date(nb.updated).toLocaleDateString()}</span>
+              <div className="flex flex-col gap-0.5 text-left">
+                <div className="flex items-center gap-1" title="Last updated">
+                  <Calendar className="h-3 w-3 shrink-0" />
+                  <span>{new Date(nb.updated).toLocaleDateString()}</span>
+                </div>
+                {nb.close_date && (
+                  <div className="flex items-center gap-1 text-amber-400 font-semibold" title="Estimated Close Date">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                    <span>Close: {nb.close_date}</span>
+                  </div>
+                )}
               </div>
-              {status?.scanning && (
-                <Badge variant="outline" className="text-[9px] font-semibold text-primary bg-primary/5 border-primary/20 animate-pulse px-1.5 py-0.5 flex items-center gap-1">
-                  <RefreshCw className="h-2.5 w-2.5 animate-spin text-primary" />
-                  <span>Researching...</span>
-                </Badge>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {status?.scanning && (
+                  <Badge variant="outline" className="text-[9px] font-semibold text-primary bg-primary/5 border-primary/20 animate-pulse px-1.5 py-0.5 flex items-center gap-1">
+                    <RefreshCw className="h-2.5 w-2.5 animate-spin text-primary" />
+                    <span>Researching...</span>
+                  </Badge>
+                )}
+                {assignedUser && (
+                  <div
+                    className="flex items-center justify-center w-5 h-5 rounded-full bg-violet-500/25 text-violet-300 border border-violet-500/40 text-[9px] font-bold uppercase"
+                    title={`Assigned to ${assignedUser.username}`}
+                  >
+                    {getInitials(assignedUser.username)}
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -132,7 +163,7 @@ function DealCard({ nb, index, onClick, t }: DealCardProps) {
   )
 }
 
-export function KanbanBoard({ notebooks }: KanbanBoardProps) {
+export function KanbanBoard({ notebooks, onCardClick }: KanbanBoardProps) {
   const { t } = useTranslation()
   const updateNotebook = useUpdateNotebook()
 
@@ -303,8 +334,12 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
 
   // Open deal drawer sideover pane
   const handleCardClick = (id: string) => {
-    setActiveNotebookId(id)
-    setDrawerOpen(true)
+    if (onCardClick) {
+      onCardClick(id)
+    } else {
+      setActiveNotebookId(id)
+      setDrawerOpen(true)
+    }
   }
 
   // Open Create Notebook pre-categorized dialog
@@ -417,11 +452,13 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
       />
 
       {/* Slide-over Deal Details & RAG Chat Drawer */}
-      <DealDrawer
-        notebookId={activeNotebookId}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-      />
+      {!onCardClick && (
+        <DealDrawer
+          notebookId={activeNotebookId}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+        />
+      )}
     </div>
   )
 }

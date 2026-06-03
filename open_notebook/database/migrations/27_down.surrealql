@@ -1,0 +1,4 @@
+-- Rollback Layer 1 Agent Framework tables
+REMOVE TABLE agent_log;
+REMOVE TABLE agent_execution;
+REMOVE TABLE agent_config;

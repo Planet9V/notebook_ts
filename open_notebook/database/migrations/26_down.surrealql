@@ -1,0 +1,2 @@
+-- Rollback voice settings singleton
+REMOVE TABLE voice_settings;

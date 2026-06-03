@@ -1,0 +1,4 @@
+export { ProfileTab } from './ProfileTab'
+export { ComplianceTab } from './ComplianceTab'
+export { EducationTab } from './EducationTab'
+export { ActivityTab } from './ActivityTab'

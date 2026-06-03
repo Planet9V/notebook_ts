@@ -1,0 +1,53 @@
+-- Migration 22: Complete OpenRouter Model Metadata
+-- Stores ALL attributes from the OpenRouter /api/v1/models response.
+-- Supports periodic daily sync with change-detection (only updates changed fields).
+
+-- ============================================================
+-- Additional pricing fields (beyond prompt/completion from migration 21)
+-- ============================================================
+DEFINE FIELD IF NOT EXISTS pricing_image ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pricing_audio ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pricing_web_search ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pricing_internal_reasoning ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pricing_input_cache_read ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pricing_input_cache_write ON TABLE model TYPE option<string>;
+
+-- ============================================================
+-- Architecture fields
+-- ============================================================
+DEFINE FIELD IF NOT EXISTS tokenizer ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS instruct_type ON TABLE model TYPE option<string>;
+
+-- ============================================================
+-- Model metadata
+-- ============================================================
+DEFINE FIELD IF NOT EXISTS hugging_face_id ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS canonical_slug ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS knowledge_cutoff ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS expiration_date ON TABLE model TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS supported_parameters ON TABLE model TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS is_moderated ON TABLE model TYPE option<bool>;
+
+-- ============================================================
+-- Provider-level context (from top_provider)
+-- ============================================================
+DEFINE FIELD IF NOT EXISTS provider_context_length ON TABLE model TYPE option<int>;
+
+-- ============================================================
+-- Sync tracking
+-- ============================================================
+DEFINE FIELD IF NOT EXISTS openrouter_created_at ON TABLE model TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS last_synced_at ON TABLE model TYPE option<datetime>;
+
+-- ============================================================
+-- Global sync status singleton
+-- ============================================================
+DEFINE TABLE IF NOT EXISTS sync_status SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS provider ON TABLE sync_status TYPE string;
+DEFINE FIELD IF NOT EXISTS last_sync ON TABLE sync_status TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS models_synced ON TABLE sync_status TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS models_updated ON TABLE sync_status TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS models_added ON TABLE sync_status TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS next_sync ON TABLE sync_status TYPE option<datetime>;
+
+DEFINE INDEX IF NOT EXISTS idx_sync_status_provider ON TABLE sync_status FIELDS provider UNIQUE;

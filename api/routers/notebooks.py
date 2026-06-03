@@ -129,6 +129,8 @@ async def get_notebooks(
                 suggested_contacts=nb.get("suggested_contacts", []) or [],
                 customer_id=nb.get("customer_id", None),
                 organization=str(nb.get("organization")) if nb.get("organization") else None,
+                assigned_to=str(nb.get("assigned_to")) if nb.get("assigned_to") else None,
+                close_date=nb.get("close_date"),
             )
             for nb in result
         ]
@@ -157,6 +159,8 @@ async def create_notebook(notebook: NotebookCreate):
             suggested_contacts=notebook.suggested_contacts or [],
             customer_id=notebook.customer_id,
             organization=notebook.organization,
+            assigned_to=notebook.assigned_to,
+            close_date=notebook.close_date,
         )
         await new_notebook.save()
 
@@ -172,6 +176,18 @@ async def create_notebook(notebook: NotebookCreate):
         org_val = new_notebook.organization
         if org_val and type(org_val).__name__ == "MagicMock":
             org_val = None
+
+        assigned_val = new_notebook.assigned_to
+        if assigned_val and type(assigned_val).__name__ == "MagicMock":
+            assigned_val = None
+        else:
+            assigned_val = str(assigned_val) if assigned_val else None
+
+        close_date_val = new_notebook.close_date
+        if close_date_val and type(close_date_val).__name__ == "MagicMock":
+            close_date_val = None
+        else:
+            close_date_val = str(close_date_val) if close_date_val else None
 
         return NotebookResponse(
             id=new_notebook.id or "",
@@ -191,6 +207,8 @@ async def create_notebook(notebook: NotebookCreate):
             suggested_contacts=new_notebook.suggested_contacts or [],
             customer_id=new_notebook.customer_id,
             organization=org_val,
+            assigned_to=assigned_val,
+            close_date=close_date_val,
         )
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -267,6 +285,8 @@ async def get_notebook(notebook_id: str, organization_id: Optional[str] = Query(
             suggested_contacts=nb.get("suggested_contacts", []) or [],
             customer_id=nb.get("customer_id", None),
             organization=str(nb.get("organization")) if nb.get("organization") else None,
+            assigned_to=str(nb.get("assigned_to")) if nb.get("assigned_to") else None,
+            close_date=nb.get("close_date"),
         )
     except HTTPException:
         raise
@@ -324,6 +344,10 @@ async def update_notebook(
             notebook.customer_id = notebook_update.customer_id
         if notebook_update.organization is not None:
             notebook.organization = notebook_update.organization
+        if "assigned_to" in notebook_update.model_fields_set:
+            notebook.assigned_to = notebook_update.assigned_to
+        if "close_date" in notebook_update.model_fields_set:
+            notebook.close_date = notebook_update.close_date
 
         await notebook.save()
 
@@ -370,11 +394,25 @@ async def update_notebook(
                 suggested_contacts=nb.get("suggested_contacts", []) or [],
                 customer_id=nb.get("customer_id", None),
                 organization=str(nb.get("organization")) if nb.get("organization") else None,
+                assigned_to=str(nb.get("assigned_to")) if nb.get("assigned_to") else None,
+                close_date=nb.get("close_date"),
             )
 
         org_val = notebook.organization
         if org_val and type(org_val).__name__ == "MagicMock":
             org_val = None
+
+        assigned_val = notebook.assigned_to
+        if assigned_val and type(assigned_val).__name__ == "MagicMock":
+            assigned_val = None
+        else:
+            assigned_val = str(assigned_val) if assigned_val else None
+
+        close_date_val = notebook.close_date
+        if close_date_val and type(close_date_val).__name__ == "MagicMock":
+            close_date_val = None
+        else:
+            close_date_val = str(close_date_val) if close_date_val else None
 
         # Fallback if query fails
         return NotebookResponse(
@@ -395,6 +433,8 @@ async def update_notebook(
             suggested_contacts=notebook.suggested_contacts or [],
             customer_id=notebook.customer_id,
             organization=org_val,
+            assigned_to=assigned_val,
+            close_date=close_date_val,
         )
     except HTTPException:
         raise

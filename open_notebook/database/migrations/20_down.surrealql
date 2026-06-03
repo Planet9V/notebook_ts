@@ -1,0 +1,6 @@
+-- Migration 20 Down: Remove three-workflow CRM expansion tables
+REMOVE TABLE IF EXISTS project_research;
+REMOVE TABLE IF EXISTS customer_research;
+REMOVE TABLE IF EXISTS customer_project;
+REMOVE TABLE IF EXISTS research_item;
+REMOVE TABLE IF EXISTS project;

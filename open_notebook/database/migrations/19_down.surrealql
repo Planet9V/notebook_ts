@@ -1,0 +1,6 @@
+-- Rollback migration 19
+REMOVE INDEX IF EXISTS idx_contact_name ON TABLE contact;
+REMOVE INDEX IF EXISTS idx_contact_batch ON TABLE contact;
+REMOVE INDEX IF EXISTS idx_customer_type ON TABLE customer;
+REMOVE INDEX IF EXISTS idx_customer_tier ON TABLE customer;
+REMOVE INDEX IF EXISTS idx_customer_salesperson ON TABLE customer;

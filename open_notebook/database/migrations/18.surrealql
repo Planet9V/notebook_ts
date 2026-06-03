@@ -1,0 +1,41 @@
+-- Migration 18: Create contact table and add customer indexes
+-- Contact is a first-class entity for CRM contact management.
+-- customer_id links contact to its parent customer (string FK, consistent with notebook.customer_id).
+
+DEFINE TABLE IF NOT EXISTS contact SCHEMAFULL;
+
+-- Required fields
+DEFINE FIELD IF NOT EXISTS first_name ON TABLE contact TYPE string;
+DEFINE FIELD IF NOT EXISTS last_name ON TABLE contact TYPE string;
+
+-- Optional fields
+DEFINE FIELD IF NOT EXISTS email ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS phone ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS mobile ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS title ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS department ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS seniority ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS linkedin_url ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS customer_id ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS status ON TABLE contact TYPE option<string> DEFAULT 'active';
+DEFINE FIELD IF NOT EXISTS tags ON TABLE contact TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS notes ON TABLE contact TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS last_contacted ON TABLE contact TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS source ON TABLE contact TYPE option<string> DEFAULT 'manual';
+DEFINE FIELD IF NOT EXISTS import_batch_id ON TABLE contact TYPE option<string>;
+
+-- Timestamps
+DEFINE FIELD IF NOT EXISTS created ON TABLE contact TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated ON TABLE contact TYPE option<datetime> DEFAULT time::now();
+
+-- Contact indexes
+DEFINE INDEX IF NOT EXISTS idx_contact_customer ON TABLE contact FIELDS customer_id;
+DEFINE INDEX IF NOT EXISTS idx_contact_email ON TABLE contact FIELDS email;
+DEFINE INDEX IF NOT EXISTS idx_contact_last_name ON TABLE contact FIELDS last_name;
+DEFINE INDEX IF NOT EXISTS idx_contact_status ON TABLE contact FIELDS status;
+
+-- Customer table indexes (customer is SCHEMALESS, indexes are additive)
+DEFINE INDEX IF NOT EXISTS idx_customer_name ON TABLE customer FIELDS name;
+DEFINE INDEX IF NOT EXISTS idx_customer_status ON TABLE customer FIELDS status;
+DEFINE INDEX IF NOT EXISTS idx_customer_industry ON TABLE customer FIELDS industry;
+DEFINE INDEX IF NOT EXISTS idx_customer_import_batch ON TABLE customer FIELDS import_batch_id;

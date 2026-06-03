@@ -1,0 +1,18 @@
+-- Migration 30: CSET Zone containment and Link properties schema
+DEFINE FIELD parentId ON asset TYPE option<string>;
+DEFINE FIELD width ON asset TYPE option<float>;
+DEFINE FIELD height ON asset TYPE option<float>;
+DEFINE FIELD zone_sal ON asset TYPE option<string>;
+DEFINE FIELD zone_type ON asset TYPE option<string>;
+
+DEFINE TABLE asset_edge SCHEMAFULL;
+DEFINE FIELD notebook_id ON asset_edge TYPE string;
+DEFINE FIELD edge_id ON asset_edge TYPE string;
+DEFINE FIELD source ON asset_edge TYPE string;
+DEFINE FIELD target ON asset_edge TYPE string;
+DEFINE FIELD protocol ON asset_edge TYPE option<string>;
+DEFINE FIELD encrypted ON asset_edge TYPE option<bool>;
+DEFINE FIELD created ON asset_edge TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated ON asset_edge TYPE datetime DEFAULT time::now() VALUE time::now();
+
+DEFINE INDEX unique_edge ON asset_edge COLUMNS notebook_id, edge_id UNIQUE;
