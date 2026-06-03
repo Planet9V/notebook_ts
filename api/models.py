@@ -1972,3 +1972,32 @@ class DraftCopilotRequest(BaseModel):
 
 class DraftCopilotResponse(BaseModel):
     suggestion: str = Field(..., description="AI generated suggestion text")
+
+
+# Scheduled Episode models for Podcast Automation
+class ScheduledEpisodeCreate(BaseModel):
+    notebook_id: str = Field(..., description="ID of the notebook/dossier")
+    name: str = Field(..., description="Name of the automated episode")
+    episode_profile: str = Field(..., description="Name of the episode profile to use")
+    speaker_profile: str = Field(..., description="Name of the speaker profile to use")
+    schedule: str = Field(..., description="Cron expression or timing configuration")
+    status: Literal["active", "paused", "completed", "failed"] = Field("active", description="Current schedule status")
+
+
+class ScheduledEpisodeUpdate(BaseModel):
+    status: Optional[Literal["active", "paused", "completed", "failed"]] = Field(None, description="Status update")
+
+
+class ScheduledEpisodeResponse(BaseModel):
+    id: str
+    notebook: str
+    name: str
+    episode_profile: str
+    speaker_profile: str
+    schedule: str
+    status: str
+    last_run: Optional[str] = None
+    next_run: Optional[str] = None
+    created: str
+    updated: str
+

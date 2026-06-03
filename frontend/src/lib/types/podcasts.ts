@@ -156,3 +156,27 @@ export function needsModelSetup(profile: EpisodeProfile | SpeakerProfile): boole
   const sp = profile as SpeakerProfile
   return !sp.voice_model
 }
+
+export interface ScheduledEpisode {
+  id: string
+  notebook: string
+  name: string
+  episode_profile: string
+  speaker_profile: string
+  schedule: string
+  status: 'active' | 'paused' | 'completed' | 'failed'
+  last_run?: string | null
+  next_run?: string | null
+  created: string
+  updated: string
+}
+
+export interface ScheduledEpisodeInput {
+  notebook_id: string
+  name: string
+  episode_profile: string
+  speaker_profile: string
+  schedule: string
+  status: 'active' | 'paused' | 'completed' | 'failed'
+}
+

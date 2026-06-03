@@ -411,3 +411,109 @@ export function useGeneratePodcast() {
     },
   })
 }
+
+export function useScheduledEpisodes() {
+  return useQuery({
+    queryKey: QUERY_KEYS.scheduledEpisodes,
+    queryFn: podcastsApi.listScheduledEpisodes,
+  })
+}
+
+export function useCreateScheduledEpisode() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation()
+
+  return useMutation({
+    mutationFn: (payload: any) => podcastsApi.createScheduledEpisode(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.scheduledEpisodes })
+      toast({
+        title: t('podcasts.scheduleCreated', 'Schedule Created'),
+        description: t('podcasts.scheduleCreatedDesc', 'Podcast scheduled successfully.'),
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: t('podcasts.failedToCreateSchedule', 'Failed to Create Schedule'),
+        description: getApiErrorKey(error, t('common.error')),
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useUpdateScheduledEpisode() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation()
+
+  return useMutation({
+    mutationFn: ({ scheduleId, payload }: { scheduleId: string; payload: any }) =>
+      podcastsApi.updateScheduledEpisode(scheduleId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.scheduledEpisodes })
+      toast({
+        title: t('podcasts.scheduleUpdated', 'Schedule Updated'),
+        description: t('podcasts.scheduleUpdatedDesc', 'Schedule updated successfully.'),
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: t('podcasts.failedToUpdateSchedule', 'Failed to Update Schedule'),
+        description: getApiErrorKey(error, t('common.error')),
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useDeleteScheduledEpisode() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation()
+
+  return useMutation({
+    mutationFn: (scheduleId: string) => podcastsApi.deleteScheduledEpisode(scheduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.scheduledEpisodes })
+      toast({
+        title: t('podcasts.scheduleDeleted', 'Schedule Deleted'),
+        description: t('podcasts.scheduleDeletedDesc', 'Scheduled episode removed.'),
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: t('podcasts.failedToDeleteSchedule', 'Failed to Delete Schedule'),
+        description: getApiErrorKey(error, t('common.error')),
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useTriggerScheduledEpisode() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation()
+
+  return useMutation({
+    mutationFn: (scheduleId: string) => podcastsApi.triggerScheduledEpisode(scheduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.podcastEpisodes })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.scheduledEpisodes })
+      toast({
+        title: t('podcasts.scheduleTriggered', 'Schedule Triggered'),
+        description: t('podcasts.scheduleTriggeredDesc', 'Automation job kicked off.'),
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: t('podcasts.failedToTriggerSchedule', 'Failed to Trigger Schedule'),
+        description: getApiErrorKey(error, t('common.error')),
+        variant: 'destructive',
+      })
+    },
+  })
+}
+

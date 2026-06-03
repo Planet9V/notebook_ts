@@ -7,6 +7,8 @@ import {
   Language,
   PodcastGenerationRequest,
   PodcastGenerationResponse,
+  ScheduledEpisode,
+  ScheduledEpisodeInput,
 } from '@/lib/types/podcasts'
 
 export type EpisodeProfileInput = Omit<EpisodeProfile, 'id'>
@@ -121,6 +123,30 @@ export const podcastsApi = {
 
   listLanguages: async () => {
     const response = await apiClient.get<Language[]>('/languages')
+    return response.data
+  },
+
+  listScheduledEpisodes: async () => {
+    const response = await apiClient.get<ScheduledEpisode[]>('/podcasts/schedule')
+    return response.data
+  },
+
+  createScheduledEpisode: async (payload: ScheduledEpisodeInput) => {
+    const response = await apiClient.post<ScheduledEpisode>('/podcasts/schedule', payload)
+    return response.data
+  },
+
+  updateScheduledEpisode: async (scheduleId: string, payload: Partial<ScheduledEpisodeInput>) => {
+    const response = await apiClient.put<ScheduledEpisode>(`/podcasts/schedule/${scheduleId}`, payload)
+    return response.data
+  },
+
+  deleteScheduledEpisode: async (scheduleId: string) => {
+    await apiClient.delete(`/podcasts/schedule/${scheduleId}`)
+  },
+
+  triggerScheduledEpisode: async (scheduleId: string) => {
+    const response = await apiClient.post<{ status: string; job_id: string }>(`/podcasts/schedule/${scheduleId}/trigger`)
     return response.data
   },
 }

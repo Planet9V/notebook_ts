@@ -10,6 +10,7 @@ from open_notebook.domain.project import Project
 from open_notebook.domain.research_item import ResearchItem
 from open_notebook.domain.agent import AgentConfig, AgentExecution, AgentLog
 from open_notebook.domain.skill import SkillRegistry
+from open_notebook.domain.scheduled_episode import ScheduledEpisode
 
 __all__: list[str] = [
     "Contact",
@@ -20,5 +21,6 @@ __all__: list[str] = [
     "AgentExecution",
     "AgentLog",
     "SkillRegistry",
+    "ScheduledEpisode",
 ]
 

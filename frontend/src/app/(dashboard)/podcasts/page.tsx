@@ -1,21 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Mic, LayoutTemplate, Calendar } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { EpisodesTab } from '@/components/podcasts/EpisodesTab'
 import { TemplatesTab } from '@/components/podcasts/TemplatesTab'
-import { Mic, LayoutTemplate } from 'lucide-react'
+import { SchedulerTab } from '@/components/podcasts/SchedulerTab'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { useEpisodeProfiles, useSpeakerProfiles } from '@/lib/hooks/use-podcasts'
 import { needsModelSetup } from '@/lib/types/podcasts'
 
 export default function PodcastsPage() {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<'episodes' | 'templates'>('episodes')
+  const [activeTab, setActiveTab] = useState<'episodes' | 'templates' | 'scheduler'>('episodes')
 
   useEffect(() => {
     document.title = 'Podcasts | Tetrel'
@@ -51,7 +51,7 @@ export default function PodcastsPage() {
 
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'episodes' | 'templates')}
+            onValueChange={(value) => setActiveTab(value as 'episodes' | 'templates' | 'scheduler')}
             className="space-y-6"
           >
             <div className="space-y-2">
@@ -65,6 +65,10 @@ export default function PodcastsPage() {
                   <LayoutTemplate className="h-4 w-4" />
                   {t('podcasts.templatesTab')}
                 </TabsTrigger>
+                <TabsTrigger value="scheduler">
+                  <Calendar className="h-4 w-4" />
+                  {t('podcasts.schedulerTab', 'Scheduler')}
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -75,9 +79,14 @@ export default function PodcastsPage() {
             <TabsContent value="templates">
               <TemplatesTab />
             </TabsContent>
+
+            <TabsContent value="scheduler">
+              <SchedulerTab />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
     </AppShell>
   )
 }
+

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import unquote, urlparse
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -12,6 +13,12 @@ from api.podcast_service import (
     PodcastGenerationResponse,
     PodcastService,
 )
+from api.models import (
+    ScheduledEpisodeCreate,
+    ScheduledEpisodeUpdate,
+    ScheduledEpisodeResponse,
+)
+from open_notebook.domain.scheduled_episode import ScheduledEpisode
 
 router = APIRouter()
 
@@ -316,4 +323,113 @@ async def delete_podcast_episode(episode_id: str):
         logger.exception("Error deleting podcast episode")
         raise HTTPException(
             status_code=500, detail="Failed to delete episode"
+        )
+
+
+def _format_dt(dt) -> Optional[str]:
+    if not dt:
+        return None
+    if isinstance(dt, str):
+        return dt
+    return dt.isoformat()
+
+
+def _map_scheduled_episode_response(ep: ScheduledEpisode) -> ScheduledEpisodeResponse:
+    return ScheduledEpisodeResponse(
+        id=str(ep.id),
+        notebook=ep.notebook,
+        name=ep.name,
+        episode_profile=ep.episode_profile,
+        speaker_profile=ep.speaker_profile,
+        schedule=ep.schedule,
+        status=ep.status,
+        last_run=_format_dt(ep.last_run),
+        next_run=_format_dt(ep.next_run),
+        created=_format_dt(ep.created) or "",
+        updated=_format_dt(ep.updated) or "",
+    )
+
+
+@router.post("/podcasts/schedule", response_model=ScheduledEpisodeResponse)
+async def create_scheduled_episode(request: ScheduledEpisodeCreate):
+    """Create a scheduled episode config"""
+    try:
+        ep = ScheduledEpisode(
+            notebook=request.notebook_id,
+            name=request.name,
+            episode_profile=request.episode_profile,
+            speaker_profile=request.speaker_profile,
+            schedule=request.schedule,
+            status=request.status,
+        )
+        await ep.save()
+        return _map_scheduled_episode_response(ep)
+    except Exception as e:
+        logger.exception("Error creating scheduled episode")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create scheduled episode: {str(e)}"
+        )
+
+
+@router.get("/podcasts/schedule", response_model=List[ScheduledEpisodeResponse])
+async def list_scheduled_episodes():
+    """List all scheduled episodes"""
+    try:
+        episodes = await ScheduledEpisode.get_all_episodes()
+        return [_map_scheduled_episode_response(ep) for ep in episodes]
+    except Exception as e:
+        logger.exception("Error listing scheduled episodes")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list scheduled episodes: {str(e)}"
+        )
+
+
+@router.put("/podcasts/schedule/{schedule_id}", response_model=ScheduledEpisodeResponse)
+async def update_scheduled_episode(schedule_id: str, request: ScheduledEpisodeUpdate):
+    """Update a scheduled episode's status"""
+    try:
+        ep = await ScheduledEpisode.get(schedule_id)
+        if request.status is not None:
+            ep.status = request.status
+        await ep.save()
+        return _map_scheduled_episode_response(ep)
+    except Exception as e:
+        logger.exception(f"Error updating scheduled episode {schedule_id}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update scheduled episode: {str(e)}"
+        )
+
+
+@router.delete("/podcasts/schedule/{schedule_id}")
+async def delete_scheduled_episode(schedule_id: str):
+    """Delete a scheduled episode"""
+    try:
+        ep = await ScheduledEpisode.get(schedule_id)
+        await ep.delete()
+        return {"message": "Scheduled episode deleted successfully", "id": schedule_id}
+    except Exception as e:
+        logger.exception(f"Error deleting scheduled episode {schedule_id}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete scheduled episode: {str(e)}"
+        )
+
+
+@router.post("/podcasts/schedule/{schedule_id}/trigger")
+async def trigger_scheduled_episode(schedule_id: str):
+    """Instantly trigger a scheduled episode execution"""
+    try:
+        ep = await ScheduledEpisode.get(schedule_id)
+        job_id = await PodcastService.submit_generation_job(
+            episode_profile_name=ep.episode_profile,
+            speaker_profile_name=ep.speaker_profile,
+            episode_name=ep.name,
+            notebook_id=ep.notebook,
+        )
+        ep.last_run = datetime.now()
+        await ep.save()
+        return {"status": "triggered", "job_id": job_id}
+    except Exception as e:
+        logger.exception(f"Error triggering scheduled episode {schedule_id}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to trigger scheduled episode: {str(e)}"
         )

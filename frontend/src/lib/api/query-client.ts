@@ -31,6 +31,7 @@ export const QUERY_KEYS = {
   podcastEpisode: (episodeId: string) => ['podcasts', 'episodes', episodeId] as const,
   episodeProfiles: ['podcasts', 'episode-profiles'] as const,
   speakerProfiles: ['podcasts', 'speaker-profiles'] as const,
+  scheduledEpisodes: ['podcasts', 'schedule'] as const,
   languages: ['languages'] as const,
   customers: ['customers'] as const,
   customer: (id: string) => ['customers', id] as const,
