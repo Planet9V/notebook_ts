@@ -1,27 +1,84 @@
-# Research Findings — Phase 4: Reranking Sandbox, CSET Snapshots, SOW Copilot
+# Findings & Decisions: Voice & Podcast, CRM, RAG, and Publication Roadmap
 
-**Date:** 2026-06-02  
-**Goal:** Implement Search Tuning, Raw vs Reranked Sandbox, Completed Session snapshots, and Drafting Copilot in SOW editor.
+**Date:** 2026-06-03  
+**Goal:** Track requirements and research findings for the upcoming features.
 
 ---
 
-## 🔍 Existing Infrastructure Research
+## Requirements
 
-### A. Search & Reranking (`api/routers/search.py`)
-- We analyzed the search pipeline and confirmed the endpoint is `POST /api/search` using the `SearchRequest` schema.
-- The `reranker` field is already part of the `SearchRequest` Pydantic model.
-- The backend performs LLM-based reranking if `search_request.reranker` is true, querying the default "reranker" model (configured via `model_manager.get_default_model("reranker")`).
-- The frontend page `frontend/src/app/(dashboard)/search/page.tsx` hardcodes `limit: 100` and `minimum_score: 0.2` in `handleSearch` and binds a simple toggle for `rerankerEnabled`.
+1. **TTS Engine Pre-Flight Checks & Backend Validation (Item 1)**
+   - Pre-flight checks for Kokoro, OpenAI, ElevenLabs, and Deepgram in `api/routers/voice.py`
+   - Active validation of API keys, URLs, and status before enabling selection in settings
+   - Zero-stub, high-fidelity error sanitization
 
-### B. Session Completion (`api/routers/assessments.py`)
-- The completion endpoint is `POST /api/sessions/{session_id}/complete` which marks session status to "COMPLETED" and updates `completed_at`.
-- The session table `assessment_session` is schemaless (`DEFINE TABLE IF NOT EXISTS assessment_session SCHEMALESS` in migration 16).
-- Scoring calculations are done in `GET /api/sessions/{session_id}/report`, utilizing SurrealQL queries to load standard questions and answers:
-  - Yes + ALT answers are counted.
-  - Unanswered questions are treated as NO for security posture calculations.
-  - Compliance score and category-specific stats are dynamically calculated.
+2. **Autonomous Episode Writing & Scheduling Engine (Item 2)**
+   - Crawl notebook sources, notes, and frameworks dynamically
+   - Build background worker task to outline episodes and draft transcripts
+   - Database schemas for scheduled episodes and publication statuses
 
-### C. Drafting Copilot (`B2BDraftingWorkspace.tsx` and `api/routers/agents.py`)
-- `B2BDraftingWorkspace.tsx` has a registered "Drafting Copilot" agent configuration with default prompt: `"You are a professional B2B compliance drafter specializing in high-fidelity technical contracts. Help the user expand the compliance targets into robust, non-ambiguous milestones and deliverables."`
-- Prompts can be customized per notebook in the `agent_prompt` table.
-- The workspace integrates a dynamic SOW editor utilizing `MarkdownEditor` which wraps `@uiw/react-md-editor`.
+3. **Advanced Voice RAG Citations & Dialogue Memory (Item 3)**
+   - Short-term conversation dialogue memory for multi-turn WebRTC chat
+   - Streaming document source citations via custom SSE sub-events in LiveKit Voice RAG
+
+4. **CRM & Sales Pipeline Multi-Views (Items 4-6)**
+   - Multi-views (Table, List, Calendar) on Kanban board
+   - Card assignment to team members (`user` relation)
+   - Deal cards linked to customer ledger records and project notebooks
+
+5. **Multi-Engine Search & RAG Enhancements (Items 7-9)**
+   - Native cross-encoder and local Ollama reranking support
+   - Sliders and selection configurations inside Search Settings UI
+   - Multiple pipeline types (Sales, Research, Publication)
+
+6. **Social Media, Email & Docs Publication (Items 10-13)**
+   - SMTP & OAuth integration for automated email sequencing
+   - Content calendar and post scheduling with media attachment options
+   - Post performance metrics tracker (impressions, reactions, replies)
+   - Styleguide-driven PDF/DOCX templates and Google Workspace connectors
+
+---
+
+## Research Findings
+
+### 1. Voice Router (`api/routers/voice.py`)
+- We discovered that `voice.py` resolves API keys for OpenAI, ElevenLabs, and Deepgram via `_get_provider_api_key`.
+- It currently exposes a fallback hardcoded list of voices for Kokoro if the service is offline.
+- A new endpoint `POST /api/voice/preflight` needs to be defined to test engine configurations dynamically (e.g. attempting a minimal TTS synthesis query or validating API credentials).
+
+### 2. Podcasts & Episode Profiles (`api/routers/podcasts.py`)
+- `podcasts.py` contains basic podcast structure and episode metadata.
+- We need to introduce background worker tasks using Python's asyncio or background tasks parameter to compile and schedule episodes asynchronously without blocking the client thread.
+
+### 3. Voice RAG (`api/routers/voice_rag.py`)
+- `voice_rag.py` coordinates LiveKit sessions.
+- Multi-turn dialogue memory is currently stateless or relies on LiveKit WebRTC state. To support multi-turn dialogue memory, we need to persist dialogue context (e.g. recent conversation turns) in a session-tied memory buffer.
+- Source citations must be structured as server-sent events (`citations` event) and sent to the client to render on-screen.
+
+---
+
+## Technical Decisions
+| Decision | Rationale |
+|----------|-----------|
+| State-backed Conversation Memory | Preserves context across multi-turn WebRTC voice streams, preventing LLM context loss |
+| SSE-Based Citations | Standardized Server-Sent Events are already used in standard chat; extending this to Voice RAG ensures UI alignment |
+| background_tasks for Scheduler | FastAPI's built-in `BackgroundTasks` avoids external Celery/RabbitMQ dependencies, keeping container footprint low |
+
+---
+
+## Issues Encountered
+| Issue | Resolution |
+|-------|------------|
+| None | - |
+
+---
+
+## Resources
+- PRD: [PRD.md](file:///Users/jimmcknney/notebook_tetrel/docs/PRD.md)
+- Voice Router: [voice.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/voice.py)
+- Voice RAG: [voice_rag.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/voice_rag.py)
+- Podcasts Router: [podcasts.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/podcasts.py)
+
+---
+*Update this file after every 2 view/browser/search operations*
+*This prevents visual information from being lost*
