@@ -443,10 +443,40 @@ class TestEpisodeProfile:
 def test_organization_model_schemas():
     from api.models import OrganizationCreate, OrganizationResponse
 
+    # Assert default values for 'type' and 'status'
+    org_defaults = OrganizationCreate(name="Default Org")
+    assert org_defaults.name == "Default Org"
+    assert org_defaults.type == "customer"
+    assert org_defaults.status == "active"
+
     # Create request
-    org = OrganizationCreate(name="Customer A", type="customer")
+    org = OrganizationCreate(name="Customer A", type="customer", status="active")
     assert org.name == "Customer A"
     assert org.type == "customer"
+    assert org.status == "active"
+
+    # Assert that validation fails on invalid types or statuses
+    with pytest.raises(ValidationError):
+        OrganizationCreate(name="Invalid Org", type="invalid_type")
+
+    with pytest.raises(ValidationError):
+        OrganizationCreate(name="Invalid Org", status="invalid_status")
+
+    # Test 'OrganizationResponse' instantiation including 'updated'
+    org_resp = OrganizationResponse(
+        id="org:123",
+        name="Customer A",
+        type="customer",
+        status="active",
+        created="2026-06-03T00:00:00Z",
+        updated="2026-06-03T01:00:00Z",
+    )
+    assert org_resp.id == "org:123"
+    assert org_resp.name == "Customer A"
+    assert org_resp.type == "customer"
+    assert org_resp.status == "active"
+    assert org_resp.created == "2026-06-03T00:00:00Z"
+    assert org_resp.updated == "2026-06-03T01:00:00Z"
 
 
 if __name__ == "__main__":

@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 # Organization models
 class OrganizationCreate(BaseModel):
     name: str
-    type: str = "customer"  # admin or customer
-    status: str = "active"
+    type: Literal["admin", "customer"] = "customer"
+    status: Literal["active", "suspended", "inactive"] = "active"
 
 
 class OrganizationResponse(BaseModel):
@@ -16,6 +16,7 @@ class OrganizationResponse(BaseModel):
     type: str
     status: str
     created: str
+    updated: str
 
 
 class UserResponse(BaseModel):
