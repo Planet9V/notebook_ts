@@ -439,5 +439,13 @@ class TestEpisodeProfile:
         assert profile.num_segments == 5
 
 
+def test_organization_model_schemas():
+    from api.models import OrganizationCreate, OrganizationResponse
+    # Create request
+    org = OrganizationCreate(name="Customer A", type="customer")
+    assert org.name == "Customer A"
+    assert org.type == "customer"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

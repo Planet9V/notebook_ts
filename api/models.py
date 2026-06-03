@@ -3,6 +3,29 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+# Organization models
+class OrganizationCreate(BaseModel):
+    name: str
+    type: str = "customer"  # admin or customer
+    status: str = "active"
+
+
+class OrganizationResponse(BaseModel):
+    id: str
+    name: str
+    type: str
+    status: str
+    created: str
+
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: Optional[str] = None
+    role: Optional[str] = None
+    organization: Optional[str] = None
+
+
 # Notebook models
 class NotebookCreate(BaseModel):
     name: str = Field(..., description="Name of the notebook")
@@ -50,6 +73,7 @@ class NotebookResponse(BaseModel):
     crawl_failed: bool
     suggested_contacts: List[Dict[str, str]]
     customer_id: Optional[str] = None
+    organization: Optional[str] = None
 
 
 # Asset models
@@ -67,6 +91,11 @@ class AssetCreate(BaseModel):
     hostname: Optional[str] = Field(None, description="Hostname")
     x: float = Field(..., description="X coordinate on the canvas")
     y: float = Field(..., description="Y coordinate on the canvas")
+    parentId: Optional[str] = Field(None, description="Parent zone node ID")
+    width: Optional[float] = Field(None, description="Width of zone node")
+    height: Optional[float] = Field(None, description="Height of zone node")
+    zone_sal: Optional[str] = Field(None, description="Security Assurance Level of zone")
+    zone_type: Optional[str] = Field(None, description="Zone type classification")
 
 
 class AssetResponse(BaseModel):
@@ -86,6 +115,33 @@ class AssetResponse(BaseModel):
     y: float = Field(..., description="Y coordinate on the canvas")
     created: str = Field(..., description="Creation timestamp")
     updated: str = Field(..., description="Last update timestamp")
+    parentId: Optional[str] = Field(None, description="Parent zone node ID")
+    width: Optional[float] = Field(None, description="Width of zone node")
+    height: Optional[float] = Field(None, description="Height of zone node")
+    zone_sal: Optional[str] = Field(None, description="Security Assurance Level of zone")
+    zone_type: Optional[str] = Field(None, description="Zone type classification")
+
+
+# Edge/Link models
+class EdgeCreate(BaseModel):
+    edge_id: str = Field(..., description="Unique client-side edge ID")
+    source: str = Field(..., description="Source node ID")
+    target: str = Field(..., description="Target node ID")
+    protocol: Optional[str] = Field(None, description="Communication protocol (e.g. Modbus, HTTPS)")
+    encrypted: Optional[bool] = Field(None, description="Whether the connection is encrypted")
+
+
+class EdgeResponse(BaseModel):
+    id: str = Field(..., description="Unique SurrealDB record ID for the edge")
+    notebook_id: str = Field(..., description="ID of the notebook this edge belongs to")
+    edge_id: str = Field(..., description="Unique client-side edge ID")
+    source: str = Field(..., description="Source node ID")
+    target: str = Field(..., description="Target node ID")
+    protocol: Optional[str] = Field(None, description="Communication protocol")
+    encrypted: Optional[bool] = Field(None, description="Whether the connection is encrypted")
+    created: str = Field(..., description="Creation timestamp")
+    updated: str = Field(..., description="Last update timestamp")
+
 
 
 # Search models
@@ -871,12 +927,22 @@ class GraphNode(BaseModel):
     manufacturer: Optional[str] = None
     os_version: Optional[str] = None
     firmware_version: Optional[str] = None
+    parentId: Optional[str] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
+    zone_sal: Optional[str] = None
+    zone_type: Optional[str] = None
+    x: Optional[float] = None
+    y: Optional[float] = None
 
 
 class GraphEdge(BaseModel):
     id: str
     source: str
     target: str
+    protocol: Optional[str] = None
+    encrypted: Optional[bool] = None
+
 
 class GraphValidationRequest(BaseModel):
     nodes: List[GraphNode]
@@ -1632,3 +1698,14 @@ class AgentRunPipelineResponse(BaseModel):
     steps: List[AgentRunStepLog]
     objections: List[Dict[str, Any]]
     cost: float
+
+
+class DraftCopilotRequest(BaseModel):
+    notebook_id: Optional[str] = Field(None, description="Notebook ID to load custom prompts")
+    text: str = Field(..., description="Text selection or content from SOW editor")
+    action: str = Field(..., description="Action to perform: 'expand', 'rewrite', or 'autocomplete'")
+
+
+class DraftCopilotResponse(BaseModel):
+    suggestion: str = Field(..., description="AI generated suggestion text")
+
