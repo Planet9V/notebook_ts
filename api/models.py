@@ -51,6 +51,9 @@ class NotebookCreate(BaseModel):
     customer_id: Optional[str] = Field(
         None, description="Optional Customer ID this notebook belongs to"
     )
+    organization: Optional[str] = Field(
+        None, description="Optional Organization ID this notebook belongs to"
+    )
 
 
 class NotebookUpdate(BaseModel):
@@ -78,6 +81,9 @@ class NotebookUpdate(BaseModel):
     )
     customer_id: Optional[str] = Field(
         None, description="Optional Customer ID this notebook belongs to"
+    )
+    organization: Optional[str] = Field(
+        None, description="Optional Organization ID this notebook belongs to"
     )
 
 

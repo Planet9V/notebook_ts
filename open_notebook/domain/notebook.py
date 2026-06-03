@@ -26,6 +26,7 @@ class Notebook(ObjectModel):
     crawl_failed: Optional[bool] = False
     suggested_contacts: Optional[List[Dict[str, str]]] = Field(default_factory=list)
     customer_id: Optional[str] = None
+    organization: Optional[str] = None
 
     @field_validator("name")
     @classmethod
@@ -33,6 +34,12 @@ class Notebook(ObjectModel):
         if not v.strip():
             raise InvalidInputError("Notebook name cannot be empty")
         return v
+
+    def _prepare_save_data(self) -> dict:
+        data = super()._prepare_save_data()
+        if data.get("organization") is not None:
+            data["organization"] = ensure_record_id(data["organization"])
+        return data
 
     async def get_sources(self) -> List["Source"]:
         try:
