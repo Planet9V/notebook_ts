@@ -1,0 +1,31 @@
+-- Migration 31: Tenant & Organization Isolation
+DEFINE TABLE organization SCHEMALESS;
+DEFINE FIELD name ON organization TYPE string;
+DEFINE FIELD type ON organization TYPE string ASSERT $value INSIDE ['admin', 'customer'];
+DEFINE FIELD status ON organization TYPE string DEFAULT 'active' ASSERT $value INSIDE ['active', 'suspended', 'inactive'];
+DEFINE FIELD created ON organization TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated ON organization TYPE datetime DEFAULT time::now() VALUE time::now();
+DEFINE INDEX org_name ON organization COLUMNS name UNIQUE;
+
+-- Create default admin organization
+CREATE organization:org_admin SET name = 'admin', type = 'admin', status = 'active';
+
+-- Add organization relation to user and notebook
+DEFINE FIELD organization ON user TYPE record<organization>;
+DEFINE FIELD organization ON notebook TYPE record<organization>;
+
+-- Backfill existing records to admin organization
+UPDATE user SET organization = organization:org_admin;
+UPDATE notebook SET organization = organization:org_admin;
+
+-- Audit logs table
+DEFINE TABLE file_audit_log SCHEMALESS;
+DEFINE FIELD user ON file_audit_log TYPE record<user>;
+DEFINE FIELD organization ON file_audit_log TYPE record<organization>;
+DEFINE FIELD action ON file_audit_log TYPE string ASSERT $value INSIDE ['upload', 'download', 'delete', 'read', 'modify'];
+DEFINE FIELD target_type ON file_audit_log TYPE string ASSERT $value INSIDE ['source', 'note', 'report', 'sow'];
+DEFINE FIELD target_id ON file_audit_log TYPE string;
+DEFINE FIELD file_path ON file_audit_log TYPE string;
+DEFINE FIELD ip_address ON file_audit_log TYPE option<string>;
+DEFINE FIELD user_agent ON file_audit_log TYPE option<string>;
+DEFINE FIELD timestamp ON file_audit_log TYPE datetime DEFAULT time::now();

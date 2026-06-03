@@ -1,0 +1,4 @@
+REMOVE TABLE file_audit_log;
+REMOVE FIELD organization ON notebook;
+REMOVE FIELD organization ON user;
+REMOVE TABLE organization;
