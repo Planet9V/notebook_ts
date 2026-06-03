@@ -1216,6 +1216,22 @@ async def save_notebook_asset(notebook_id: str, asset: AssetCreate):
             else:
                 res_data = result
 
+        # Get organization_id
+        org_id = None
+        nb_org_query = await repo_query("SELECT organization FROM $id", {"id": ensure_record_id(nb_rec)})
+        if nb_org_query:
+            org_id = nb_org_query[0].get("organization")
+
+        action = "modify" if existing else "upload"
+        await log_file_action(
+            user_id=None,
+            org_id=org_id,
+            action=action,
+            target_type="source",
+            target_id=asset.node_id,
+            file_path="canvas/" + asset.node_id
+        )
+
         return AssetResponse(
             id=str(res_data.get("id")),
             notebook_id=str(res_data.get("notebook_id")),
@@ -1321,6 +1337,21 @@ async def delete_notebook_asset(notebook_id: str, node_id: str):
         rec_id = existing[0]["id"]
         # Delete from SurrealDB
         await repo_query("DELETE $id", {"id": ensure_record_id(rec_id)})
+
+        # Get organization_id from the notebook
+        org_id = None
+        nb_org_query = await repo_query("SELECT organization FROM $id", {"id": ensure_record_id(nb_rec)})
+        if nb_org_query:
+            org_id = nb_org_query[0].get("organization")
+
+        await log_file_action(
+            user_id=None,
+            org_id=org_id,
+            action="delete",
+            target_type="source",
+            target_id=node_id,
+            file_path="canvas/" + node_id
+        )
 
         return {"message": "Asset deleted successfully"}
     except HTTPException:
@@ -1475,6 +1506,42 @@ async def delete_notebook_edge(notebook_id: str, edge_id: str):
     except Exception as e:
         logger.error(f"Error deleting edge: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def log_file_action(
+    user_id: Optional[str],
+    org_id: Optional[str],
+    action: str,
+    target_type: str,
+    target_id: str,
+    file_path: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+):
+    import uuid
+    if not user_id:
+        user_id = "user:system"
+        # run a query to ensure 'user:system' exists
+        await repo_query("UPSERT user:system SET username = 'system', email = 'system@tetrelsec.com';")
+    
+    if not org_id:
+        org_id = "organization:org_admin"
+        
+    log_id = f"file_audit_log:{uuid.uuid4().hex}"
+    
+    record = {
+        "user": ensure_record_id(user_id),
+        "organization": ensure_record_id(org_id),
+        "action": action,
+        "target_type": target_type,
+        "target_id": target_id,
+        "file_path": file_path,
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+    }
+    
+    await repo_upsert("file_audit_log", log_id, record)
+
 
 
 

@@ -30,12 +30,30 @@ from api.models import (
 )
 from commands.source_commands import SourceProcessingInput
 from open_notebook.config import UPLOADS_FOLDER
+from api.routers.notebooks import log_file_action
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import Asset, Notebook, Source
 from open_notebook.domain.transformation import Transformation
 from open_notebook.exceptions import InvalidInputError
 
 router = APIRouter()
+
+
+async def _get_source_org_id(source_id: str) -> Optional[str]:
+    # Query reference to find notebooks linked to this source
+    notebooks_query = await repo_query(
+        "SELECT VALUE out FROM reference WHERE in = $source_id",
+        {"source_id": ensure_record_id(source_id)},
+    )
+    if notebooks_query:
+        # Check if any notebook has an organization
+        nb_orgs = await repo_query(
+            "SELECT organization FROM $notebooks WHERE organization != NONE LIMIT 1;",
+            {"notebooks": [ensure_record_id(nb) for nb in notebooks_query]}
+        )
+        if nb_orgs and nb_orgs[0].get("organization"):
+            return str(nb_orgs[0]["organization"])
+    return None
 
 
 def generate_unique_filename(original_filename: str, upload_folder: str) -> str:
@@ -417,6 +435,25 @@ async def create_source(
                 source.command = ensure_record_id(command_id)
                 await source.save()
 
+                # Log upload action
+                org_id = await _get_source_org_id(str(source.id))
+                source_file_path = ""
+                if source.asset:
+                    source_file_path = source.asset.file_path or source.asset.url or ""
+                elif source_data.type == "upload":
+                    source_file_path = file_path or source_data.file_path or ""
+                elif source_data.type == "link":
+                    source_file_path = source_data.url or ""
+
+                await log_file_action(
+                    user_id=None,
+                    org_id=org_id,
+                    action="upload",
+                    target_type="source",
+                    target_id=str(source.id),
+                    file_path=source_file_path
+                )
+
                 # Return source with command info
                 return SourceResponse(
                     id=source.id or "",
@@ -516,6 +553,25 @@ async def create_source(
                     raise HTTPException(
                         status_code=500, detail="Processed source not found"
                     )
+
+                # Log upload action
+                org_id = await _get_source_org_id(str(source.id))
+                source_file_path = ""
+                if processed_source.asset:
+                    source_file_path = processed_source.asset.file_path or processed_source.asset.url or ""
+                elif source_data.type == "upload":
+                    source_file_path = file_path or source_data.file_path or ""
+                elif source_data.type == "link":
+                    source_file_path = source_data.url or ""
+
+                await log_file_action(
+                    user_id=None,
+                    org_id=org_id,
+                    action="upload",
+                    target_type="source",
+                    target_id=str(source.id),
+                    file_path=source_file_path
+                )
 
                 embedded_chunks = await processed_source.get_embedded_chunks()
                 return SourceResponse(
@@ -642,6 +698,21 @@ async def get_source(source_id: str):
         if not source:
             raise HTTPException(status_code=404, detail="Source not found")
 
+        # Log read action
+        org_id = await _get_source_org_id(source_id)
+        source_file_path = ""
+        if source.asset:
+            source_file_path = source.asset.file_path or source.asset.url or ""
+
+        await log_file_action(
+            user_id=None,
+            org_id=org_id,
+            action="read",
+            target_type="source",
+            target_id=source_id,
+            file_path=source_file_path
+        )
+
         # Get status information if command exists
         status = None
         processing_info = None
@@ -712,6 +783,18 @@ async def download_source_file(source_id: str):
     """Download the original file associated with an uploaded source."""
     try:
         resolved_path, filename = await _resolve_source_file(source_id)
+
+        # Log download action
+        org_id = await _get_source_org_id(source_id)
+        await log_file_action(
+            user_id=None,
+            org_id=org_id,
+            action="download",
+            target_type="source",
+            target_id=source_id,
+            file_path=str(resolved_path)
+        )
+
         return FileResponse(
             path=resolved_path,
             filename=filename,
@@ -801,6 +884,21 @@ async def update_source(source_id: str, source_update: SourceUpdate):
             source.topics = source_update.topics
 
         await source.save()
+
+        # Log modify action
+        org_id = await _get_source_org_id(source_id)
+        source_file_path = ""
+        if source.asset:
+            source_file_path = source.asset.file_path or source.asset.url or ""
+
+        await log_file_action(
+            user_id=None,
+            org_id=org_id,
+            action="modify",
+            target_type="source",
+            target_id=source_id,
+            file_path=source_file_path
+        )
 
         embedded_chunks = await source.get_embedded_chunks()
         return SourceResponse(
@@ -960,6 +1058,22 @@ async def delete_source(source_id: str):
         source = await Source.get(source_id)
         if not source:
             raise HTTPException(status_code=404, detail="Source not found")
+
+        # Get org_id and file_path before deleting
+        org_id = await _get_source_org_id(source_id)
+        source_file_path = ""
+        if source.asset:
+            source_file_path = source.asset.file_path or source.asset.url or ""
+
+        # Log delete action
+        await log_file_action(
+            user_id=None,
+            org_id=org_id,
+            action="delete",
+            target_type="source",
+            target_id=source_id,
+            file_path=source_file_path
+        )
 
         await source.delete()
 

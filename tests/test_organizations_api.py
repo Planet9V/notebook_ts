@@ -64,3 +64,51 @@ async def test_tenant_boundary_isolation():
         await repo_delete("organization:org_a")
         await repo_delete("organization:org_b")
 
+
+@pytest.mark.asyncio
+async def test_file_audit_logging():
+    from open_notebook.database.repository import repo_query, repo_delete
+
+    notebook_id = "test-nb-999"
+    node_id = "plc-99"
+
+    try:
+        # Make a POST to '/api/notebooks/test-nb-999/assets'
+        payload = {
+            "notebook_id": notebook_id,
+            "node_id": node_id,
+            "type": "plc",
+            "purdueLevel": 1,
+            "x": 100.0,
+            "y": 100.0
+        }
+        res = client.post(f"/api/notebooks/{notebook_id}/assets", json=payload)
+        assert res.status_code == 200
+
+        # Query SurrealDB 'file_audit_log' using repo_query
+        logs = await repo_query("SELECT * FROM file_audit_log ORDER BY timestamp DESC LIMIT 1;")
+        assert len(logs) > 0
+        assert logs[0]["action"] in ['upload', 'download', 'delete', 'read', 'modify']
+
+    finally:
+        # Clean up created records (asset, notebook, and audit logs created during the test)
+        # Find asset ID
+        assets = await repo_query(
+            "SELECT id FROM asset WHERE notebook_id = $notebook_id AND node_id = $node_id",
+            {"notebook_id": notebook_id, "node_id": node_id}
+        )
+        for a in assets:
+            await repo_delete(a["id"])
+
+        # Delete notebook
+        await repo_delete(f"notebook:{notebook_id}")
+
+        # Delete any file audit logs referencing this target_id
+        audit_logs = await repo_query(
+            "SELECT id FROM file_audit_log WHERE target_id = $node_id",
+            {"node_id": node_id}
+        )
+        for l in audit_logs:
+            await repo_delete(l["id"])
+
+
