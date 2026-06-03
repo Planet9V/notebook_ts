@@ -252,6 +252,13 @@ def credential_to_response(cred: Credential, model_count: int = 0) -> Credential
         updated=str(cred.updated) if cred.updated else "",
         model_count=model_count,
         decryption_error=cred.decryption_error,
+        client_id=cred.client_id,
+        client_secret="••••••••••••" if cred.client_secret is not None else None,
+        redirect_uri=cred.redirect_uri,
+        scopes=cred.scopes,
+        refresh_token="••••••••••••" if cred.refresh_token is not None else None,
+        has_client_secret=cred.client_secret is not None,
+        has_refresh_token=cred.refresh_token is not None,
     )
 
 

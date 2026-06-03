@@ -1,0 +1,16 @@
+-- Migration 36: Social Media Metrics History and OAuth Fields
+DEFINE TABLE publication_metrics_history SCHEMAFULL;
+DEFINE FIELD scheduled_post ON publication_metrics_history TYPE record<scheduled_post>;
+DEFINE FIELD channel ON publication_metrics_history TYPE string;
+DEFINE FIELD views ON publication_metrics_history TYPE int;
+DEFINE FIELD clicks ON publication_metrics_history TYPE int;
+DEFINE FIELD interactions ON publication_metrics_history TYPE int;
+DEFINE FIELD timestamp ON publication_metrics_history TYPE datetime DEFAULT time::now();
+
+-- Add OAuth fields to credential table to support Google Workspace & social media apps
+DEFINE FIELD client_id ON credential TYPE option<string>;
+DEFINE FIELD client_secret ON credential TYPE option<string>;
+DEFINE FIELD redirect_uri ON credential TYPE option<string>;
+DEFINE FIELD scopes ON credential TYPE option<array>;
+DEFINE FIELD scopes.* ON credential TYPE string;
+DEFINE FIELD refresh_token ON credential TYPE option<string>;

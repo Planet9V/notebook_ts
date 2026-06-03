@@ -55,6 +55,7 @@ from api.routers import (
     voice_sessions,
     skills,
     mcp,
+    publications,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -394,6 +395,7 @@ app.include_router(voice_sessions.router, prefix="/api", tags=["voice-sessions"]
 app.include_router(agents.router, prefix="/api", tags=["agents"])
 app.include_router(skills.router, prefix="/api", tags=["skills"])
 app.include_router(mcp.router, prefix="/api", tags=["mcp"])
+app.include_router(publications.router, prefix="/api", tags=["publications"])
 
 
 @app.get("/")

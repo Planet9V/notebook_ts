@@ -908,6 +908,11 @@ class CreateCredentialRequest(BaseModel):
     credentials_path: Optional[str] = Field(
         None, description="Credentials file path (Vertex)"
     )
+    client_id: Optional[str] = Field(None, description="OAuth client ID")
+    client_secret: Optional[str] = Field(None, description="OAuth client secret")
+    redirect_uri: Optional[str] = Field(None, description="OAuth redirect URI")
+    scopes: Optional[List[str]] = Field(None, description="OAuth scopes list")
+    refresh_token: Optional[str] = Field(None, description="OAuth refresh token")
 
 
 class UpdateCredentialRequest(BaseModel):
@@ -926,6 +931,11 @@ class UpdateCredentialRequest(BaseModel):
     project: Optional[str] = Field(None, description="Project ID")
     location: Optional[str] = Field(None, description="Location")
     credentials_path: Optional[str] = Field(None, description="Credentials path")
+    client_id: Optional[str] = Field(None, description="OAuth client ID")
+    client_secret: Optional[str] = Field(None, description="OAuth client secret")
+    redirect_uri: Optional[str] = Field(None, description="OAuth redirect URI")
+    scopes: Optional[List[str]] = Field(None, description="OAuth scopes list")
+    refresh_token: Optional[str] = Field(None, description="OAuth refresh token")
 
 
 class CredentialResponse(BaseModel):
@@ -950,6 +960,13 @@ class CredentialResponse(BaseModel):
     updated: str
     model_count: int = 0
     decryption_error: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    redirect_uri: Optional[str] = None
+    scopes: Optional[List[str]] = None
+    refresh_token: Optional[str] = None
+    has_client_secret: bool = False
+    has_refresh_token: bool = False
 
 
 class CredentialDeleteResponse(BaseModel):
@@ -2023,4 +2040,63 @@ class ScheduledEpisodeResponse(BaseModel):
     next_run: Optional[str] = None
     created: str
     updated: str
+
+
+# Publication/Social Scheduler models
+class EmailSettingsUpdate(BaseModel):
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    use_tls: Optional[bool] = True
+    oauth_provider: Optional[str] = None
+    oauth_token_ref: Optional[str] = None
+
+
+class EmailSettingsResponse(BaseModel):
+    id: str
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    use_tls: Optional[bool] = True
+    oauth_provider: Optional[str] = None
+    oauth_token_ref: Optional[str] = None
+    created: str
+    updated: str
+
+
+class ScheduledPostCreate(BaseModel):
+    channel: Literal["linkedin", "twitter", "email"]
+    title: str
+    content: str
+    media_urls: Optional[List[str]] = None
+    scheduled_time: str
+    status: Literal["draft", "queued", "published", "failed"] = "draft"
+
+
+class ScheduledPostUpdate(BaseModel):
+    channel: Optional[Literal["linkedin", "twitter", "email"]] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    media_urls: Optional[List[str]] = None
+    scheduled_time: Optional[str] = None
+    status: Optional[Literal["draft", "queued", "published", "failed"]] = None
+
+
+class ScheduledPostResponse(BaseModel):
+    id: str
+    channel: str
+    title: str
+    content: str
+    media_urls: List[str]
+    scheduled_time: str
+    status: str
+    error_message: Optional[str] = None
+    views: int = 0
+    clicks: int = 0
+    interactions: int = 0
+    created: str
+    updated: str
+
 

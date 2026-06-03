@@ -47,6 +47,11 @@ class Credential(ObjectModel):
         "project",
         "location",
         "credentials_path",
+        "client_id",
+        "client_secret",
+        "redirect_uri",
+        "scopes",
+        "refresh_token",
     }
 
     name: str
@@ -64,6 +69,11 @@ class Credential(ObjectModel):
     project: Optional[str] = None
     location: Optional[str] = None
     credentials_path: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[SecretStr] = None
+    redirect_uri: Optional[str] = None
+    scopes: Optional[List[str]] = None
+    refresh_token: Optional[SecretStr] = None
 
     def to_esperanto_config(self) -> Dict[str, Any]:
         """
@@ -130,6 +140,22 @@ class Credential(ObjectModel):
             )
             decrypted = decrypt_value(raw)
             object.__setattr__(instance, "api_key", SecretStr(decrypted))
+        if instance.client_secret:
+            raw = (
+                instance.client_secret.get_secret_value()
+                if isinstance(instance.client_secret, SecretStr)
+                else instance.client_secret
+            )
+            decrypted = decrypt_value(raw)
+            object.__setattr__(instance, "client_secret", SecretStr(decrypted))
+        if instance.refresh_token:
+            raw = (
+                instance.refresh_token.get_secret_value()
+                if isinstance(instance.refresh_token, SecretStr)
+                else instance.refresh_token
+            )
+            decrypted = decrypt_value(raw)
+            object.__setattr__(instance, "refresh_token", SecretStr(decrypted))
         return instance
 
     @classmethod
@@ -169,6 +195,14 @@ class Credential(ObjectModel):
                         object.__setattr__(
                             error_cred, "api_key", SecretStr("UNDECRYPTABLE")
                         )
+                    if row.get("client_secret"):
+                        object.__setattr__(
+                            error_cred, "client_secret", SecretStr("UNDECRYPTABLE")
+                        )
+                    if row.get("refresh_token"):
+                        object.__setattr__(
+                            error_cred, "refresh_token", SecretStr("UNDECRYPTABLE")
+                        )
                     credentials.append(error_cred)
                 except Exception as inner_e:
                     logger.error(
@@ -201,6 +235,18 @@ class Credential(ObjectModel):
                     data["api_key"] = encrypt_value(secret_value)
                 else:
                     data["api_key"] = None
+            elif key == "client_secret":
+                if self.client_secret:
+                    secret_value = self.client_secret.get_secret_value()
+                    data["client_secret"] = encrypt_value(secret_value)
+                else:
+                    data["client_secret"] = None
+            elif key == "refresh_token":
+                if self.refresh_token:
+                    secret_value = self.refresh_token.get_secret_value()
+                    data["refresh_token"] = encrypt_value(secret_value)
+                else:
+                    data["refresh_token"] = None
             elif value is not None or key in self.__class__.nullable_fields:
                 data[key] = value
 
@@ -210,6 +256,8 @@ class Credential(ObjectModel):
         """Save credential, handling api_key re-hydration after DB round-trip."""
         # Remember the original SecretStr before save
         original_api_key = self.api_key
+        original_client_secret = self.client_secret
+        original_refresh_token = self.refresh_token
 
         await super().save()
 
@@ -222,6 +270,18 @@ class Credential(ObjectModel):
             decrypted = decrypt_value(self.api_key)
             object.__setattr__(self, "api_key", SecretStr(decrypted))
 
+        if original_client_secret:
+            object.__setattr__(self, "client_secret", original_client_secret)
+        elif self.client_secret and isinstance(self.client_secret, str):
+            decrypted = decrypt_value(self.client_secret)
+            object.__setattr__(self, "client_secret", SecretStr(decrypted))
+
+        if original_refresh_token:
+            object.__setattr__(self, "refresh_token", original_refresh_token)
+        elif self.refresh_token and isinstance(self.refresh_token, str):
+            decrypted = decrypt_value(self.refresh_token)
+            object.__setattr__(self, "refresh_token", SecretStr(decrypted))
+
     @classmethod
     def _from_db_row(cls, row: dict) -> "Credential":
         """Create a Credential from a database row, decrypting api_key."""
@@ -231,4 +291,19 @@ class Credential(ObjectModel):
             row["api_key"] = SecretStr(decrypted)
         elif api_key_val is None:
             row["api_key"] = None
+
+        client_secret_val = row.get("client_secret")
+        if client_secret_val and isinstance(client_secret_val, str):
+            decrypted = decrypt_value(client_secret_val)
+            row["client_secret"] = SecretStr(decrypted)
+        elif client_secret_val is None:
+            row["client_secret"] = None
+
+        refresh_token_val = row.get("refresh_token")
+        if refresh_token_val and isinstance(refresh_token_val, str):
+            decrypted = decrypt_value(refresh_token_val)
+            row["refresh_token"] = SecretStr(decrypted)
+        elif refresh_token_val is None:
+            row["refresh_token"] = None
+
         return cls(**row)

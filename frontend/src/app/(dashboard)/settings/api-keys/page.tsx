@@ -41,6 +41,7 @@ export default function ApiKeysPage() {
     { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },
     { name: t('settings.tabApiKeys', 'API Keys & Models'), href: '/settings/api-keys' },
     { name: t('settings.tabPipeline', 'Pipeline Automations'), href: '/settings/pipeline' },
+    { name: t('settings.tabPublications', 'Publications & Email'), href: '/settings/publications' },
   ]
 
   // Data

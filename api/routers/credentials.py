@@ -21,6 +21,8 @@ NEVER returns actual API key values - only metadata.
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import HTMLResponse
+import httpx
 from loguru import logger
 from pydantic import SecretStr
 
@@ -171,6 +173,11 @@ async def create_credential(request: CreateCredentialRequest):
             project=request.project,
             location=request.location,
             credentials_path=request.credentials_path,
+            client_id=request.client_id,
+            client_secret=SecretStr(request.client_secret) if request.client_secret else None,
+            redirect_uri=request.redirect_uri,
+            scopes=request.scopes,
+            refresh_token=SecretStr(request.refresh_token) if request.refresh_token else None,
         )
         await cred.save()
         return credential_to_response(cred, 0)
@@ -240,6 +247,16 @@ async def update_credential(credential_id: str, request: UpdateCredentialRequest
             cred.location = request.location or None
         if request.credentials_path is not None:
             cred.credentials_path = request.credentials_path or None
+        if request.client_id is not None:
+            cred.client_id = request.client_id or None
+        if request.client_secret is not None:
+            cred.client_secret = SecretStr(request.client_secret) if request.client_secret else None
+        if request.redirect_uri is not None:
+            cred.redirect_uri = request.redirect_uri or None
+        if request.scopes is not None:
+            cred.scopes = request.scopes or None
+        if request.refresh_token is not None:
+            cred.refresh_token = SecretStr(request.refresh_token) if request.refresh_token else None
 
         await cred.save()
         models = await cred.get_linked_models()
@@ -424,3 +441,108 @@ async def migrate_from_env():
     except Exception as e:
         logger.error(f"Env migration FAILED: {type(e).__name__}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Migration from environment variables failed")
+
+
+@router.get("/oauth/callback", response_class=HTMLResponse)
+async def google_oauth_callback(code: Optional[str] = None, error: Optional[str] = None):
+    """Google OAuth callback handler. Exchanges authorization code for access/refresh tokens and persists them."""
+    if error:
+        logger.error(f"Google OAuth error returned in callback: {error}")
+        return HTMLResponse(
+            content=f"""
+            <html>
+                <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #0f172a; color: #f8fafc;">
+                    <div style="max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ef4444; border-radius: 8px; background-color: #1e293b;">
+                        <h2 style="color: #ef4444;">Authorization Failed</h2>
+                        <p>{error}</p>
+                        <button onclick="window.close()" style="background-color: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Close Window</button>
+                    </div>
+                </body>
+            </html>
+            """,
+            status_code=400
+        )
+
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing authorization code")
+
+    try:
+        try:
+            cred = await Credential.get("credential:google_docs")
+        except Exception:
+            raise HTTPException(status_code=404, detail="Google Docs credential configuration not found in database")
+
+        if not cred.client_id or not cred.client_secret:
+            raise HTTPException(status_code=400, detail="Google OAuth Client ID or Client Secret not configured in Settings")
+
+        redirect_uri = cred.redirect_uri or "http://localhost:5055/api/credentials/oauth/callback"
+        client_secret_val = cred.client_secret.get_secret_value()
+
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            "code": code,
+            "client_id": cred.client_id,
+            "client_secret": client_secret_val,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(token_url, data=data)
+            if resp.status_code != 200:
+                logger.error(f"Failed to exchange Google OAuth code: {resp.text}")
+                return HTMLResponse(
+                    content=f"""
+                    <html>
+                        <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #0f172a; color: #f8fafc;">
+                            <div style="max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ef4444; border-radius: 8px; background-color: #1e293b;">
+                                <h2 style="color: #ef4444;">Token Exchange Failed</h2>
+                                <p>{resp.json().get('error_description', resp.text)}</p>
+                                <button onclick="window.close()" style="background-color: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Close Window</button>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    status_code=400
+                )
+
+            token_data = resp.json()
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+
+            if access_token:
+                cred.api_key = SecretStr(access_token)
+            if refresh_token:
+                cred.refresh_token = SecretStr(refresh_token)
+
+            await cred.save()
+
+        return HTMLResponse(
+            content="""
+            <html>
+                <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #0f172a; color: #f8fafc;">
+                    <div style="max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #10b981; border-radius: 8px; background-color: #1e293b;">
+                        <h2 style="color: #10b981;">Connection Successful!</h2>
+                        <p>Google Workspace credentials linked successfully. You can close this window now.</p>
+                        <button onclick="window.close()" style="background-color: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 10px;">Close Window</button>
+                    </div>
+                </body>
+            </html>
+            """
+        )
+    except Exception as e:
+        logger.error(f"Error handling Google OAuth callback: {e}")
+        return HTMLResponse(
+            content=f"""
+            <html>
+                <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #0f172a; color: #f8fafc;">
+                    <div style="max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ef4444; border-radius: 8px; background-color: #1e293b;">
+                        <h2 style="color: #ef4444;">Internal Error</h2>
+                        <p>{str(e)}</p>
+                        <button onclick="window.close()" style="background-color: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Close Window</button>
+                    </div>
+                </body>
+            </html>
+            """,
+            status_code=500
+        )

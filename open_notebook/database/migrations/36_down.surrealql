@@ -1,0 +1,6 @@
+REMOVE FIELD refresh_token ON credential;
+REMOVE FIELD scopes ON credential;
+REMOVE FIELD redirect_uri ON credential;
+REMOVE FIELD client_secret ON credential;
+REMOVE FIELD client_id ON credential;
+REMOVE TABLE publication_metrics_history;

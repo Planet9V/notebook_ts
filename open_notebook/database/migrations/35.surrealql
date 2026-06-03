@@ -1,0 +1,24 @@
+DEFINE TABLE email_setting SCHEMAFULL;
+DEFINE FIELD smtp_host ON email_setting TYPE option<string>;
+DEFINE FIELD smtp_port ON email_setting TYPE option<int>;
+DEFINE FIELD smtp_username ON email_setting TYPE option<string>;
+DEFINE FIELD smtp_password ON email_setting TYPE option<string>;
+DEFINE FIELD use_tls ON email_setting TYPE option<bool> DEFAULT true;
+DEFINE FIELD oauth_provider ON email_setting TYPE option<string>;
+DEFINE FIELD oauth_token_ref ON email_setting TYPE option<string>;
+DEFINE FIELD created_at ON email_setting TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON email_setting TYPE datetime DEFAULT time::now() VALUE time::now();
+
+DEFINE TABLE scheduled_post SCHEMAFULL;
+DEFINE FIELD channel ON scheduled_post TYPE string ASSERT $value IN ["linkedin", "twitter", "email"];
+DEFINE FIELD title ON scheduled_post TYPE string;
+DEFINE FIELD content ON scheduled_post TYPE string;
+DEFINE FIELD media_urls ON scheduled_post TYPE array<string> DEFAULT [];
+DEFINE FIELD scheduled_time ON scheduled_post TYPE datetime;
+DEFINE FIELD status ON scheduled_post TYPE string ASSERT $value IN ["draft", "queued", "published", "failed"];
+DEFINE FIELD error_message ON scheduled_post TYPE option<string>;
+DEFINE FIELD views ON scheduled_post TYPE int DEFAULT 0;
+DEFINE FIELD clicks ON scheduled_post TYPE int DEFAULT 0;
+DEFINE FIELD interactions ON scheduled_post TYPE int DEFAULT 0;
+DEFINE FIELD created_at ON scheduled_post TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated_at ON scheduled_post TYPE datetime DEFAULT time::now() VALUE time::now();

@@ -318,6 +318,154 @@ async def get_notebook(notebook_id: str, organization_id: Optional[str] = Query(
         )
 
 
+async def validate_stage_transition(
+    notebook_id: Optional[str],
+    pipeline_type: str,
+    new_stage: str,
+    assigned_to: Optional[str],
+    close_date: Optional[str],
+    customer_id: Optional[str],
+):
+    is_assignee_set = assigned_to is not None and str(assigned_to).strip() != "" and str(assigned_to) != "none"
+    is_close_date_set = close_date is not None and str(close_date).strip() != ""
+
+    if pipeline_type == "sales":
+        non_lead_stages = {"research", "technical_discovery", "proposal", "won"}
+        if new_stage in non_lead_stages:
+            if not is_assignee_set or not is_close_date_set:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot transition stage: Sales deals past prospecting stage must have an assignee and close date configured."
+                )
+
+        if new_stage in {"proposal", "won"}:
+            source_count = 0
+            note_count = 0
+            if notebook_id:
+                nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+                counts = await repo_query(
+                    "SELECT count(<-reference.in) as source_count, count(<-artifact.in) as note_count FROM $id",
+                    {"id": ensure_record_id(nb_rec)}
+                )
+                if counts:
+                    source_count = counts[0].get("source_count", 0)
+                    note_count = counts[0].get("note_count", 0)
+            if source_count == 0 and note_count == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot transition to proposal/won: At least one source document or research note must be added to the workspace."
+                )
+
+        if new_stage == "won" and customer_id:
+            try:
+                cust_rec = customer_id if ":" in customer_id else f"customer:{customer_id}"
+                assessments = await repo_query(
+                    "SELECT id FROM assessment WHERE type::string(customer_id) = type::string($cust_id)",
+                    {"cust_id": ensure_record_id(cust_rec)}
+                )
+                assess_ids = [a["id"] for a in assessments]
+                if assess_ids:
+                    assess_ids_str = [str(aid) for aid in assess_ids]
+                    sessions = await repo_query(
+                        "SELECT status FROM assessment_session WHERE type::string(assessment_id) IN $assess_ids",
+                        {"assess_ids": assess_ids_str}
+                    )
+                    # Block if there is any started session but none are completed
+                    if sessions and not any(s.get("status") == "COMPLETED" for s in sessions):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Cannot transition to won: Compliance assessment must be completed and locked first."
+                        )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error checking compliance for won: {e}")
+
+    elif pipeline_type == "research":
+        non_queued_stages = {"researching", "analyzing", "completed", "archived"}
+        if new_stage in non_queued_stages:
+            if not is_assignee_set or not is_close_date_set:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot transition stage: Research tasks past queue must have an assignee and target date configured."
+                )
+
+        if new_stage == "completed" and customer_id:
+            try:
+                cust_rec = customer_id if ":" in customer_id else f"customer:{customer_id}"
+                assessments = await repo_query(
+                    "SELECT id FROM assessment WHERE type::string(customer_id) = type::string($cust_id)",
+                    {"cust_id": ensure_record_id(cust_rec)}
+                )
+                assess_ids = [a["id"] for a in assessments]
+                if assess_ids:
+                    assess_ids_str = [str(aid) for aid in assess_ids]
+                    sessions = await repo_query(
+                        "SELECT status FROM assessment_session WHERE type::string(assessment_id) IN $assess_ids",
+                        {"assess_ids": assess_ids_str}
+                    )
+                    if not sessions or not any(s.get("status") == "COMPLETED" for s in sessions):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Cannot transition to completed: A compliance quiz session must be completed and locked first."
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Cannot transition to completed: A compliance quiz session must be completed and locked first."
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error checking compliance for completed research: {e}")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot transition to completed: A compliance quiz session must be completed and locked first."
+                )
+
+    elif pipeline_type == "publication":
+        non_concept_stages = {"refinement", "publication_type", "review", "publish", "track"}
+        if new_stage in non_concept_stages:
+            if not is_assignee_set or not is_close_date_set:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot transition stage: Publication items past concept stage must have an assignee and scheduled date configured."
+                )
+
+        if new_stage == "publish" and customer_id:
+            try:
+                cust_rec = customer_id if ":" in customer_id else f"customer:{customer_id}"
+                assessments = await repo_query(
+                    "SELECT id FROM assessment WHERE type::string(customer_id) = type::string($cust_id)",
+                    {"cust_id": ensure_record_id(cust_rec)}
+                )
+                assess_ids = [a["id"] for a in assessments]
+                if assess_ids:
+                    assess_ids_str = [str(aid) for aid in assess_ids]
+                    sessions = await repo_query(
+                        "SELECT status FROM assessment_session WHERE type::string(assessment_id) IN $assess_ids",
+                        {"assess_ids": assess_ids_str}
+                    )
+                    if not sessions or not any(s.get("status") == "COMPLETED" for s in sessions):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Cannot publish: Compliance assessment must be completed and locked first."
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Cannot publish: Compliance assessment must be completed and locked first."
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error checking compliance for publish: {e}")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot publish: Compliance assessment must be completed and locked first."
+                )
+
+
 @router.put("/notebooks/{notebook_id}", response_model=NotebookResponse)
 async def update_notebook(
     notebook_id: str,
@@ -348,6 +496,62 @@ async def update_notebook(
                 new_stage = "concept"
             else:
                 new_stage = "lead"
+
+        # Validate stage transition pre-conditions
+        if stage_changed and new_stage:
+            pipeline_type = notebook_update.pipeline_type if notebook_update.pipeline_type is not None else (notebook.pipeline_type or "sales")
+            target_assigned_to = (
+                notebook_update.assigned_to
+                if "assigned_to" in notebook_update.model_fields_set
+                else notebook.assigned_to
+            )
+            target_close_date = (
+                notebook_update.close_date
+                if "close_date" in notebook_update.model_fields_set
+                else notebook.close_date
+            )
+            target_customer_id = (
+                notebook_update.customer_id
+                if notebook_update.customer_id is not None
+                else notebook.customer_id
+            )
+            await validate_stage_transition(
+                notebook_id=notebook.id,
+                pipeline_type=pipeline_type,
+                new_stage=new_stage,
+                assigned_to=target_assigned_to,
+                close_date=target_close_date,
+                customer_id=target_customer_id,
+            )
+        else:
+            # Check if assignee or close_date is being modified/cleared in current stage
+            assigned_to_changed = "assigned_to" in notebook_update.model_fields_set
+            close_date_changed = "close_date" in notebook_update.model_fields_set
+            if assigned_to_changed or close_date_changed:
+                pipeline_type = notebook_update.pipeline_type if notebook_update.pipeline_type is not None else (notebook.pipeline_type or "sales")
+                target_assigned_to = (
+                    notebook_update.assigned_to
+                    if "assigned_to" in notebook_update.model_fields_set
+                    else notebook.assigned_to
+                )
+                target_close_date = (
+                    notebook_update.close_date
+                    if "close_date" in notebook_update.model_fields_set
+                    else notebook.close_date
+                )
+                target_customer_id = (
+                    notebook_update.customer_id
+                    if notebook_update.customer_id is not None
+                    else notebook.customer_id
+                )
+                await validate_stage_transition(
+                    notebook_id=notebook.id,
+                    pipeline_type=pipeline_type,
+                    new_stage=notebook.stage or "lead",
+                    assigned_to=target_assigned_to,
+                    close_date=target_close_date,
+                    customer_id=target_customer_id,
+                )
 
         # Update only provided fields
         if notebook_update.name is not None:
@@ -1032,42 +1236,121 @@ from pydantic import BaseModel
 class NotebookExportRequest(BaseModel):
     markdown: str
     clientName: str
+    styleguide_id: Optional[str] = None
 
-def compile_markdown_to_docx(markdown_text: str, client_name: str) -> str:
+async def compile_markdown_to_docx(markdown_text: str, client_name: str, styleguide_id: Optional[str] = None) -> str:
     import tempfile
+    import re
     from docx import Document
     from docx.shared import Inches, Pt, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import parse_xml
     from docx.oxml.ns import nsdecls
+    from open_notebook.domain.styleguide import StyleGuide
+
+    # StyleGuide units parsing helpers
+    def parse_margin(margin_str: Optional[str], default_inches: float = 1.0) -> float:
+        if not margin_str:
+            return default_inches
+        margin_str = margin_str.strip().lower()
+        match = re.match(r"^([0-9.]+)\s*(in|cm|mm|pt)?$", margin_str)
+        if not match:
+            return default_inches
+        value, unit = match.groups()
+        val = float(value)
+        if not unit or unit == "in":
+            return val
+        elif unit == "cm":
+            return val / 2.54
+        elif unit == "mm":
+            return val / 25.4
+        elif unit == "pt":
+            return val / 72.0
+        return default_inches
+
+    def parse_size_pt(size_str: Optional[str], default_pt: float = 11.0) -> float:
+        if not size_str:
+            return default_pt
+        size_str = size_str.strip().lower()
+        match = re.match(r"^([0-9.]+)\s*(pt|px|em)?$", size_str)
+        if not match:
+            return default_pt
+        value, unit = match.groups()
+        val = float(value)
+        if not unit or unit == "pt":
+            return val
+        elif unit == "px":
+            return val * 0.75
+        elif unit == "em":
+            return val * 12.0
+        return default_pt
+
+    def parse_hex_color(hex_str: Optional[str], default_rgb: tuple = (30, 41, 59)) -> RGBColor:
+        if not hex_str:
+            return RGBColor(*default_rgb)
+        hex_str = hex_str.strip().lstrip('#')
+        if len(hex_str) == 6:
+            try:
+                r = int(hex_str[0:2], 16)
+                g = int(hex_str[2:4], 16)
+                b = int(hex_str[4:6], 16)
+                return RGBColor(r, g, b)
+            except ValueError:
+                pass
+        return RGBColor(*default_rgb)
+
+    # 1. Retrieve the style guide
+    styleguide = None
+    if styleguide_id:
+        try:
+            styleguide = await StyleGuide.get(styleguide_id)
+        except Exception:
+            logger.warning(f"Style guide {styleguide_id} not found, falling back to default")
+            
+    if not styleguide:
+        try:
+            styleguides = await StyleGuide.get_all(order_by="name asc")
+            if styleguides:
+                styleguide = styleguides[0]
+        except Exception as e:
+            logger.warning(f"Error loading style guides from database: {e}")
+
+    if not styleguide:
+        styleguide = StyleGuide()
 
     doc = Document()
     
     # Page Margins Setup
+    margin_top = parse_margin(styleguide.margin_top, 1.0)
+    margin_bottom = parse_margin(styleguide.margin_bottom, 1.0)
+    margin_left = parse_margin(styleguide.margin_left, 1.0)
+    margin_right = parse_margin(styleguide.margin_right, 1.0)
+
     for section in doc.sections:
-        section.top_margin = Inches(1)
-        section.bottom_margin = Inches(1)
-        section.left_margin = Inches(1)
-        section.right_margin = Inches(1)
+        section.top_margin = Inches(margin_top)
+        section.bottom_margin = Inches(margin_bottom)
+        section.left_margin = Inches(margin_left)
+        section.right_margin = Inches(margin_right)
         
         # Add confidential header
         header = section.header
         hp = header.paragraphs[0]
-        hp.text = "TETREL SECURITY INC. - STRICTLY CONFIDENTIAL"
+        hp.text = f"{client_name.upper()} - STRICTLY CONFIDENTIAL"
         hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         
         # Header formatting
+        primary_color_rgb = parse_hex_color(styleguide.primary_color, (30, 58, 138))
         for run in hp.runs:
-            run.font.name = 'Calibri'
+            run.font.name = styleguide.title_font or 'Calibri'
             run.font.size = Pt(9)
             run.font.bold = True
-            run.font.color.rgb = RGBColor(239, 68, 68) # #ef4444
+            run.font.color.rgb = primary_color_rgb
     
     # Set default text style
     style = doc.styles['Normal']
     font = style.font
-    font.name = 'Calibri'
-    font.size = Pt(11)
+    font.name = styleguide.body_font or 'Calibri'
+    font.size = Pt(parse_size_pt(styleguide.body_size, 11.0))
     font.color.rgb = RGBColor(30, 41, 59) # #1e293b
     
     lines = markdown_text.splitlines()
@@ -1139,9 +1422,11 @@ def compile_markdown_to_docx(markdown_text: str, client_name: str) -> str:
                             
                             # Header cell formatting
                             if r_idx == 0:
-                                set_cell_background(cell, "F1F5F9")
+                                fill_color = styleguide.primary_color.lstrip('#') if styleguide.primary_color else "F1F5F9"
+                                set_cell_background(cell, fill_color)
                                 if p.runs:
                                     p.runs[0].bold = True
+                                    p.runs[0].font.color.rgb = RGBColor(255, 255, 255)
                                     
                 # Spacer paragraph after table
                 p_spacer = doc.add_paragraph()
@@ -1152,30 +1437,37 @@ def compile_markdown_to_docx(markdown_text: str, client_name: str) -> str:
             continue
             
         # Headings
+        primary_color_rgb = parse_hex_color(styleguide.primary_color, (30, 58, 138))
+        secondary_color_rgb = parse_hex_color(styleguide.secondary_color, (2, 132, 199))
+        accent_color_rgb = parse_hex_color(styleguide.accent_color, (51, 65, 85))
+
         if line_stripped.startswith('# '):
             p = doc.add_paragraph()
             p.paragraph_format.space_before = Pt(24)
             p.paragraph_format.space_after = Pt(12)
             run = p.add_run(line_stripped[2:])
-            run.font.size = Pt(22)
+            run.font.name = styleguide.title_font or 'Calibri'
+            run.font.size = Pt(parse_size_pt(styleguide.title_size, 22.0))
             run.font.bold = True
-            run.font.color.rgb = RGBColor(30, 58, 138) # #1e3a8a
+            run.font.color.rgb = primary_color_rgb
         elif line_stripped.startswith('## '):
             p = doc.add_paragraph()
             p.paragraph_format.space_before = Pt(18)
             p.paragraph_format.space_after = Pt(10)
             run = p.add_run(line_stripped[3:])
-            run.font.size = Pt(16)
+            run.font.name = styleguide.title_font or 'Calibri'
+            run.font.size = Pt(parse_size_pt(styleguide.heading_size, 16.0))
             run.font.bold = True
-            run.font.color.rgb = RGBColor(2, 132, 199) # #0284c7
+            run.font.color.rgb = secondary_color_rgb
         elif line_stripped.startswith('### '):
             p = doc.add_paragraph()
             p.paragraph_format.space_before = Pt(14)
             p.paragraph_format.space_after = Pt(8)
             run = p.add_run(line_stripped[4:])
-            run.font.size = Pt(13)
+            run.font.name = styleguide.title_font or 'Calibri'
+            run.font.size = Pt(parse_size_pt(styleguide.subheading_size, 13.0))
             run.font.bold = True
-            run.font.color.rgb = RGBColor(51, 65, 85) # #334155
+            run.font.color.rgb = accent_color_rgb
         # List items
         elif line_stripped.startswith('* ') or line_stripped.startswith('- '):
             add_formatted_paragraph(line_stripped[2:], style_name='List Bullet', space_after=6)
@@ -1204,8 +1496,7 @@ async def export_proposal_docx(request: NotebookExportRequest):
     DOCX document using python-docx, and return it as a binary file.
     """
     try:
-        import os
-        file_path = compile_markdown_to_docx(request.markdown, request.clientName)
+        file_path = await compile_markdown_to_docx(request.markdown, request.clientName, request.styleguide_id)
         filename = f"SOW_{request.clientName.replace(' ', '_')}_Tetrel.docx"
         
         return FileResponse(
@@ -1241,6 +1532,268 @@ async def export_proposal_markdown(request: NotebookExportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class NotebookExportSlidesRequest(BaseModel):
+    clientName: str
+    topology: dict
+
+class NotebookExportSheetsRequest(BaseModel):
+    clientName: str
+    notebookId: str
+    scorecard: list
+
+async def export_markdown_to_gdoc(markdown_text: str, client_name: str, access_token: str) -> str:
+    import httpx
+    # 1. Create document
+    create_url = "https://docs.google.com/v1/documents"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    create_body = {"title": f"Tetrel Statement of Work - {client_name}"}
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(create_url, json=create_body, headers=headers)
+        if resp.status_code != 200:
+            raise ValueError(f"Failed to create Google Doc: {resp.text}")
+        doc_data = resp.json()
+        doc_id = doc_data["documentId"]
+        
+        # 2. Parse markdown and construct batchUpdate requests
+        lines = markdown_text.splitlines()
+        requests = []
+        
+        # Process in reverse order to make index=1 trivial
+        for line in reversed(lines):
+            line_stripped = line.strip()
+            if not line_stripped:
+                requests.append({
+                    "insertText": {
+                        "text": "\n",
+                        "location": {"index": 1}
+                    }
+                })
+                continue
+                
+            if line_stripped.startswith('|') and line_stripped.endswith('|'):
+                cells = [c.strip() for c in line_stripped.split('|')[1:-1]]
+                row_text = " | ".join(cells) + "\n"
+                requests.append({
+                    "insertText": {
+                        "text": row_text,
+                        "location": {"index": 1}
+                    }
+                })
+                requests.append({
+                    "updateTextStyle": {
+                        "textStyle": {
+                            "fontFamily": "Consolas",
+                            "fontSize": {"magnitude": 10, "unit": "PT"}
+                        },
+                        "fields": "fontFamily,fontSize",
+                        "range": {
+                            "startIndex": 1,
+                            "endIndex": len(row_text) + 1
+                        }
+                    }
+                })
+                continue
+
+            if line_stripped.startswith('# '):
+                text = line_stripped[2:] + "\n"
+                requests.append({
+                    "insertText": {
+                        "text": text,
+                        "location": {"index": 1}
+                    }
+                })
+                requests.append({
+                    "updateParagraphStyle": {
+                        "paragraphStyle": {"namedStyleType": "HEADING_1"},
+                        "fields": "namedStyleType",
+                        "range": {"startIndex": 1, "endIndex": len(text) + 1}
+                    }
+                })
+            elif line_stripped.startswith('## '):
+                text = line_stripped[3:] + "\n"
+                requests.append({
+                    "insertText": {
+                        "text": text,
+                        "location": {"index": 1}
+                    }
+                })
+                requests.append({
+                    "updateParagraphStyle": {
+                        "paragraphStyle": {"namedStyleType": "HEADING_2"},
+                        "fields": "namedStyleType",
+                        "range": {"startIndex": 1, "endIndex": len(text) + 1}
+                    }
+                })
+            elif line_stripped.startswith('### '):
+                text = line_stripped[4:] + "\n"
+                requests.append({
+                    "insertText": {
+                        "text": text,
+                        "location": {"index": 1}
+                    }
+                })
+                requests.append({
+                    "updateParagraphStyle": {
+                        "paragraphStyle": {"namedStyleType": "HEADING_3"},
+                        "fields": "namedStyleType",
+                        "range": {"startIndex": 1, "endIndex": len(text) + 1}
+                    }
+                })
+            else:
+                text = line_stripped + "\n"
+                requests.append({
+                    "insertText": {
+                        "text": text,
+                        "location": {"index": 1}
+                    }
+                })
+                requests.append({
+                    "updateParagraphStyle": {
+                        "paragraphStyle": {"namedStyleType": "NORMAL_TEXT"},
+                        "fields": "namedStyleType",
+                        "range": {"startIndex": 1, "endIndex": len(text) + 1}
+                    }
+                })
+                
+        if requests:
+            update_url = f"https://docs.google.com/v1/documents/{doc_id}:batchUpdate"
+            update_body = {"requests": requests}
+            resp = await client.post(update_url, json=update_body, headers=headers)
+            if resp.status_code != 200:
+                raise ValueError(f"Failed to update Google Doc content: {resp.text}")
+                
+        return doc_id
+
+async def export_topology_to_gslides(topology: dict, client_name: str, access_token: str) -> str:
+    import httpx
+    # 1. Create Presentation
+    create_url = "https://slides.googleapis.com/v1/presentations"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    create_body = {"title": f"Tetrel Security Architecture - {client_name}"}
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(create_url, json=create_body, headers=headers)
+        if resp.status_code != 200:
+            raise ValueError(f"Failed to create Google Slides presentation: {resp.text}")
+        pres_data = resp.json()
+        presentation_id = pres_data["presentationId"]
+        slides = pres_data.get("slides", [])
+        
+        if not slides:
+            raise ValueError("No default slides found in created presentation")
+            
+        slide_id = slides[0]["objectId"]
+        
+        # 2. Add shapes for each node in topology
+        requests = []
+        nodes = topology.get("nodes", [])
+        
+        # Find min/max coordinates to scale to slide size (720x405 pt)
+        xs = [n.get("x", 0) for n in nodes if n.get("x") is not None]
+        ys = [n.get("y", 0) for n in nodes if n.get("y") is not None]
+        
+        min_x = min(xs) if xs else 0
+        max_x = max(xs) if xs else 1
+        min_y = min(ys) if ys else 0
+        max_y = max(ys) if ys else 1
+        
+        range_x = (max_x - min_x) if (max_x - min_x) > 0 else 1
+        range_y = (max_y - min_y) if (max_y - min_y) > 0 else 1
+        
+        for idx, node in enumerate(nodes):
+            node_id = node.get("id")
+            node_type = node.get("type", "device")
+            hostname = node.get("hostname") or node.get("label") or node_id
+            purdue = node.get("purdueLevel", 1)
+            
+            nx = node.get("x", 0)
+            ny = node.get("y", 0)
+            
+            slide_x = 50 + ((nx - min_x) / range_x) * 550
+            slide_y = 50 + ((ny - min_y) / range_y) * 250
+            
+            shape_id = f"node_shape_{idx}"
+            
+            requests.append({
+                "createShape": {
+                    "objectId": shape_id,
+                    "shapeType": "RECTANGLE" if node_type != "zone" else "ROUNDED_RECTANGLE",
+                    "elementProperties": {
+                        "pageObjectId": slide_id,
+                        "size": {
+                            "height": {"magnitude": 50, "unit": "PT"},
+                            "width": {"magnitude": 110, "unit": "PT"}
+                        },
+                        "transform": {
+                            "scaleX": 1,
+                            "scaleY": 1,
+                            "translateX": slide_x,
+                            "translateY": slide_y,
+                            "unit": "PT"
+                        }
+                    }
+                }
+            })
+            
+            requests.append({
+                "insertText": {
+                    "objectId": shape_id,
+                    "text": f"{hostname}\nLevel {purdue} ({node_type.upper()})",
+                    "insertionIndex": 0
+                }
+            })
+            
+        if requests:
+            update_url = f"https://slides.googleapis.com/v1/presentations/{presentation_id}:batchUpdate"
+            update_body = {"requests": requests}
+            resp = await client.post(update_url, json=update_body, headers=headers)
+            if resp.status_code != 200:
+                raise ValueError(f"Failed to update Google Slides presentation: {resp.text}")
+                
+        return presentation_id
+
+async def export_scorecard_to_gsheets(scorecard: list, client_name: str, access_token: str) -> str:
+    import httpx
+    # 1. Create Spreadsheet
+    create_url = "https://sheets.googleapis.com/v4/spreadsheets"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    create_body = {
+        "properties": {
+            "title": f"Tetrel Compliance Scorecard - {client_name}"
+        }
+    }
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(create_url, json=create_body, headers=headers)
+        if resp.status_code != 200:
+            raise ValueError(f"Failed to create Google Sheet: {resp.text}")
+        sheet_data = resp.json()
+        spreadsheet_id = sheet_data["spreadsheetId"]
+        
+        # 2. Prepare scorecard values
+        values = [
+            ["CSET Badge", "Security Controls & Requirement", "Reference Spec Source", "Status"]
+        ]
+        for check in scorecard:
+            badge = check.get("badge", "")
+            desc = check.get("description", "")
+            source = check.get("specSource", "")
+            verified = "VERIFIED" if check.get("verified") else "PENDING"
+            values.append([badge, desc, source, verified])
+            
+        # 3. Update spreadsheet values
+        update_url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/Sheet1!A1:D{len(values)}?valueInputOption=USER_ENTERED"
+        update_body = {
+            "values": values
+        }
+        resp = await client.put(update_url, json=update_body, headers=headers)
+        if resp.status_code != 200:
+            raise ValueError(f"Failed to update Google Sheet values: {resp.text}")
+            
+        return spreadsheet_id
+
+
 @router.post("/notebooks/export/gdocs")
 async def export_proposal_gdocs(request: NotebookExportRequest):
     """
@@ -1248,23 +1801,248 @@ async def export_proposal_gdocs(request: NotebookExportRequest):
     If credentials are not found, falls back to returning a simulated Google Doc URL.
     """
     try:
-        from open_notebook.database.repository import repo_query
-        creds = await repo_query("SELECT * FROM credential WHERE id = 'credential:google_docs'")
-        
-        doc_id = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+        from open_notebook.domain.credential import Credential
+        from pydantic import SecretStr
+        import httpx
+
+        # Try to get active credentials
+        cred = None
+        has_creds = False
+        try:
+            cred = await Credential.get("credential:google_docs")
+            if cred.client_id and cred.client_secret and cred.refresh_token:
+                has_creds = True
+        except Exception:
+            pass
+
+        if not has_creds:
+            # Sandbox simulation mode
+            doc_id = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+            doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
+            return {
+                "success": True,
+                "doc_id": doc_id,
+                "doc_url": doc_url,
+                "message": "Google Docs Export simulated successfully! Configure Google OAuth credentials to export directly."
+            }
+
+        # 1. Refresh/retrieve access token
+        access_token = None
+        if cred.refresh_token:
+            try:
+                client_secret_val = cred.client_secret.get_secret_value()
+                refresh_url = "https://oauth2.googleapis.com/token"
+                data = {
+                    "client_id": cred.client_id,
+                    "client_secret": client_secret_val,
+                    "refresh_token": cred.refresh_token.get_secret_value(),
+                    "grant_type": "refresh_token",
+                }
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(refresh_url, data=data)
+                    if resp.status_code == 200:
+                        token_data = resp.json()
+                        access_token = token_data.get("access_token")
+                        if access_token:
+                            cred.api_key = SecretStr(access_token)
+                            new_refresh = token_data.get("refresh_token")
+                            if new_refresh:
+                                cred.refresh_token = SecretStr(new_refresh)
+                            await cred.save()
+            except Exception as e:
+                logger.error(f"Failed to refresh access token: {e}")
+
+        if not access_token and cred.api_key:
+            access_token = cred.api_key.get_secret_value()
+
+        if not access_token:
+            raise HTTPException(
+                status_code=400,
+                detail="Google Account not linked. Please authorize Google Workspace under settings."
+            )
+
+        # 2. Export proposal markdown to Google Doc
+        doc_id = await export_markdown_to_gdoc(request.markdown, request.clientName, access_token)
         doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
-        
-        if creds:
-            logger.info(f"Google Docs credentials found. Writing SOW for {request.clientName} to Google Docs...")
-            
+
         return {
             "success": True,
             "doc_id": doc_id,
             "doc_url": doc_url,
-            "message": f"Successfully exported proposal for {request.clientName} to Google Docs." if creds else f"Google Docs Export simulated successfully! Setup Google credentials to write directly."
+            "message": f"Successfully exported proposal for {request.clientName} to Google Docs."
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to export Google Docs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/notebooks/export/gslides")
+async def export_proposal_gslides(request: NotebookExportSlidesRequest):
+    """
+    Export SOW topology architecture layout to Google Slides presentation.
+    If credentials are not found, falls back to simulated presentation URL.
+    """
+    try:
+        from open_notebook.domain.credential import Credential
+        from pydantic import SecretStr
+        import httpx
+
+        # Try to get active credentials
+        cred = None
+        has_creds = False
+        try:
+            cred = await Credential.get("credential:google_docs")
+            if cred.client_id and cred.client_secret and cred.refresh_token:
+                has_creds = True
+        except Exception:
+            pass
+
+        if not has_creds:
+            # Sandbox simulation mode
+            presentation_id = "1nCg8p1KxK02Nl-y2_wXzE1_SefG6HszW46V_pP4e5uQ"
+            presentation_url = f"https://docs.google.com/presentation/d/{presentation_id}/edit"
+            return {
+                "success": True,
+                "presentation_id": presentation_id,
+                "presentation_url": presentation_url,
+                "message": "Google Slides Export simulated successfully! Configure Google OAuth credentials to export directly."
+            }
+
+        # 1. Refresh/retrieve access token
+        access_token = None
+        if cred.refresh_token:
+            try:
+                client_secret_val = cred.client_secret.get_secret_value()
+                refresh_url = "https://oauth2.googleapis.com/token"
+                data = {
+                    "client_id": cred.client_id,
+                    "client_secret": client_secret_val,
+                    "refresh_token": cred.refresh_token.get_secret_value(),
+                    "grant_type": "refresh_token",
+                }
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(refresh_url, data=data)
+                    if resp.status_code == 200:
+                        token_data = resp.json()
+                        access_token = token_data.get("access_token")
+                        if access_token:
+                            cred.api_key = SecretStr(access_token)
+                            new_refresh = token_data.get("refresh_token")
+                            if new_refresh:
+                                cred.refresh_token = SecretStr(new_refresh)
+                            await cred.save()
+            except Exception as e:
+                logger.error(f"Failed to refresh access token: {e}")
+
+        if not access_token and cred.api_key:
+            access_token = cred.api_key.get_secret_value()
+
+        if not access_token:
+            raise HTTPException(
+                status_code=400,
+                detail="Google Account not linked. Please authorize Google Workspace under settings."
+            )
+
+        # 2. Export presentation topology shapes
+        presentation_id = await export_topology_to_gslides(request.topology, request.clientName, access_token)
+        presentation_url = f"https://docs.google.com/presentation/d/{presentation_id}/edit"
+
+        return {
+            "success": True,
+            "presentation_id": presentation_id,
+            "presentation_url": presentation_url,
+            "message": f"Successfully exported security architecture for {request.clientName} to Google Slides."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to export Google Slides: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/notebooks/export/gsheets")
+async def export_proposal_gsheets(request: NotebookExportSheetsRequest):
+    """
+    Export SOW compliance checklist scorecard to Google Sheets.
+    If credentials are not found, falls back to simulated spreadsheet URL.
+    """
+    try:
+        from open_notebook.domain.credential import Credential
+        from pydantic import SecretStr
+        import httpx
+
+        # Try to get active credentials
+        cred = None
+        has_creds = False
+        try:
+            cred = await Credential.get("credential:google_docs")
+            if cred.client_id and cred.client_secret and cred.refresh_token:
+                has_creds = True
+        except Exception:
+            pass
+
+        if not has_creds:
+            # Sandbox simulation mode
+            spreadsheet_id = "1yHw-v5T8b7F4P3Z7HwP-x2_wXzE1_SefG6HszW46V_pP"
+            spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+            return {
+                "success": True,
+                "spreadsheet_id": spreadsheet_id,
+                "spreadsheet_url": spreadsheet_url,
+                "message": "Google Sheets Export simulated successfully! Configure Google OAuth credentials to export directly."
+            }
+
+        # 1. Refresh/retrieve access token
+        access_token = None
+        if cred.refresh_token:
+            try:
+                client_secret_val = cred.client_secret.get_secret_value()
+                refresh_url = "https://oauth2.googleapis.com/token"
+                data = {
+                    "client_id": cred.client_id,
+                    "client_secret": client_secret_val,
+                    "refresh_token": cred.refresh_token.get_secret_value(),
+                    "grant_type": "refresh_token",
+                }
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(refresh_url, data=data)
+                    if resp.status_code == 200:
+                        token_data = resp.json()
+                        access_token = token_data.get("access_token")
+                        if access_token:
+                            cred.api_key = SecretStr(access_token)
+                            new_refresh = token_data.get("refresh_token")
+                            if new_refresh:
+                                cred.refresh_token = SecretStr(new_refresh)
+                            await cred.save()
+            except Exception as e:
+                logger.error(f"Failed to refresh access token: {e}")
+
+        if not access_token and cred.api_key:
+            access_token = cred.api_key.get_secret_value()
+
+        if not access_token:
+            raise HTTPException(
+                status_code=400,
+                detail="Google Account not linked. Please authorize Google Workspace under settings."
+            )
+
+        # 2. Export scorecard sheet rows
+        spreadsheet_id = await export_scorecard_to_gsheets(request.scorecard, request.clientName, access_token)
+        spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+
+        return {
+            "success": True,
+            "spreadsheet_id": spreadsheet_id,
+            "spreadsheet_url": spreadsheet_url,
+            "message": f"Successfully exported compliance scorecard for {request.clientName} to Google Sheets."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to export Google Sheets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

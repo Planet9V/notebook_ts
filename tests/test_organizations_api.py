@@ -8,6 +8,14 @@ client = TestClient(app)
 def test_organizations_crud():
     # Make sure to cleanup if it exists
     org_id_to_cleanup = None
+    import asyncio
+    from open_notebook.database.repository import repo_query, repo_delete
+    async def prep():
+        res = await repo_query("SELECT id FROM organization WHERE name = 'Test Org 1';")
+        for r in res:
+            await repo_delete(r["id"])
+    asyncio.run(prep())
+    
     try:
         payload = {"name": "Test Org 1", "type": "customer"}
         res = client.post("/api/organizations", json=payload)

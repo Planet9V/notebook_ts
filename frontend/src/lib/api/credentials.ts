@@ -21,6 +21,13 @@ export interface Credential {
   updated: string
   model_count: number
   decryption_error?: string | null
+  client_id?: string | null
+  client_secret?: string | null
+  redirect_uri?: string | null
+  scopes?: string[] | null
+  refresh_token?: string | null
+  has_client_secret?: boolean
+  has_refresh_token?: boolean
 }
 
 export interface CreateCredentialRequest {
@@ -38,6 +45,11 @@ export interface CreateCredentialRequest {
   project?: string
   location?: string
   credentials_path?: string
+  client_id?: string
+  client_secret?: string
+  redirect_uri?: string
+  scopes?: string[]
+  refresh_token?: string
 }
 
 export interface UpdateCredentialRequest {
@@ -54,6 +66,11 @@ export interface UpdateCredentialRequest {
   project?: string
   location?: string
   credentials_path?: string
+  client_id?: string
+  client_secret?: string
+  redirect_uri?: string
+  scopes?: string[]
+  refresh_token?: string
 }
 
 export interface DiscoveredModel {

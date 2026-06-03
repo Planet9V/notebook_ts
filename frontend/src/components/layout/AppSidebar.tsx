@@ -53,6 +53,7 @@ import {
   Boxes,
   FlaskConical,
   Contact2,
+  Calendar,
 } from 'lucide-react'
 import { VoiceStatusIndicator } from '@/components/voice/VoiceStatusIndicator'
 
@@ -87,6 +88,7 @@ const getNavigation = (t: TFunction) => [
     title: t('navigation.create'),
     items: [
       { name: t('navigation.podcasts'), href: '/podcasts', icon: Mic },
+      { name: t('navigation.publications', 'Publications'), href: '/publications', icon: Calendar },
     ],
   },
   {

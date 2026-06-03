@@ -1323,6 +1323,80 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
     }
   }
 
+  const handleExportGoogleSlides = async () => {
+    if (!isExportReady) return
+
+    let parsedTopology = { nodes: [], edges: [] }
+    try {
+      parsedTopology = JSON.parse(topologyGraph)
+    } catch (e) {
+      console.error('Failed to parse topologyGraph:', e)
+    }
+
+    try {
+      const response = await apiClient.post('/notebooks/export/gslides', {
+        clientName: params.clientName,
+        topology: parsedTopology
+      })
+
+      const data = response.data
+      if (data.success) {
+        window.open(data.presentation_url, '_blank')
+        setPromptFeedback({
+          type: 'success',
+          message: data.message
+        })
+      } else {
+        throw new Error(data.message)
+      }
+      setTimeout(() => setPromptFeedback(null), 4000)
+    } catch (err: any) {
+      console.error('Failed to export to Google Slides:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: `Google Slides Error: ${err.response?.data?.detail || err.message || 'Failed to export presentation.'}`
+      })
+      setTimeout(() => setPromptFeedback(null), 4000)
+    }
+  }
+
+  const handleExportGoogleSheets = async () => {
+    if (!isExportReady) return
+
+    try {
+      const response = await apiClient.post('/notebooks/export/gsheets', {
+        clientName: params.clientName,
+        notebookId: notebookId,
+        scorecard: activeChecks.map(c => ({
+          id: c.id,
+          badge: c.badge,
+          description: c.description,
+          specSource: c.specSource,
+          verified: c.checked
+        }))
+      })
+
+      const data = response.data
+      if (data.success) {
+        window.open(data.spreadsheet_url, '_blank')
+        setPromptFeedback({
+          type: 'success',
+          message: data.message
+        })
+      } else {
+        throw new Error(data.message)
+      }
+      setTimeout(() => setPromptFeedback(null), 4000)
+    } catch (err: any) {
+      console.error('Failed to export to Google Sheets:', err)
+      setPromptFeedback({
+        type: 'error',
+        message: `Google Sheets Error: ${err.response?.data?.detail || err.message || 'Failed to export scorecard.'}`
+      })
+      setTimeout(() => setPromptFeedback(null), 4000)
+    }
+  }
+
   const handlePrintPdf = () => {
     if (!isExportReady) return
     window.print()
@@ -2977,6 +3051,12 @@ ${verifiedChecks.map(c => `| **${c.badge}** | ${c.description} | *${c.specSource
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportGoogleDocs} className="hover:bg-slate-800 cursor-pointer font-mono text-xs uppercase text-slate-200">
                 Export to Google Docs
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportGoogleSlides} className="hover:bg-slate-800 cursor-pointer font-mono text-xs uppercase text-slate-200">
+                Export to Google Slides
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportGoogleSheets} className="hover:bg-slate-800 cursor-pointer font-mono text-xs uppercase text-slate-200">
+                Export to Google Sheets
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

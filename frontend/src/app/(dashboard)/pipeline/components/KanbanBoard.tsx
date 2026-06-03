@@ -280,9 +280,10 @@ export function KanbanBoard({ notebooks, onCardClick, pipelineType = 'sales' }: 
         id: draggableId,
         data: { stage: destColId },
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update stage on server, reverting board state.', error)
-      toast.error('Failed to move deal — reverted')
+      const errorMsg = error.response?.data?.detail || 'Failed to move deal — reverted'
+      toast.error(errorMsg)
       // Rollback to original sync state by re-triggering from prop notebooks
       const rollback: Record<string, NotebookResponse[]> = Object.fromEntries(
         stages.map((s) => [s, []])

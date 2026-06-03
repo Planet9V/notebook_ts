@@ -1,108 +1,87 @@
-# Task Plan: Voice & Podcast Enhancements and Next-Stage Roadmap
+# Task Plan: Social Media Cron Tracker & Google Workspace Exporter Engine
 
-This task plan outlines the next logical 3 items (focused on Voice & Podcast Enhancements) followed by the next 10 items in portions of 3 (encompassing CRM Pipelines, Search/RAG, Social Media/Email Automation, and Workspace Document Generation). 
+This task plan details the sequential development and verification of **Sub-Plan A (Social Media Cron Tracker & Metrics Dashboard)** and **Sub-Plan B (Styleguide Exporter & Google Workspace Connectors)**. 
 
-We strictly enforce **Karpathy Rules** (readable, complete code with no stubs/mock bypasses), accessibility audits, strict type-safety checks, and TDD-based automated testing.
+Both phases strictly adhere to the **Karpathy Rules** (readable, robust, non-stubbed code with zero mock bypasses in production paths) and guarantee that **all configuration parameters** (SMTP credentials, OAuth Client IDs, secrets, redirect URIs, and scopes) can be fully managed via the web-based Admin interface.
 
 ---
 
 ## Goal
-Establish a robust, fully-integrated roadmap and plan files, transitioning from Tenant & Organization Isolation to Voice, CRM, RAG, and Social Media/Email features.
+Implement background social media engagement metrics tracking, timeseries Reach charts, and robust Google Workspace exporters (Docs, Sheets, Slides) linked to dynamic client style guides, fully configurable via the web-based settings panels.
 
 ## Current Phase
-Phase 1: Planning & Setup
+Phase 1: Sub-Plan A Frontend Reach Charts
 
 ---
 
-## 📋 The Roadmap & Checklist
+## 📋 Execution Checklist
 
-### 🎙️ Phase 1: Voice & Podcast Enhancements (Next 3 Items)
+### 📊 Sub-Plan A: Social Media Cron Tracker & Metrics Dashboard (Remaining)
 - **Status:** in_progress
 
-#### Item 1: TTS Engine Pre-Flight Checks & Backend Validation
-- [x] Write failing pytest cases in `tests/test_voice_preflight.py` checking validation checks for TTS engines.
-- [x] Implement pre-flight health checks and authentication checks for all configured TTS providers (Kokoro, OpenAI, ElevenLabs, Deepgram) in `api/routers/voice.py` under a new `/api/voice/preflight` endpoint.
-- [x] Wire the pre-flight checks to the frontend Voice Settings page, ensuring that engines are validated before they can be selected.
-- [x] Verify using the test suite.
-
-#### Item 2: Autonomous Episode Writing & Scheduling Engine
-- [x] Create failing pytest cases in `tests/test_episode_scheduler.py` verifying automated drafting and scheduling.
-- [x] Build background worker tasks/endpoints inside `api/routers/podcasts.py` that crawl active notebook sources, notes, and frameworks, automatically compiling podcast outlines, drafting dialogue transcripts, and scheduling audio rendering.
-- [x] Design the UI dashboard under `/podcasts` to show scheduled episodes, outlines, draft states, and manual trigger controls.
-- [x] Validate database updates (new `scheduled_episode` schema in SurrealDB).
-
-#### Item 3: Advanced Voice RAG Citations & Dialogue Memory
-- [ ] Create failing pytest cases in `tests/test_voice_rag_citation.py` verifying dialogue memory and SSE citation events.
-- [ ] Modify `api/routers/voice_rag.py` to maintain multi-turn short-term dialogue context memory during WebRTC voice sessions.
-- [ ] Wire the LiveKit audio stream agent to emit a JSON SSE sub-event containing document citation source paths alongside synthesized response speech.
-- [ ] Verify end-to-end voice session interactions.
+#### Task A.4: Update Publications page frontend with reach graphs
+- [ ] Add `getMetricsHistory` API call in [publications.ts](file:///Users/jimmcknney/notebook_tetrel/frontend/src/lib/api/publications.ts) fetching from `GET /api/publications/metrics/history`.
+- [ ] Add `PublicationMetricsHistoryEntry` model to [publications.ts](file:///Users/jimmcknney/notebook_tetrel/frontend/src/lib/types/publications.ts).
+- [ ] Add an SVG-based timeseries reach line chart on the Publications Dashboard [page.tsx](file:///Users/jimmcknney/notebook_tetrel/frontend/src/app/%28dashboard%29/publications/page.tsx) rendering historical views, clicks, and interactions over time.
+- [ ] Add a channel-based select filter (All, LinkedIn, Twitter, Email) to dynamically filter timeseries data.
+- [ ] Verify type-safety with `npx tsc --noEmit` and run the application.
 
 ---
 
-### 📂 Phase 2: CRM & Sales Pipeline Multi-Views (Items 4-6)
+### 📂 Sub-Plan B: Styleguide Exporter & Google Workspace Connectors
 - **Status:** pending
 
-#### Item 4: Kanban Board and Calendar Multi-Views for Pipelines
-- [ ] Expand the Kanban board component (`frontend/src/app/(dashboard)/pipeline`) to support alternative views: Table, List, and Calendar view of close dates.
-- [ ] Ensure full accessibility, keyboard navigation, and aria labels for toggles.
+#### Task B.1: Create database migrations for Google OAuth credentials structure
+- [ ] Create SurrealQL migration `37.surrealql` to pre-seed default `google_workspace` credential record template if not exists.
+- [ ] Create SurrealQL rollback `37_down.surrealql`.
+- [ ] Register migration 37 in `open_notebook/database/async_migrate.py`.
+- [ ] Run pytest suite to verify migrations apply cleanly.
 
-#### Item 5: Team Member Assignment per Kanban Card
-- [ ] Add `assigned_to` (user record) field mapping in SurrealDB pipeline schemas.
-- [ ] Implement team member dropdown search and assignment selectors in the pipeline cards and inspector UI.
+#### Task B.2: Google Workspace credentials settings forms
+- [ ] Modify [page.tsx](file:///Users/jimmcknney/notebook_tetrel/frontend/src/app/%28dashboard%29/settings/publications/page.tsx) to add a card for **Google Workspace & Drive Exporters Configuration**:
+  - Inputs for: Client ID, Client Secret, Redirect URI (showing default backend URL), Scopes.
+  - Displays linked status (Linked with Google Account [Email] or Not Connected).
+  - Button to initialize authorization flow.
+- [ ] Add backend endpoints in [publications.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/publications.py) or `credentials.py` to get/update Google OAuth client configurations in `credential:google_docs` table.
 
-#### Item 6: Pipeline Linking to Customers & Projects
-- [ ] Modify database relationships to link pipeline deals/cards directly to customer ledger records and notebook workspaces.
-- [ ] Display quick links in the sidebar/cards to jump to corresponding client dossiers or notes.
+#### Task B.3: Implement Google OAuth authentication redirect flow callback
+- [ ] Add callback handler `GET /api/credentials/oauth/callback` in [credentials.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/credentials.py).
+- [ ] Exchange authorization code for access and refresh tokens.
+- [ ] Encrypt and persist tokens into `credential:google_docs`.
+- [ ] Return a simple success template indicating successful account linking.
 
----
+#### Task B.4: Implement branded DOCX/PDF style guide compiler
+- [ ] Update `compile_markdown_to_docx` in [notebooks.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/notebooks.py) to load dynamic styles (fonts, primary/secondary colors, margins, logos) from the chosen `StyleGuide` database model.
+- [ ] Support custom font families, colored headers, custom margins, and logos.
 
-### 🔍 Phase 3: Multi-Engine Search & RAG Enhancements (Items 7-9)
-- **Status:** pending
+#### Task B.5: Implement Google Docs SOW exporter
+- [ ] Refactor `POST /notebooks/export/gdocs` in [notebooks.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/notebooks.py) to authenticate via stored Google credentials.
+- [ ] Use `googleapiclient.discovery` to dynamically construct, write, and format document headers, sections, and tables natively in Google Docs.
+- [ ] Automatically upload to the user's Google Drive and return the document edit URL.
 
-#### Item 7: Native Reranker Model Support
-- [ ] Update `ModelManager` to support cross-encoder rerankers, Cohere, or local Ollama reranking models directly.
-- [ ] Write integration tests verifying score realignment.
+#### Task B.6: Implement Google Slides and Sheets connectors
+- [ ] Add `POST /notebooks/export/gslides` creating presentations from network drawing assets (converting nodes/edges from canvas to slide shapes).
+- [ ] Add `POST /notebooks/export/gsheets` compiling CSET compliance quiz checklist answers into spreadsheets.
+- [ ] Wire both exporters in the [B2BDraftingWorkspace.tsx](file:///Users/jimmcknney/notebook_tetrel/frontend/src/app/%28dashboard%29/notebooks/components/B2BDraftingWorkspace.tsx) dropdown menu.
 
-#### Item 8: Reranker Configuration in Search Settings
-- [ ] Expose reranker model selection, weight sliders, and testing triggers in the Admin configuration dashboard.
-- [ ] Persist settings directly in the system configuration table.
-
-#### Item 9: Multiple Pipeline Types (Sales, Research, Publication)
-- [ ] Extend the pipeline schema to support different pipeline workflows: Sales Kanban, Research pipeline, and Publication queue.
-- [ ] Expose a dropdown in the UI to switch between active pipeline types.
-
----
-
-### ✉️ Phase 4: Social Media, Email & Docs Publication (Items 10-13)
-- **Status:** pending
-
-#### Item 10: SMTP & OAuth Integration for Gmail/Outlook
-- [ ] Build backend configuration endpoints for SMTP settings and OAuth tokens.
-- [ ] Support testing connection health and credentials validation directly in the UI.
-
-#### Item 11: Content Calendar & Social Scheduler (LinkedIn, Twitter)
-- [ ] Implement content calendar view displaying scheduled social media posts and email sequences.
-- [ ] Create post scheduler drafting workflow with media upload support.
-
-#### Item 12: Social Media Response & Reply Tracker
-- [ ] Implement background cron tasks using skills to track replies, impressions, and engagement metrics for published content.
-- [ ] Display metrics dashboards inside the content planner workspace.
-
-#### Item 13: Styleguide-Driven Templates and Google Workspace Ingestion
-- [ ] Build template engines matching user styleguides for PDF/DOCX compiler.
-- [ ] Fully wire Google Slides/Sheets/Docs direct publishing connectors.
+#### Task B.7: Automated integration tests for Google Workspace
+- [ ] Create `tests/test_google_workspace_exporter.py` verifying full token exchange, styleguide doc generation, and file uploads.
+- [ ] Run the complete test suite.
 
 ---
 
 ## 🧪 Verification Log
 | Task | Method | Status | Details |
 |------|--------|--------|---------|
-| Item 1 | `pytest tests/test_voice_preflight.py` | [x] | Passed |
-| Item 2 | `pytest tests/test_episode_scheduler.py` | [x] | Passed |
-| Item 3 | `pytest tests/test_voice_rag_citation.py` | [ ] | Pending |
-| E2E | `npx tsc --noEmit` & `npm run build` | [x] | Typechecks clean |
+| Task A.1 - A.3 | `pytest tests/test_publications_tracker.py` | [x] | Passed 100% |
+| Task A.4 | `npx tsc --noEmit` & page navigation | [ ] | Pending |
+| Task B.1 | `pytest tests/test_config_api.py` | [ ] | Pending |
+| Task B.3 - B.6 | `pytest tests/test_google_workspace_exporter.py` | [ ] | Pending |
 
 ## ⚠️ Errors Encountered & Resolution
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | None | - | - |
+
+---
+*Update this file after every phase is completed.*

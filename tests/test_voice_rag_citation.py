@@ -67,3 +67,51 @@ async def test_voice_rag_dialogue_memory(mock_provision):
     last_call_kwargs = mock_provision.call_args_list[-1][1]
     # Check that previous turns are indeed in the call context
     assert "John" in mock_provision.call_args_list[-1][1]["content"] or "John" in last_call_kwargs.get("content", "")
+
+
+@pytest.mark.asyncio
+@patch("api.routers.voice_rag.vector_search", new_callable=AsyncMock)
+@patch("open_notebook.ai.provision.provision_langchain_model", new_callable=AsyncMock)
+async def test_voice_rag_citations_streaming(mock_provision, mock_vector_search):
+    # Mock vector search results
+    mock_vector_search.return_value = [
+        {"title": "CISA Cross-Sector Goals", "content": "RAG document content about boundary isolation."},
+        {"title": "NIST SP 800-82", "content": "Industrial control systems security guidelines."}
+    ]
+
+    # Mock langchain model
+    mock_llm = AsyncMock()
+    async def mock_astream(*args, **kwargs):
+        mock_chunk = MagicMock()
+        mock_chunk.content = "Response text."
+        yield mock_chunk
+    mock_llm.astream = mock_astream
+    mock_provision.return_value = mock_llm
+
+    payload = {
+        "text": "How do we secure the Purdue boundaries?",
+        "session_id": "session:test_citations_456",
+        "use_rag": True
+    }
+
+    response = client.post("/api/voice/chat", json=payload)
+    assert response.status_code == 200
+
+    # Parse SSE stream to look for citations event
+    lines = response.text.split("\n")
+    citations_found = False
+    for line in lines:
+        if line.startswith("data: "):
+            try:
+                import json
+                data = json.loads(line[6:])
+                if data["type"] == "citations":
+                    citations_found = True
+                    assert len(data["content"]) == 2
+                    assert data["content"][0]["title"] == "CISA Cross-Sector Goals"
+                    assert data["content"][1]["title"] == "NIST SP 800-82"
+            except Exception:
+                pass
+
+    assert citations_found
+

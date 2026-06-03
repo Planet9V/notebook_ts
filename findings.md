@@ -1,84 +1,57 @@
-# Findings & Decisions: Voice & Podcast, CRM, RAG, and Publication Roadmap
+# Findings & Decisions: Social Media Cron Tracker & Google Workspace Exporter
 
-**Date:** 2026-06-03  
-**Goal:** Track requirements and research findings for the upcoming features.
-
----
-
-## Requirements
-
-1. **TTS Engine Pre-Flight Checks & Backend Validation (Item 1)**
-   - Pre-flight checks for Kokoro, OpenAI, ElevenLabs, and Deepgram in `api/routers/voice.py`
-   - Active validation of API keys, URLs, and status before enabling selection in settings
-   - Zero-stub, high-fidelity error sanitization
-
-2. **Autonomous Episode Writing & Scheduling Engine (Item 2)**
-   - Crawl notebook sources, notes, and frameworks dynamically
-   - Build background worker task to outline episodes and draft transcripts
-   - Database schemas for scheduled episodes and publication statuses
-
-3. **Advanced Voice RAG Citations & Dialogue Memory (Item 3)**
-   - Short-term conversation dialogue memory for multi-turn WebRTC chat
-   - Streaming document source citations via custom SSE sub-events in LiveKit Voice RAG
-
-4. **CRM & Sales Pipeline Multi-Views (Items 4-6)**
-   - Multi-views (Table, List, Calendar) on Kanban board
-   - Card assignment to team members (`user` relation)
-   - Deal cards linked to customer ledger records and project notebooks
-
-5. **Multi-Engine Search & RAG Enhancements (Items 7-9)**
-   - Native cross-encoder and local Ollama reranking support
-   - Sliders and selection configurations inside Search Settings UI
-   - Multiple pipeline types (Sales, Research, Publication)
-
-6. **Social Media, Email & Docs Publication (Items 10-13)**
-   - SMTP & OAuth integration for automated email sequencing
-   - Content calendar and post scheduling with media attachment options
-   - Post performance metrics tracker (impressions, reactions, replies)
-   - Styleguide-driven PDF/DOCX templates and Google Workspace connectors
+This document tracks configuration variables, technical findings, and design decisions for **Sub-Plan A** and **Sub-Plan B**.
 
 ---
 
-## Research Findings
+## 1. Google Workspace Variables & Configuration
+The system allows admins to manage all environment-level and integration-level variables dynamically via the Web Admin panel. These variables are stored in the `credential:google_docs` record in the database:
 
-### 1. Voice Router (`api/routers/voice.py`)
-- We discovered that `voice.py` resolves API keys for OpenAI, ElevenLabs, and Deepgram via `_get_provider_api_key`.
-- It currently exposes a fallback hardcoded list of voices for Kokoro if the service is offline.
-- A new endpoint `POST /api/voice/preflight` needs to be defined to test engine configurations dynamically (e.g. attempting a minimal TTS synthesis query or validating API credentials).
-
-### 2. Podcasts & Episode Profiles (`api/routers/podcasts.py`)
-- `podcasts.py` contains basic podcast structure and episode metadata.
-- We need to introduce background worker tasks using Python's asyncio or background tasks parameter to compile and schedule episodes asynchronously without blocking the client thread.
-
-### 3. Voice RAG (`api/routers/voice_rag.py`)
-- `voice_rag.py` coordinates LiveKit sessions.
-- Multi-turn dialogue memory is currently stateless or relies on LiveKit WebRTC state. To support multi-turn dialogue memory, we need to persist dialogue context (e.g. recent conversation turns) in a session-tied memory buffer.
-- Source citations must be structured as server-sent events (`citations` event) and sent to the client to render on-screen.
+| Configuration Variable | Database Property | UI Control Element | Description |
+|------------------------|-------------------|---------------------|-------------|
+| Client ID | `client_id` | Input field | Google API Console OAuth 2.0 client credential identifier. |
+| Client Secret | `client_secret` | Password/Text field | Google API Console OAuth 2.0 secret (stored encrypted). |
+| Redirect URI | `redirect_uri` | Read-only input | OAuth redirect callback handler (default: `/api/credentials/oauth/callback`). |
+| Authorized Scopes | `scopes` | Select / Multi-checkbox | Authorized scopes (e.g. `documents`, `spreadsheets`, `presentations`, `drive.file`). |
+| Refresh Token | `refresh_token` | Status message | Stored OAuth refresh token used to request new access tokens. |
 
 ---
 
-## Technical Decisions
+## 2. Technical Findings
+
+### 2.1 Publications Performance Charts (Task A.4)
+- **Status**: Backend timeseries metrics endpoints `GET /api/publications/metrics/history` and manual tracking trigger `POST /api/publications/metrics/track-due` are fully functional and pass all integration tests.
+- **Frontend Charting**: Since there is no Recharts or Tremor library in `package.json`, we will render a custom, highly styled SVG line/bar graph inside `frontend/src/app/(dashboard)/publications/page.tsx`.
+- **SVG Styling Details**: We will use smooth gradients (fade-in areas), precise path coordinate calculations, and grid lines. The chart will support a channel filter ("All Channels", "LinkedIn", "Twitter", "Email") to toggle timeseries visibility.
+
+### 2.2 Google OAuth Authentication Flow (Tasks B.2 - B.3)
+1. **Consent Screen Redirect**: The frontend initiates authorization by redirecting to Google's consent screen. Client ID and Scopes are retrieved dynamically from `credential:google_docs`.
+2. **Callback Handler**: Google redirects the browser to `GET /api/credentials/oauth/callback?code=...`.
+3. **Token Exchange**: The backend exchanges the code for access and refresh tokens using `httpx.post("https://oauth2.googleapis.com/token", data=...)`.
+4. **Encryption**: The refresh token is encrypted using the server's master key (`OPEN_NOTEBOOK_ENCRYPTION_KEY`) before saving in SurrealDB, matching the existing `api_key` encryption model in `Credential._prepare_save_data`.
+
+### 2.3 Styleguide DOCX Compiler (Task B.4)
+- **Current State**: `compile_markdown_to_docx` in `api/routers/notebooks.py` uses hardcoded Calibri fonts and `#ef4444` colors.
+- **Styleguide Mapping**: We will update the compiler to load the chosen `StyleGuide` record. It will dynamically apply the style guide's fields:
+  - Font Families (`title_font`, `body_font`)
+  - Typography Sizes (`title_size`, `heading_size`, etc.)
+  - Color Brand Schemes (`primary_color`, `secondary_color`, `accent_color`)
+  - Page margins (`margin_top`, `margin_bottom`, `margin_left`, `margin_right`)
+
+### 2.4 Google Docs, Slides & Sheets Exporters (Tasks B.5 - B.6)
+- **Google Docs Exporter (`POST /notebooks/export/gdocs`)**: Exchanges the refresh token for a fresh access token, uses `googleapiclient.discovery` to build a Docs document, and formats sections and tables natively.
+- **Google Slides Exporter (`POST /notebooks/export/gslides`)**: Fetches all `asset` records linked to the notebook (which are the drawn nodes from the React Flow canvas) and draws matching boxes, labels, and text on a new slides deck.
+- **Google Sheets Exporter (`POST /notebooks/export/gsheets`)**: Compiles all assessment/quiz scorecard responses for the notebook and dumps them into a structured checklist spreadsheet.
+
+---
+
+## 3. Technical Decisions
+
 | Decision | Rationale |
 |----------|-----------|
-| State-backed Conversation Memory | Preserves context across multi-turn WebRTC voice streams, preventing LLM context loss |
-| SSE-Based Citations | Standardized Server-Sent Events are already used in standard chat; extending this to Voice RAG ensures UI alignment |
-| background_tasks for Scheduler | FastAPI's built-in `BackgroundTasks` avoids external Celery/RabbitMQ dependencies, keeping container footprint low |
+| Custom SVG Line Chart | Avoids adding third-party library bloat and possible dependency version clashes (Next.js 16/React 19 compatibility). |
+| Secure Callback Route | Re-uses the existing `/api/credentials` encryption framework for OAuth tokens to prevent sensitive secrets from leaking. |
+| Google Client Library | Leverages the official Google Client python libraries to ensure robust API calls and minimize custom request logic. |
 
 ---
-
-## Issues Encountered
-| Issue | Resolution |
-|-------|------------|
-| None | - |
-
----
-
-## Resources
-- PRD: [PRD.md](file:///Users/jimmcknney/notebook_tetrel/docs/PRD.md)
-- Voice Router: [voice.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/voice.py)
-- Voice RAG: [voice_rag.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/voice_rag.py)
-- Podcasts Router: [podcasts.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/podcasts.py)
-
----
-*Update this file after every 2 view/browser/search operations*
-*This prevents visual information from being lost*
+*Update this file after any discovery is made.*
