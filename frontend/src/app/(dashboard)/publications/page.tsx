@@ -107,11 +107,11 @@ export default function PublicationsPage() {
   const getChannelColor = (channel: string) => {
     switch (channel) {
       case 'linkedin':
-        return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
       case 'twitter':
-        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+        return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20'
       case 'email':
-        return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
       default:
         return 'bg-secondary text-secondary-foreground'
     }
@@ -122,9 +122,9 @@ export default function PublicationsPage() {
       case 'draft':
         return <Badge variant="secondary" className="capitalize">{status}</Badge>
       case 'queued':
-        return <Badge variant="outline" className="capitalize text-yellow-500 border-yellow-500/30 bg-yellow-500/5">{status}</Badge>
+        return <Badge variant="outline" className="capitalize text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/5">{status}</Badge>
       case 'published':
-        return <Badge className="capitalize bg-green-500/15 text-green-400 border-green-500/25 hover:bg-green-500/25">{status}</Badge>
+        return <Badge className="capitalize bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/25 hover:bg-green-500/25">{status}</Badge>
       case 'failed':
         return <Badge variant="destructive" className="capitalize">{status}</Badge>
       default:
@@ -250,49 +250,49 @@ export default function PublicationsPage() {
 
           {/* Performance KPIs Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="hover:shadow-md transition-all duration-200 border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+            <Card className="tetrel-glass card-hover border-border/40">
               <CardContent className="p-5 flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Reach</p>
                   <p className="text-2xl font-bold text-foreground">{metrics.total_views.toLocaleString()}</p>
                 </div>
-                <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
+                <div className="p-2.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-500/20">
                   <Eye className="h-5 w-5" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-all duration-200 border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+            <Card className="tetrel-glass card-hover border-border/40">
               <CardContent className="p-5 flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Clicks</p>
                   <p className="text-2xl font-bold text-foreground">{metrics.total_clicks.toLocaleString()}</p>
                 </div>
-                <div className="p-2.5 bg-green-500/10 text-green-400 rounded-lg border border-green-500/20">
+                <div className="p-2.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg border border-green-500/20">
                   <MousePointerClick className="h-5 w-5" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-all duration-200 border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+            <Card className="tetrel-glass card-hover border-border/40">
               <CardContent className="p-5 flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Click Rate (CTR)</p>
                   <p className="text-2xl font-bold text-foreground">{metrics.ctr}%</p>
                 </div>
-                <div className="p-2.5 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/20">
+                <div className="p-2.5 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg border border-cyan-500/20">
                   <TrendingUp className="h-5 w-5" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-all duration-200 border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+            <Card className="tetrel-glass card-hover border-border/40">
               <CardContent className="p-5 flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Scheduled Queue</p>
                   <p className="text-2xl font-bold text-foreground">{totalQueuedCount}</p>
                 </div>
-                <div className="p-2.5 bg-yellow-500/10 text-yellow-400 rounded-lg border border-yellow-500/20">
+                <div className="p-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-500/20">
                   <Clock className="h-5 w-5" />
                 </div>
               </CardContent>
@@ -300,8 +300,8 @@ export default function PublicationsPage() {
           </div>
 
           {/* Timeseries reach analytics card */}
-          <Card className="border-sidebar-border/10 bg-card/40 backdrop-blur-md">
-            <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2 border-b border-sidebar-border/10">
+          <Card className="tetrel-glass border-border/40 shadow-sm">
+            <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border/40">
               <div>
                 <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
                   <Activity className="h-4.5 w-4.5 text-primary" />
@@ -325,7 +325,7 @@ export default function PublicationsPage() {
             </CardHeader>
             <CardContent className="p-4 pt-6">
               {chartData.length < 2 ? (
-                <div className="flex flex-col items-center justify-center h-[180px] border border-dashed border-sidebar-border/15 rounded-lg text-muted-foreground bg-slate-950/10">
+                <div className="flex flex-col items-center justify-center h-[180px] border border-dashed border-border/30 rounded-lg text-muted-foreground bg-slate-950/10">
                   <TrendingUp className="h-7 w-7 opacity-20 mb-2" />
                   <p className="text-xs font-bold font-mono tracking-wider uppercase">Reach History Pending</p>
                   <p className="text-[10px] text-muted-foreground/80 max-w-sm mt-1 text-center leading-normal">
@@ -350,7 +350,7 @@ export default function PublicationsPage() {
                         <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
                       </linearGradient>
                     </defs>
-
+ 
                     {/* Horizontal Grid lines */}
                     {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
                       const y = paddingTop + r * drawableHeight
@@ -358,14 +358,15 @@ export default function PublicationsPage() {
                       return (
                         <g key={i}>
                           <line
-                            x1={paddingLeft}
-                            y1={y}
-                            x2={width - paddingRight}
-                            y2={y}
-                            stroke="rgba(255,255,255,0.04)"
-                            strokeWidth={1}
-                            strokeDasharray="4 4"
-                          />
+                             x1={paddingLeft}
+                             y1={y}
+                             x2={width - paddingRight}
+                             y2={y}
+                             stroke="currentColor"
+                             className="stroke-border/40"
+                             strokeWidth={1}
+                             strokeDasharray="4 4"
+                           />
                           <text
                             x={paddingLeft - 8}
                             y={y + 3}
@@ -456,10 +457,10 @@ export default function PublicationsPage() {
             {/* Sidebar (25%) */}
             <div className="space-y-6 flex flex-col h-[750px] overflow-y-auto pr-1">
               {/* Scheduled Queue Sidebar */}
-              <Card className="border-sidebar-border/10 bg-card/40 backdrop-blur-md flex-1 flex flex-col min-h-[300px]">
-                <CardHeader className="p-4 border-b border-sidebar-border/20">
+              <Card className="tetrel-glass flex-1 flex flex-col min-h-[300px] border-border/40 shadow-sm">
+                <CardHeader className="p-4 border-b border-border/40">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                    <Clock className="h-4 w-4 text-yellow-500" />
+                    <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     Scheduled Queue ({queued.length})
                   </CardTitle>
                   <CardDescription className="text-xs">Posts currently queued for automatic delivery.</CardDescription>
@@ -476,7 +477,7 @@ export default function PublicationsPage() {
                       <div
                         key={post.id}
                         onClick={() => handleEditPostClick(post)}
-                        className="p-3 rounded-lg border border-sidebar-border/15 bg-background/50 hover:bg-muted/30 hover:border-sidebar-border/30 transition-all duration-150 cursor-pointer space-y-2 group"
+                        className="p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/30 hover:border-primary/30 transition-all duration-150 cursor-pointer space-y-2 group"
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <Badge variant="outline" className={`capitalize text-[10px] py-0 px-2 h-4.5 border ${getChannelColor(post.channel)}`}>
@@ -496,8 +497,8 @@ export default function PublicationsPage() {
               </Card>
 
               {/* Drafts Sidebar */}
-              <Card className="border-sidebar-border/10 bg-card/40 backdrop-blur-md flex-1 flex flex-col min-h-[300px]">
-                <CardHeader className="p-4 border-b border-sidebar-border/20">
+              <Card className="tetrel-glass flex-1 flex flex-col min-h-[300px] border-border/40 shadow-sm">
+                <CardHeader className="p-4 border-b border-border/40">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     Draft Publications ({drafts.length})
@@ -516,7 +517,7 @@ export default function PublicationsPage() {
                       <div
                         key={post.id}
                         onClick={() => handleEditPostClick(post)}
-                        className="p-3 rounded-lg border border-sidebar-border/15 bg-background/50 hover:bg-muted/30 hover:border-sidebar-border/30 transition-all duration-150 cursor-pointer space-y-2 group"
+                        className="p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/30 hover:border-primary/30 transition-all duration-150 cursor-pointer space-y-2 group"
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <Badge variant="outline" className={`capitalize text-[10px] py-0 px-2 h-4.5 border ${getChannelColor(post.channel)}`}>

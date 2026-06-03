@@ -228,7 +228,7 @@ export default function PublicationsSettingsPage() {
             ) : (
               <div className="grid grid-cols-1 gap-6">
                 {/* SMTP Email Settings Card */}
-                <Card className="border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+                <Card className="tetrel-glass border-border/40 shadow-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <Mail className="h-5 w-5 text-primary" />
@@ -309,7 +309,7 @@ export default function PublicationsSettingsPage() {
                         </Label>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-sidebar-border/20 pt-4 mt-6">
+                      <div className="flex items-center justify-between border-t border-border/30 pt-4 mt-6">
                         <Button
                           type="button"
                           variant="outline"
@@ -331,7 +331,7 @@ export default function PublicationsSettingsPage() {
                 </Card>
 
                 {/* OAuth Provider Integration Card */}
-                <Card className="border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+                <Card className="tetrel-glass border-border/40 shadow-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <Link2 className="h-5 w-5 text-primary" />
@@ -356,7 +356,7 @@ export default function PublicationsSettingsPage() {
                       </Select>
                     </div>
 
-                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">OAuth Tokens</p>
                         <p className="text-sm font-medium text-foreground">
@@ -393,7 +393,7 @@ export default function PublicationsSettingsPage() {
                 </Card>
 
                 {/* Google Workspace & Drive Exporters Config Card */}
-                <Card className="border-sidebar-border/10 bg-card/40 backdrop-blur-md">
+                <Card className="tetrel-glass border-border/40 shadow-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <Globe className="h-5 w-5 text-primary" />
@@ -452,7 +452,7 @@ export default function PublicationsSettingsPage() {
                         {/* Scopes Selection */}
                         <div className="space-y-3">
                           <Label>Required Scopes</Label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-lg border border-sidebar-border/10 bg-sidebar-bg/20">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-lg border border-border/30 bg-muted/20">
                             {[
                               {
                                 id: 'docs',
@@ -515,8 +515,8 @@ export default function PublicationsSettingsPage() {
                         <div className={cn(
                           "p-4 rounded-lg border flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2",
                           isGoogleConnected
-                            ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400"
-                            : "bg-amber-500/5 border-amber-500/10 text-amber-400"
+                            ? "bg-emerald-500/5 border-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/5 border-amber-500/15 text-amber-600 dark:text-amber-400"
                         )}>
                           <div className="space-y-1">
                             <p className="text-xs font-semibold uppercase tracking-wider">Account Connection Status</p>
@@ -556,7 +556,7 @@ export default function PublicationsSettingsPage() {
                           </Button>
                         </div>
 
-                        <div className="flex items-center justify-end border-t border-sidebar-border/20 pt-4 mt-6">
+                        <div className="flex items-center justify-end border-t border-border/30 pt-4 mt-6">
                           <Button type="submit" disabled={googleSaving}>
                             {googleSaving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
                             Save Google Config

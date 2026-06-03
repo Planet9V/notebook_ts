@@ -102,11 +102,11 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
   const getChannelStyle = (channel: string) => {
     switch (channel) {
       case 'linkedin':
-        return 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
       case 'twitter':
-        return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20'
+        return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20'
       case 'email':
-        return 'bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20'
+        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20'
       default:
         return 'bg-secondary text-secondary-foreground border border-secondary-border'
     }
@@ -117,11 +117,11 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
       case 'draft':
         return <Info className="h-3 w-3 text-muted-foreground mr-1" />
       case 'queued':
-        return <Clock className="h-3 w-3 text-yellow-500 mr-1" />
+        return <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400 mr-1" />
       case 'published':
-        return <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
+        return <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400 mr-1" />
       case 'failed':
-        return <AlertCircle className="h-3 w-3 text-red-500 mr-1" />
+        return <AlertCircle className="h-3 w-3 text-red-600 dark:text-red-400 mr-1" />
       default:
         return null
     }
@@ -146,9 +146,9 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
   const today = new Date()
 
   return (
-    <div className="w-full flex flex-col h-full bg-card border border-sidebar-border/20 rounded-xl overflow-hidden shadow-xl backdrop-blur-md">
+    <div className="w-full flex flex-col h-full tetrel-glass border border-border/40 rounded-xl overflow-hidden shadow-xl">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border/20 bg-muted/30">
+      <div className="flex items-center justify-between p-4 border-b border-border/40 bg-muted/30">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold tracking-tight text-foreground">{monthLabel}</h2>
           <Button variant="outline" size="sm" onClick={navigateToday} className="text-xs h-7 px-2.5">
@@ -166,7 +166,7 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
       </div>
 
       {/* Weekday Labels */}
-      <div className="grid grid-cols-7 border-b border-sidebar-border/10 text-center bg-muted/10">
+      <div className="grid grid-cols-7 border-b border-border/20 text-center bg-muted/10">
         {daysOfWeek.map((day) => (
           <div key={day} className="py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {day}
@@ -175,7 +175,7 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
       </div>
 
       {/* Days Grid */}
-      <div className="grid grid-cols-7 flex-1 divide-x divide-y divide-sidebar-border/10">
+      <div className="grid grid-cols-7 flex-1 divide-x divide-y divide-border/20">
         <TooltipProvider delayDuration={150}>
           {calendarCells.map((cell, idx) => {
             const isToday =
@@ -241,8 +241,8 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
                           </span>
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs p-3 space-y-2 backdrop-blur-md border border-sidebar-border bg-card/95 text-foreground shadow-2xl">
-                        <div className="flex items-center justify-between gap-2 border-b border-sidebar-border/20 pb-1.5">
+                      <TooltipContent side="top" className="max-w-xs p-3 space-y-2 tetrel-glass text-foreground shadow-2xl">
+                        <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
                           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center">
                             {getChannelIcon(post.channel)}
                             {post.channel}
@@ -255,12 +255,12 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
                         <p className="text-[11px] text-muted-foreground line-clamp-3 leading-relaxed whitespace-pre-wrap">
                           {post.content}
                         </p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1 border-t border-sidebar-border/10">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1 border-t border-border/30">
                           <Clock className="h-3 w-3" />
                           <span>{new Date(post.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         {post.error_message && (
-                          <div className="text-[10px] text-red-400 bg-red-500/10 p-1.5 rounded border border-red-500/20 leading-normal">
+                          <div className="text-[10px] text-red-600 dark:text-red-400 bg-red-500/10 p-1.5 rounded border border-red-500/20 leading-normal">
                             <strong>Error:</strong> {post.error_message}
                           </div>
                         )}
