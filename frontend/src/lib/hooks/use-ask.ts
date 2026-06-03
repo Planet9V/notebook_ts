@@ -18,12 +18,20 @@ interface StrategyData {
   searches: Array<{ term: string; instructions: string }>
 }
 
+export interface Source {
+  title: string
+  url: string
+  content?: string
+}
+
 interface AskState {
   isStreaming: boolean
   strategy: StrategyData | null
   answers: string[]
   finalAnswer: string | null
   error: string | null
+  sources: Source[] | null
+  status: string | null
 }
 
 export function useAsk() {
@@ -33,7 +41,9 @@ export function useAsk() {
     strategy: null,
     answers: [],
     finalAnswer: null,
-    error: null
+    error: null,
+    sources: null,
+    status: null
   })
 
   const sendAsk = useCallback(async (question: string, models: AskModels) => {
@@ -54,7 +64,9 @@ export function useAsk() {
       strategy: null,
       answers: [],
       finalAnswer: null,
-      error: null
+      error: null,
+      sources: null,
+      status: null
     })
 
     try {
@@ -153,19 +165,148 @@ export function useAsk() {
     }
   }, [t])
 
+  const sendResearch = useCallback(async (
+    query: string,
+    engine: 'local' | 'perplexity' | 'hybrid',
+    transformationId?: string,
+    modelId?: string,
+    customPrompt?: string,
+    outputFormatting?: string,
+    styleguideId?: string
+  ) => {
+    // Validate inputs
+    if (!query.trim()) {
+      toast.error(t('apiErrors.pleaseEnterQuestion'))
+      return
+    }
+
+    // Reset state
+    setState({
+      isStreaming: true,
+      strategy: null,
+      answers: [],
+      finalAnswer: null,
+      error: null,
+      sources: null,
+      status: null
+    })
+
+    try {
+      const response = await searchApi.research({
+        query,
+        engine,
+        transformation_id: transformationId || undefined,
+        model_id: modelId || undefined,
+        custom_prompt: customPrompt || undefined,
+        output_formatting: outputFormatting || undefined,
+        styleguide_id: styleguideId || undefined
+      })
+
+      if (!response) {
+        throw new Error('No response body received from server')
+      }
+
+      const reader = response.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6).trim()
+              if (!jsonStr) continue
+
+              const data: AskStreamEvent = JSON.parse(jsonStr)
+
+              if (data.type === 'status') {
+                setState(prev => ({
+                  ...prev,
+                  status: data.content || ''
+                }))
+              } else if (data.type === 'sources') {
+                setState(prev => ({
+                  ...prev,
+                  sources: (typeof data.content === 'string' ? JSON.parse(data.content) : data.content) as Source[] || []
+                }))
+              } else if (data.type === 'answer') {
+                setState(prev => ({
+                  ...prev,
+                  answers: [...prev.answers, data.content || '']
+                }))
+              } else if (data.type === 'final_answer') {
+                setState(prev => ({
+                  ...prev,
+                  finalAnswer: data.content || '',
+                  isStreaming: false
+                }))
+              } else if (data.type === 'complete') {
+                setState(prev => ({
+                  ...prev,
+                  isStreaming: false
+                }))
+              } else if (data.type === 'error') {
+                throw new Error(data.message || 'Stream error occurred')
+              }
+            } catch (e) {
+              if (e instanceof SyntaxError) {
+                console.error('Error parsing SSE data:', e, 'Line:', line)
+              } else {
+                throw e
+              }
+            }
+          }
+        }
+      }
+
+      // Ensure streaming is stopped
+      setState(prev => ({ ...prev, isStreaming: false }))
+
+    } catch (error) {
+      const err = error as { message?: string }
+      const errorMessage = err.message || 'An unexpected error occurred'
+      console.error('Research error:', error)
+
+      setState(prev => ({
+        ...prev,
+        isStreaming: false,
+        error: errorMessage
+      }))
+
+      toast.error(t('apiErrors.askFailed'), {
+        description: getApiErrorMessage(errorMessage, (key) => t(key))
+      })
+    }
+  }, [t])
+
   const reset = useCallback(() => {
     setState({
       isStreaming: false,
       strategy: null,
       answers: [],
       finalAnswer: null,
-      error: null
+      error: null,
+      sources: null,
+      status: null
     })
   }, [])
 
   return {
     ...state,
     sendAsk,
+    sendResearch,
     reset
   }
 }

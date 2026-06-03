@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
+import json
 import os
 import sys
-import json
 
 # Ensure project root is in path so we can import from scripts
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scripts.generate_cset_library import (
-    FRAMEWORKS
-)
+from scripts.generate_cset_library import FRAMEWORKS
+
 
 def build_factual_cset_catalog():
     catalog = {}
@@ -487,7 +486,7 @@ def build_factual_cset_catalog():
         elif "Incident" in cat or "Recovery" in cat or "Emergency" in cat:
             hardware_ref = " (aligned with incident response playbooks, offsite backups, and isolated write-once media)"
 
-        if hardware_ref and not hardware_ref.lower() in text.lower():
+        if hardware_ref and hardware_ref.lower() not in text.lower():
             if text.endswith("?"):
                 text = text[:-1] + hardware_ref + "?"
             else:

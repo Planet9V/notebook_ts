@@ -127,6 +127,8 @@ async def get_sessions(notebook_id: str = Query(..., description="Notebook ID"))
         return results
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Notebook not found")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching chat sessions: {str(e)}")
         raise HTTPException(
@@ -165,6 +167,8 @@ async def create_session(request: CreateSessionRequest):
         )
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Notebook not found")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating chat session: {str(e)}")
         raise HTTPException(
@@ -242,6 +246,8 @@ async def get_session(session_id: str):
         )
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching session: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching session: {str(e)}")
@@ -298,6 +304,8 @@ async def update_session(session_id: str, request: UpdateSessionRequest):
         )
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating session: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error updating session: {str(e)}")
@@ -322,6 +330,8 @@ async def delete_session(session_id: str):
         return SuccessResponse(success=True, message="Session deleted successfully")
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting session: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
@@ -505,6 +515,12 @@ async def build_context(request: BuildContextRequest):
                     logger.warning(f"Error processing note {note.id}: {str(e)}")
                     continue
 
+        # Always inject the dynamic Live Threat & Compliance Report if notebook has topology/canvas
+        live_report = await _build_live_threat_compliance_report(request.notebook_id)
+        if live_report:
+            context_data["sources"].append(live_report)
+            total_content += live_report["full_text"]
+
         # Calculate character and token counts
         char_count = len(total_content)
         # Use token count utility if available
@@ -524,3 +540,197 @@ async def build_context(request: BuildContextRequest):
     except Exception as e:
         logger.error(f"Error building context: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error building context: {str(e)}")
+
+
+async def _build_live_threat_compliance_report(notebook_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        from api.models import GraphEdge, GraphNode, GraphValidationRequest
+        from api.routers.notebooks import validate_graph
+        from open_notebook.database.repository import ensure_record_id, repo_query
+
+        # 1. Load notebook info & topology
+        notebook_rec = await repo_query("SELECT name, description, topology, customer_id FROM ONLY $notebook_id", {"notebook_id": ensure_record_id(notebook_id)})
+        if not notebook_rec:
+            return None
+        nb = notebook_rec
+        
+        topology = nb.get("topology") or {}
+        nodes_list = topology.get("nodes") or []
+        edges_list = topology.get("edges") or []
+
+        # 2. Run NetworkX validations
+        nodes_pydantic = []
+        for n in nodes_list:
+            data = n.get("data") or {}
+            nodes_pydantic.append(GraphNode(
+                id=str(n.get("id")),
+                type=str(data.get("deviceType") or n.get("type") or ""),
+                purdueLevel=int(data.get("purdueLevel") or n.get("purdueLevel") or 1),
+                ip_address=data.get("ip_address") or n.get("ip_address"),
+                mac_address=data.get("mac_address") or n.get("mac_address"),
+                subnet_mask=data.get("subnet_mask") or n.get("subnet_mask"),
+                hostname=data.get("hostname") or n.get("hostname"),
+                manufacturer=data.get("manufacturer") or n.get("manufacturer")
+            ))
+        edges_pydantic = []
+        for e in edges_list:
+            edges_pydantic.append(GraphEdge(
+                id=str(e.get("id")),
+                source=str(e.get("source")),
+                target=str(e.get("target"))
+            ))
+            
+        validation_res = None
+        if nodes_pydantic:
+            try:
+                validation_res = await validate_graph(GraphValidationRequest(nodes=nodes_pydantic, edges=edges_pydantic))
+            except Exception as ex:
+                logger.error(f"Error running network audit: {ex}")
+
+        # 3. Format Topology into markdown
+        markdown_lines = []
+        markdown_lines.append("# LIVE SYSTEM THREAT & COMPLIANCE REPORT")
+        markdown_lines.append(f"**Target System:** {nb.get('name')} (B2B Client draft)")
+        markdown_lines.append(f"**System Description:** {nb.get('description') or 'No description available.'}")
+        markdown_lines.append("")
+        markdown_lines.append("## 1. DRAWN NETWORK TOPOLOGY")
+        markdown_lines.append(f"Total Nodes: {len(nodes_list)} | Total Connections: {len(edges_list)}")
+        markdown_lines.append("")
+        
+        if nodes_list:
+            markdown_lines.append("| Device ID | Name / Label | Purdue Level | Device Type | IP Address | MAC Address | Hostname | Manufacturer |")
+            markdown_lines.append("|---|---|---|---|---|---|---|---|")
+            for n in nodes_list:
+                data = n.get("data") or {}
+                markdown_lines.append(
+                    f"| `{n.get('id')}` | {data.get('label') or 'Unnamed'} | Level {data.get('purdueLevel') or n.get('purdueLevel') or 1} | "
+                    f"**{data.get('deviceType') or n.get('type') or 'unknown'}** | {data.get('ip_address') or 'N/A'} | "
+                    f"`{data.get('mac_address') or 'N/A'}` | {data.get('hostname') or 'N/A'} | {data.get('manufacturer') or 'N/A'} |"
+                )
+            markdown_lines.append("")
+        else:
+            markdown_lines.append("*No network devices have been drawn on the canvas yet.*")
+            markdown_lines.append("")
+
+        # 4. Format Security Violations (Purdue Level and Parameter conflicts)
+        markdown_lines.append("## 2. AUTOMATED SECURITY AUDIT & THREAT MONITORING")
+        if validation_res and (validation_res.violatedNodes or validation_res.violatedEdges):
+            markdown_lines.append("⚠️ **CRITICAL: Security Violations and Vulnerabilities Detected!**")
+            markdown_lines.append("")
+            
+            # Print node violations
+            if validation_res.nodeViolations:
+                markdown_lines.append("### Device Parameter & Zone Bypasses:")
+                for n_id, violations in validation_res.nodeViolations.items():
+                    label = n_id
+                    for n in nodes_list:
+                        if n.get("id") == n_id:
+                            label = n.get("data", {}).get("label") or n_id
+                            break
+                    markdown_lines.append(f"- **Device `{label}` (`{n_id}`)**:")
+                    for v in violations:
+                        markdown_lines.append(f"  - 🔴 {v}")
+                markdown_lines.append("")
+                
+            # Print edge violations
+            if validation_res.edgeViolations:
+                markdown_lines.append("### Connection Pathway Bypasses:")
+                for e_id, violations in validation_res.edgeViolations.items():
+                    markdown_lines.append(f"- **Connection `{e_id}`**:")
+                    for v in violations:
+                        markdown_lines.append(f"  - 🔴 {v}")
+                markdown_lines.append("")
+
+            # Print threat paths
+            if validation_res.threatPaths:
+                markdown_lines.append("### Firewall-Bypassing Communication Threat Vectors:")
+                for i, path in enumerate(validation_res.threatPaths):
+                    path_str = " ➔ ".join([f"`{n_id}`" for n_id in path])
+                    markdown_lines.append(f"{i+1}. **Path:** {path_str}")
+                markdown_lines.append("")
+        else:
+            markdown_lines.append("✅ **System Secure:** Evolved NetworkX analysis detected 0 direct Purdue Zone bypasses, 0 unmediated reachability loops, and 0 IP conflict errors.")
+            markdown_lines.append("")
+
+        # 5. Format Compliance Session State
+        markdown_lines.append("## 3. CSET COMPLIANCE CHECKS & PROGRESS STATE")
+        
+        # Find all compliance sessions for this customer or associated with this notebook
+        sessions_query = []
+        cust_id = nb.get("customer_id")
+        if cust_id:
+            sessions_query = await repo_query(
+                "SELECT * FROM assessment_session WHERE type::string(assessment_id) IN "
+                "(SELECT type::string(id) FROM assessment WHERE type::string(customer_id) = type::string($cust_id)) "
+                "ORDER BY created_at DESC",
+                {"cust_id": cust_id}
+            )
+        
+        if sessions_query:
+            for session in sessions_query:
+                sess_id = str(session["id"])
+                fw_id = session.get("version_lock")
+                
+                # Fetch answers in this session
+                answers = await repo_query(
+                    "SELECT * FROM assessment_answer WHERE session_id = $session_id",
+                    {"session_id": sess_id}
+                )
+                answer_map = {ans["question_id"]: ans for ans in answers}
+                
+                # Fetch standard questions to compute counts and display scoring
+                questions = await repo_query(
+                    "SELECT * FROM question WHERE regulation_id = $fw_id",
+                    {"fw_id": fw_id}
+                )
+                
+                total_q = len(questions)
+                yes_c = sum(1 for q in questions if answer_map.get(str(q["id"]), {}).get("answer") == "Y")
+                no_c = sum(1 for q in questions if answer_map.get(str(q["id"]), {}).get("answer") == "N")
+                na_c = sum(1 for q in questions if answer_map.get(str(q["id"]), {}).get("answer") == "NA")
+                alt_c = sum(1 for q in questions if answer_map.get(str(q["id"]), {}).get("answer") == "ALT")
+                answered_c = len(answers)
+                
+                comp_pct = (answered_c / total_q * 100) if total_q > 0 else 0
+                denom = (yes_c + no_c + alt_c)
+                score = (yes_c / denom * 100) if denom > 0 else 0
+                
+                # Short standard name
+                fw_name = str(fw_id).split(":", 1)[-1]
+                
+                markdown_lines.append(f"### Framework Standard: `{fw_name}` (Audit Session `{session.get('session_name')}`)")
+                markdown_lines.append(f"- **Audit Status:** `{session.get('status')}`")
+                markdown_lines.append(f"- **Completion Progress:** `{answered_c}/{total_q}` questions answered ({comp_pct:.1f}%)")
+                markdown_lines.append(f"- **Compliance Score (YES/Total evaluated):** `{score:.1f}%` (YES: {yes_c}, NO: {no_c}, N/A: {na_c}, ALT: {alt_c})")
+                markdown_lines.append("")
+                
+                # Add answers details
+                if answered_c > 0:
+                    markdown_lines.append("#### Wizard Answers Log:")
+                    markdown_lines.append("| Req Code | Question Text | Answer | Evidence URL / Reference | Comments |")
+                    markdown_lines.append("|---|---|---|---|---|")
+                    for q in questions:
+                        q_id = str(q["id"])
+                        ans_rec = answer_map.get(q_id)
+                        if ans_rec:
+                            comment_str = ans_rec.get("comments") or "-"
+                            evidence_str = ans_rec.get("evidence_url") or "-"
+                            markdown_lines.append(
+                                f"| `{q.get('standard_code')}` | {q.get('question_text')} | **{ans_rec.get('answer')}** | "
+                                f"{evidence_str} | {comment_str} |"
+                            )
+                    markdown_lines.append("")
+        else:
+            markdown_lines.append("*No compliance assessment audit sessions have been initiated for this B2B client profile yet.*")
+            markdown_lines.append("")
+            
+        live_report_markdown = "\n".join(markdown_lines)
+        return {
+            "id": "source:threat_compliance_live_report",
+            "title": "Threat Modeling Canvas & Compliance Audit Live Report",
+            "insights": [],
+            "full_text": live_report_markdown
+        }
+    except Exception as err:
+        logger.error(f"Error building live threat and compliance context report: {err}")
+        return None

@@ -8,9 +8,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Plus, FileText, Link2, ChevronDown, Loader2 } from 'lucide-react'
+import { Plus, FileText, Link2, ChevronDown, Loader2, CalendarClock } from 'lucide-react'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { EmptyState } from '@/components/common/EmptyState'
 import { AddSourceDialog } from '@/components/sources/AddSourceDialog'
@@ -23,6 +24,9 @@ import { ContextMode } from '../[id]/page'
 import { CollapsibleColumn, createCollapseButton } from '@/components/notebooks/CollapsibleColumn'
 import { useNotebookColumnsStore } from '@/lib/stores/notebook-columns-store'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { ScheduledSearchDialog, ScheduledSearchList } from '@/components/scheduled-search'
+import type { ScheduledSearch } from '@/lib/api/scheduled-search'
+import { toast } from 'sonner'
 
 interface SourcesColumnProps {
   sources?: SourceListResponse[]
@@ -53,6 +57,8 @@ export function SourcesColumn({
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addExistingDialogOpen, setAddExistingDialogOpen] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [editingSearch, setEditingSearch] = useState<ScheduledSearch | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [sourceToDelete, setSourceToDelete] = useState<string | null>(null)
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
@@ -109,6 +115,7 @@ export function SourcesColumn({
       onRefresh?.()
     } catch (error) {
       console.error('Failed to delete source:', error)
+      toast.error('Failed to delete source')
     }
   }
 
@@ -129,7 +136,7 @@ export function SourcesColumn({
       setSourceToRemove(null)
     } catch (error) {
       console.error('Failed to remove source from notebook:', error)
-      // Error toast is handled by the hook
+      toast.error('Failed to remove source')
     }
   }
 
@@ -138,6 +145,7 @@ export function SourcesColumn({
       await retrySource.mutateAsync(sourceId)
     } catch (error) {
       console.error('Failed to retry source:', error)
+      toast.error('Failed to retry source')
     }
   }
 
@@ -174,6 +182,11 @@ export function SourcesColumn({
                     <DropdownMenuItem onClick={() => { setDropdownOpen(false); setAddExistingDialogOpen(true); }}>
                       <Link2 className="h-4 w-4 mr-2" />
                       {t('sources.addExistingTitle')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { setDropdownOpen(false); setEditingSearch(null); setScheduleDialogOpen(true); }}>
+                      <CalendarClock className="h-4 w-4 mr-2" />
+                      Schedule Search
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -220,6 +233,15 @@ export function SourcesColumn({
                 )}
               </div>
             )}
+
+            {/* Scheduled Searches Section */}
+            <ScheduledSearchList
+              notebookId={notebookId}
+              onEdit={(search) => {
+                setEditingSearch(search)
+                setScheduleDialogOpen(true)
+              }}
+            />
           </CardContent>
         </Card>
       </CollapsibleColumn>
@@ -228,6 +250,13 @@ export function SourcesColumn({
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         defaultNotebookId={notebookId}
+      />
+
+      <ScheduledSearchDialog
+        open={scheduleDialogOpen}
+        onOpenChange={setScheduleDialogOpen}
+        notebookId={notebookId}
+        editingSearch={editingSearch}
       />
 
       <AddExistingSourceDialog

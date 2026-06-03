@@ -2,6 +2,7 @@ import os
 import re
 from collections import defaultdict
 
+
 def scan_repository():
     cset_dir = "/Users/jimmcknney/cset_clone"
     counts = defaultdict(int)

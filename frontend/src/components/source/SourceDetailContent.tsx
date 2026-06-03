@@ -67,6 +67,7 @@ import { toast } from 'sonner'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { SourceInsightDialog } from '@/components/source/SourceInsightDialog'
 import { NotebookAssociations } from '@/components/source/NotebookAssociations'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 interface SourceDetailContentProps {
   sourceId: string
@@ -98,6 +99,8 @@ export function SourceDetailContent({
   const [selectedInsight, setSelectedInsight] = useState<SourceInsightResponse | null>(null)
   const [insightToDelete, setInsightToDelete] = useState<string | null>(null)
   const [deletingInsight, setDeletingInsight] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchSource = useCallback(async () => {
     try {
@@ -355,17 +358,22 @@ export function SourceDetailContent({
   }, [source?.asset?.url])
 
   const handleDelete = async () => {
-    if (!source) return
+    setShowDeleteConfirm(true)
+  }
 
-    if (confirm(t('sources.deleteSourceConfirm') || t('common.confirm'))) {
-      try {
-        await sourcesApi.delete(source.id)
-        toast.success(t('common.success'))
-        onClose?.()
-      } catch (error) {
-        console.error('Failed to delete source:', error)
-        toast.error(t('common.error'))
-      }
+  const handleDeleteConfirm = async () => {
+    if (!source) return
+    setIsDeleting(true)
+    try {
+      await sourcesApi.delete(source.id)
+      toast.success(t('common.success'))
+      setShowDeleteConfirm(false)
+      onClose?.()
+    } catch (error) {
+      console.error('Failed to delete source:', error)
+      toast.error(t('common.error'))
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -855,6 +863,17 @@ export function SourceDetailContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title={t('sources.delete')}
+        description={t('sources.deleteSourceConfirm') || 'Are you sure you want to delete this source?'}
+        confirmText={t('common.delete')}
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        confirmVariant="destructive"
+      />
     </div>
   )
 }

@@ -104,7 +104,9 @@ class TestNotebookDomain:
         notebook = Notebook(name="Test", description="Test")
         assert notebook.customer_id is None
 
-        notebook_with_customer = Notebook(name="Test", description="Test", customer_id="customer:123")
+        notebook_with_customer = Notebook(
+            name="Test", description="Test", customer_id="customer:123"
+        )
         assert notebook_with_customer.customer_id == "customer:123"
 
 
@@ -208,7 +210,6 @@ class TestSourceDomain:
             result = await source.delete()
             assert result is True
             mock_delete.assert_called_once()
-
 
     @pytest.mark.asyncio
     async def test_vectorize_raises_valueerror_when_no_text(self):
@@ -441,6 +442,7 @@ class TestEpisodeProfile:
 
 def test_organization_model_schemas():
     from api.models import OrganizationCreate, OrganizationResponse
+
     # Create request
     org = OrganizationCreate(name="Customer A", type="customer")
     assert org.name == "Customer A"

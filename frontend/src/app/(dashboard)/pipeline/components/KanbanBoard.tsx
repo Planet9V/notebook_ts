@@ -5,6 +5,8 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { NotebookResponse } from '@/lib/types/api'
 import { useUpdateNotebook } from '@/lib/hooks/use-notebooks'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { PIPELINE_STAGES, STAGE_LABELS, PipelineStage } from '@/lib/constants/stages'
+import { toast } from 'sonner'
 import { CreateNotebookDialog } from '@/components/notebooks/CreateNotebookDialog'
 import { DealDrawer } from './DealDrawer'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,6 +22,8 @@ import {
   Calendar,
   Sparkles,
   RefreshCw,
+  Upload,
+  DatabaseZap,
 } from 'lucide-react'
 import { useNotebookScanningStatus } from '@/lib/hooks/use-pipeline'
 
@@ -63,7 +67,7 @@ function DealCard({ nb, index, onClick, t }: DealCardProps) {
             <div className="space-y-1">
               <div className="flex items-center gap-1 text-xs text-muted-foreground font-semibold">
                 <Building className="h-3 w-3" />
-                <span className="truncate max-w-[140px]">
+                <span className="truncate max-w-[140px]" title={nb.client_name || 'Unnamed Client'}>
                   {nb.client_name || t('pipeline.unnamedClient', 'Unnamed Client')}
                 </span>
               </div>
@@ -133,13 +137,9 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
   const updateNotebook = useUpdateNotebook()
 
   // Local state for optimistic UI updates during drags
-  const [boardData, setBoardData] = useState<Record<string, NotebookResponse[]>>({
-    lead: [],
-    research: [],
-    technical_discovery: [],
-    proposal: [],
-    won: [],
-  })
+  const [boardData, setBoardData] = useState<Record<string, NotebookResponse[]>>(
+    () => Object.fromEntries(PIPELINE_STAGES.map((s) => [s, []]))
+  )
 
   // Selected deal for drawer
   const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null)
@@ -149,53 +149,77 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [selectedStageForNewNotebook, setSelectedStageForNewNotebook] = useState<string>('lead')
 
-  const columns: Column[] = useMemo(() => [
-    {
-      id: 'lead',
-      title: t('pipeline.stage.lead', 'Leads Prospecting'),
+  const STAGE_COLORS: Record<PipelineStage, { colorClass: string; borderClass: string; badgeClass: string }> = {
+    bulk_import: {
+      colorClass: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+      borderClass: 'border-t-slate-500',
+      badgeClass: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    },
+    data_enrichment: {
+      colorClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+      borderClass: 'border-t-orange-500',
+      badgeClass: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    },
+    lead: {
       colorClass: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
       borderClass: 'border-t-amber-500',
       badgeClass: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     },
-    {
-      id: 'research',
-      title: t('pipeline.stage.research', 'Client Research'),
+    research: {
       colorClass: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/30',
       borderClass: 'border-t-cyan-500',
       badgeClass: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
     },
-    {
-      id: 'technical_discovery',
-      title: t('pipeline.stage.technical_discovery', 'Technical Discovery'),
+    technical_discovery: {
       colorClass: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
       borderClass: 'border-t-blue-500',
       badgeClass: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
     },
-    {
-      id: 'proposal',
-      title: t('pipeline.stage.proposal', 'Proposal Drafts'),
+    proposal: {
       colorClass: 'bg-violet-500/10 text-violet-500 border-violet-500/30',
       borderClass: 'border-t-violet-500',
       badgeClass: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
     },
-    {
-      id: 'won',
-      title: t('pipeline.stage.won', 'Contract Won'),
+    won: {
       colorClass: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
       borderClass: 'border-t-emerald-500',
       badgeClass: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     },
-  ], [t])
+  }
+
+  const STAGE_TITLES: Record<PipelineStage, string> = {
+    bulk_import: 'Import Staging',
+    data_enrichment: 'Data Enrichment',
+    lead: 'Leads Prospecting',
+    research: 'Client Research',
+    technical_discovery: 'Technical Discovery',
+    proposal: 'Proposal Drafts',
+    won: 'Contract Won',
+  }
+
+  const STAGE_EMPTY_MSG: Record<PipelineStage, string> = {
+    bulk_import: 'No imported records',
+    data_enrichment: 'No records enriching',
+    lead: 'No active dossiers',
+    research: 'No active dossiers',
+    technical_discovery: 'No active dossiers',
+    proposal: 'No active dossiers',
+    won: 'No active dossiers',
+  }
+
+  const columns: Column[] = useMemo(() =>
+    PIPELINE_STAGES.map((stage) => ({
+      id: stage,
+      title: t(`pipeline.stage.${stage}`, STAGE_TITLES[stage]),
+      ...STAGE_COLORS[stage],
+    })),
+  [t])
 
   // Categorize notebooks into columns whenever they update from server queries
   useEffect(() => {
-    const categorized: Record<string, NotebookResponse[]> = {
-      lead: [],
-      research: [],
-      technical_discovery: [],
-      proposal: [],
-      won: [],
-    }
+    const categorized: Record<string, NotebookResponse[]> = Object.fromEntries(
+      PIPELINE_STAGES.map((s) => [s, []])
+    )
 
     notebooks.forEach((nb) => {
       if (nb.archived) return
@@ -212,7 +236,9 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
 
   // Compute total estimated deal values per column
   const columnTotals = useMemo(() => {
-    const totals: Record<string, number> = { lead: 0, research: 0, technical_discovery: 0, proposal: 0, won: 0 }
+    const totals: Record<string, number> = Object.fromEntries(
+      PIPELINE_STAGES.map((s) => [s, 0])
+    )
     Object.keys(boardData).forEach((colId) => {
       totals[colId] = boardData[colId].reduce((sum, nb) => sum + (nb.estimated_value || 0), 0)
     })
@@ -261,14 +287,11 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
       })
     } catch (error) {
       console.error('Failed to update stage on server, reverting board state.', error)
+      toast.error('Failed to move deal — reverted')
       // Rollback to original sync state by re-triggering from prop notebooks
-      const rollback: Record<string, NotebookResponse[]> = {
-        lead: [],
-        research: [],
-        technical_discovery: [],
-        proposal: [],
-        won: [],
-      }
+      const rollback: Record<string, NotebookResponse[]> = Object.fromEntries(
+        PIPELINE_STAGES.map((s) => [s, []])
+      )
       notebooks.forEach((nb) => {
         if (nb.archived) return
         const stage = nb.stage || 'lead'
@@ -294,7 +317,8 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
     <div className="flex flex-col space-y-4">
       {/* Board Canvas */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start h-[calc(100vh-270px)] min-h-[500px]">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-7 min-w-[1400px] gap-4 items-start h-[calc(100vh-270px)] min-h-[500px]">
           {columns.map((col) => (
             <div
               key={col.id}
@@ -306,7 +330,7 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
               {/* Column Header */}
               <div className="flex items-center justify-between pb-3 mt-1.5 px-1 shrink-0">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <h3 className="font-semibold text-sm truncate text-foreground">
+                  <h3 className="font-semibold text-sm truncate text-foreground" title={col.title}>
                     {col.title}
                   </h3>
                   <Badge variant="outline" className={`font-mono text-[10px] shrink-0 ${col.badgeClass}`}>
@@ -357,8 +381,14 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
                       {/* Empty Column Guidance */}
                       {(!boardData[col.id] || boardData[col.id].length === 0) && (
                         <div className="flex flex-col items-center justify-center border border-dashed border-sidebar-border rounded-xl p-6 text-center text-muted-foreground mt-4 h-32 shrink-0">
-                          <Plus className="h-6 w-6 mb-1 opacity-20 text-primary" />
-                          <p className="text-[11px] font-semibold">No active dossiers</p>
+                          {col.id === 'bulk_import' ? (
+                            <Upload className="h-6 w-6 mb-1 opacity-20 text-slate-400" />
+                          ) : col.id === 'data_enrichment' ? (
+                            <DatabaseZap className="h-6 w-6 mb-1 opacity-20 text-orange-400" />
+                          ) : (
+                            <Plus className="h-6 w-6 mb-1 opacity-20 text-primary" />
+                          )}
+                          <p className="text-[11px] font-semibold">{STAGE_EMPTY_MSG[col.id as PipelineStage]}</p>
                           <Button
                             variant="link"
                             size="sm"
@@ -375,6 +405,7 @@ export function KanbanBoard({ notebooks }: KanbanBoardProps) {
               </Droppable>
             </div>
           ))}
+        </div>
         </div>
       </DragDropContext>
 

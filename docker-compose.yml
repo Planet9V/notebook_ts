@@ -1,7 +1,7 @@
 services:
   surrealdb:
     image: surrealdb/surrealdb:v2
-    command: start --log info --user root --pass root rocksdb:/mydata/mydatabase.db
+    command: start --log info --user ${SURREAL_USER:-root} --pass ${SURREAL_PASSWORD:-root} rocksdb:/mydata/mydatabase.db
     user: root  # Required for bind mounts on Linux
     ports:
       - "8000:8000"
@@ -9,6 +9,12 @@ services:
       - ./surreal_data:/mydata
     environment:
       - SURREAL_EXPERIMENTAL_GRAPHQL=true
+    healthcheck:
+      test: ["CMD", "/surreal", "isready", "--endpoint", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: always
     pull_policy: always
 
@@ -27,13 +33,71 @@ services:
 
       # Database connection (default values - no need to change)
       - SURREAL_URL=ws://surrealdb:8000/rpc
-      - SURREAL_USER=root
-      - SURREAL_PASSWORD=root
+      - SURREAL_USER=${SURREAL_USER:-root}
+      - SURREAL_PASSWORD=${SURREAL_PASSWORD:-root}
       - SURREAL_NAMESPACE=open_notebook
       - SURREAL_DATABASE=open_notebook
+
+      # Voice AI — must match whisper-stt container model
+      - WHISPER__MODEL=Systran/faster-whisper-base
     volumes:
       - ./notebook_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /Users/jimmcknney/.gemini/config/skills:/Users/jimmcknney/.gemini/config/skills
+      - /Users/jimmcknney/.gemini/antigravity/mcp:/Users/jimmcknney/.gemini/antigravity/mcp
     depends_on:
       - surrealdb
     restart: always
 
+  # ─── Voice AI Services ───────────────────────────────────────────────
+  livekit-server:
+    image: livekit/livekit-server@sha256:b617bb3363f13e880a82164692d842681276bc6eed7da46092f9ddb22017b927
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"     # HTTP API + WebSocket
+      - "7881:7881"     # WebRTC (TCP)
+      - "3478:3478/udp" # TURN (UDP)
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7880"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: always
+
+  kokoro-tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu@sha256:a9703644dd7aa6b672db6b1f1490c4262c42210a26f9e7f8243cb251e32e9600
+    ports:
+      - "8880:8880"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8880/v1/audio/voices\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+
+  whisper-stt:
+    image: fedirz/faster-whisper-server@sha256:760e5e43d427dc6cfbbc4731934b908b7de9c7e6d5309c6a1f0c8c923a5b6030
+    ports:
+      - "8881:8000"
+    environment:
+      - WHISPER__MODEL=Systran/faster-whisper-base
+      - WHISPER__COMPUTE_TYPE=int8
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - whisper_models:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: always
+
+volumes:
+  whisper_models:

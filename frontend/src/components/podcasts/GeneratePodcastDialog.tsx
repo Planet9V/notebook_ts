@@ -1,20 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2, Volume2, Pause } from 'lucide-react'
 import { useQueries, useQueryClient } from '@tanstack/react-query'
 
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
-import { useEpisodeProfiles, useGeneratePodcast } from '@/lib/hooks/use-podcasts'
+import { useEpisodeProfiles, useSpeakerProfiles, useGeneratePodcast } from '@/lib/hooks/use-podcasts'
 import { chatApi } from '@/lib/api/chat'
 import { sourcesApi } from '@/lib/api/sources'
 import { notesApi } from '@/lib/api/notes'
+import { voiceApi, KokoroVoice, VoiceHealth } from '@/lib/api/voice'
 import { BuildContextRequest, NoteResponse, NotebookResponse, SourceListResponse } from '@/lib/types/api'
 import type { QueryClient } from '@tanstack/react-query'
 import { PodcastGenerationRequest } from '@/lib/types/podcasts'
 import { QUERY_KEYS } from '@/lib/api/query-client'
 import { useToast } from '@/lib/hooks/use-toast'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { KOKORO_VOICES, findVoicePreset } from '@/lib/constants/voices'
+import type { VoicePreset } from '@/lib/constants/voices'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +35,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 type SourceMode = 'off' | 'insights' | 'full'
 
@@ -403,6 +408,13 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const [episodeProfileId, setEpisodeProfileId] = useState<string>('')
   const [episodeName, setEpisodeName] = useState('')
   const [instructions, setInstructions] = useState('')
+  const [ttsEngine, setTtsEngine] = useState<string>('default')
+  const [voiceMapping, setVoiceMapping] = useState<Record<string, string>>({})
+  const [availableVoices, setAvailableVoices] = useState<KokoroVoice[]>([])
+  const [voicesLoading, setVoicesLoading] = useState(false)
+  const [voiceHealth, setVoiceHealth] = useState<VoiceHealth | null>(null)
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null)
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const [isBuildingContext, setIsBuildingContext] = useState(false)
   const [tokenCount, setTokenCount] = useState<number>(0)
@@ -410,6 +422,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
   const notebooksQuery = useNotebooks()
   const episodeProfilesQuery = useEpisodeProfiles()
+  const speakerProfilesQuery = useSpeakerProfiles()
   const generatePodcast = useGeneratePodcast()
 
   const notebooks = useMemo(
@@ -543,9 +556,115 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setEpisodeProfileId('')
     setEpisodeName('')
     setInstructions('')
+    setTtsEngine('default')
+    setVoiceMapping({})
     setTokenCount(0)
     setCharCount(0)
   }, [])
+
+  // Fetch voice service health when dialog opens
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    voiceApi.checkHealth()
+      .then((health) => {
+        if (!cancelled) setVoiceHealth(health)
+      })
+      .catch(() => {
+        if (!cancelled) setVoiceHealth(null)
+      })
+    return () => { cancelled = true }
+  }, [open])
+
+  // Fetch Kokoro voices when a non-default TTS engine is selected
+  useEffect(() => {
+    if (ttsEngine === 'default' || !open) {
+      setAvailableVoices([])
+      return
+    }
+    let cancelled = false
+    setVoicesLoading(true)
+    voiceApi.listVoices()
+      .then((result) => {
+        if (!cancelled) {
+          setAvailableVoices(result.voices || [])
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch voices:', err)
+        if (!cancelled) setAvailableVoices([])
+      })
+      .finally(() => {
+        if (!cancelled) setVoicesLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [ttsEngine, open])
+
+  // Voice preview handler
+  const handleVoicePreview = useCallback(async (voiceId: string, voiceName: string) => {
+    // Stop current preview if playing
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause()
+      previewAudioRef.current = null
+    }
+
+    if (previewingVoice === voiceId) {
+      setPreviewingVoice(null)
+      return
+    }
+
+    setPreviewingVoice(voiceId)
+    try {
+      const blob = await voiceApi.synthesize(
+        `Hello, I'm ${voiceName}. This is a voice preview.`,
+        { voice: voiceId, format: 'mp3', speed: 1.0 }
+      )
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      previewAudioRef.current = audio
+      audio.onended = () => {
+        setPreviewingVoice(null)
+        URL.revokeObjectURL(url)
+      }
+      audio.onerror = () => {
+        setPreviewingVoice(null)
+        URL.revokeObjectURL(url)
+      }
+      await audio.play()
+    } catch {
+      setPreviewingVoice(null)
+    }
+  }, [previewingVoice])
+
+  // Enrich API voices with static metadata
+  const enrichedVoices = useMemo(() => {
+    return availableVoices.map((v) => {
+      const preset = findVoicePreset(v.id)
+      return {
+        ...v,
+        gender: preset?.gender || 'Unknown',
+        language: preset?.language || 'English',
+        description: preset?.description || '',
+      }
+    })
+  }, [availableVoices])
+
+  // Service health helpers
+  const kokoroHealthy = useMemo(() => {
+    if (!voiceHealth) return false
+    return voiceHealth.services.some(s => s.name === 'Kokoro TTS' && s.status === 'healthy')
+  }, [voiceHealth])
+
+  const getEngineHealthStatus = useCallback((engine: string): 'healthy' | 'unavailable' | 'unknown' => {
+    if (!voiceHealth) return 'unknown'
+    if (engine === 'default') return 'healthy'
+    if (engine === 'kokoro') {
+      return kokoroHealthy ? 'healthy' : 'unavailable'
+    }
+    // OpenAI is cloud-based, assume available
+    return 'healthy'
+  }, [voiceHealth, kokoroHealthy])
+
 
   useEffect(() => {
     if (!open) {
@@ -627,6 +746,16 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     }
     return episodeProfiles.find((profile) => profile.id === episodeProfileId)
   }, [episodeProfileId, episodeProfiles])
+
+  // Resolve the speakers from the linked speaker profile
+  const speakerNames = useMemo(() => {
+    if (!selectedEpisodeProfile) return []
+    const speakerProfileName = selectedEpisodeProfile.speaker_config
+    const speakerProfiles = speakerProfilesQuery.speakerProfiles || []
+    const matched = speakerProfiles.find((sp) => sp.name === speakerProfileName)
+    if (!matched) return []
+    return matched.speakers.map((s) => s.name)
+  }, [selectedEpisodeProfile, speakerProfilesQuery.speakerProfiles])
 
   const selectedNotebookSummaries = useMemo(() => {
     return notebooks.map((notebook) => {
@@ -816,6 +945,10 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         episode_name: episodeName.trim(),
         content,
         briefing_suffix: instructions.trim() ? instructions.trim() : undefined,
+        tts_engine: ttsEngine !== 'default' ? ttsEngine : undefined,
+        voice_mapping: ttsEngine !== 'default' && Object.keys(voiceMapping).length > 0
+          ? voiceMapping
+          : undefined,
       }
 
       await generatePodcast.mutateAsync(payload)
@@ -848,6 +981,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     onOpenChange,
     resetState,
     selectedEpisodeProfile,
+    ttsEngine,
     toast,
     t,
   ])
@@ -953,6 +1087,195 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                       autoComplete="off"
                     />
                   </div>
+
+                  {/* TTS Engine Selector with Health Status */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>TTS Engine</Label>
+                      {voiceHealth && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-[9px] font-mono',
+                            voiceHealth.overall === 'healthy'
+                              ? 'border-emerald-500/40 text-emerald-400'
+                              : voiceHealth.overall === 'degraded'
+                                ? 'border-amber-500/40 text-amber-400'
+                                : 'border-red-500/40 text-red-400'
+                          )}
+                        >
+                          {voiceHealth.overall === 'healthy' ? '● Services Online' : voiceHealth.overall === 'degraded' ? '◐ Partial' : '○ Offline'}
+                        </Badge>
+                      )}
+                    </div>
+                    <Select value={ttsEngine} onValueChange={setTtsEngine}>
+                      <SelectTrigger className="text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          <span className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            <span className="flex flex-col">
+                              <span>Default</span>
+                              <span className="text-[10px] text-muted-foreground">Profile voice model</span>
+                            </span>
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="kokoro" disabled={getEngineHealthStatus('kokoro') === 'unavailable'}>
+                          <span className="flex items-center gap-2">
+                            <span className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              getEngineHealthStatus('kokoro') === 'healthy' ? 'bg-emerald-400'
+                                : getEngineHealthStatus('kokoro') === 'unavailable' ? 'bg-red-400'
+                                : 'bg-slate-400'
+                            )} />
+                            <span className="flex flex-col">
+                              <span>Kokoro TTS</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {getEngineHealthStatus('kokoro') === 'unavailable' ? 'Service offline' : 'Self-hosted, fast'}
+                              </span>
+                            </span>
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="openai">
+                          <span className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            <span className="flex flex-col">
+                              <span>OpenAI TTS</span>
+                              <span className="text-[10px] text-muted-foreground">Cloud API, high quality</span>
+                            </span>
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Override the TTS engine for audio generation
+                    </p>
+                  </div>
+
+                  {/* Voice Mapping — visible when non-default engine is selected */}
+                  {ttsEngine !== 'default' && speakerNames.length > 0 && (
+                    <div className="space-y-3">
+                      <div>
+                        <Label>Voice Mapping</Label>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Assign a {ttsEngine === 'kokoro' ? 'Kokoro' : 'OpenAI'} voice to each speaker
+                        </p>
+                      </div>
+                      {voicesLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Loading voices…
+                        </div>
+                      ) : enrichedVoices.length === 0 ? (
+                        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                          <p className="text-xs text-red-300">
+                            No voices available — is the {ttsEngine === 'kokoro' ? 'Kokoro TTS' : 'voice'} service running?
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Check Voice AI settings or run: <code className="bg-muted/40 px-1 rounded">docker compose up kokoro-tts -d</code>
+                          </p>
+                        </div>
+                      ) : (
+                        <TooltipProvider>
+                          <div className="space-y-3">
+                            {speakerNames.map((speaker) => {
+                              const selectedId = voiceMapping[speaker] || ''
+                              const selectedPreset = selectedId ? enrichedVoices.find(v => v.id === selectedId) : null
+
+                              return (
+                                <div key={speaker} className="rounded-lg border border-sidebar-border/30 bg-sidebar-accent/5 p-3 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-foreground truncate" title={speaker}>
+                                      {speaker}
+                                    </span>
+                                    {selectedPreset && (
+                                      <div className="flex items-center gap-1">
+                                        <Badge variant="outline" className="text-[9px] py-0">
+                                          {selectedPreset.gender === 'Female' ? '♀' : '♂'} {selectedPreset.language}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Select
+                                      value={selectedId}
+                                      onValueChange={(value) =>
+                                        setVoiceMapping((prev) => ({ ...prev, [speaker]: value }))
+                                      }
+                                    >
+                                      <SelectTrigger className="flex-1 text-xs h-8">
+                                        <SelectValue placeholder="Select voice…" />
+                                      </SelectTrigger>
+                                      <SelectContent className="max-h-[280px]">
+                                        {/* Female voices */}
+                                        <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                                          ♀ Female
+                                        </div>
+                                        {enrichedVoices.filter(v => v.gender === 'Female').map((voice) => (
+                                          <SelectItem key={voice.id} value={voice.id}>
+                                            <span className="flex items-center gap-2">
+                                              <span className="font-medium">{voice.name}</span>
+                                              <span className="text-[10px] text-muted-foreground">{voice.description}</span>
+                                            </span>
+                                          </SelectItem>
+                                        ))}
+                                        {/* Male voices */}
+                                        <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                                          ♂ Male
+                                        </div>
+                                        {enrichedVoices.filter(v => v.gender === 'Male').map((voice) => (
+                                          <SelectItem key={voice.id} value={voice.id}>
+                                            <span className="flex items-center gap-2">
+                                              <span className="font-medium">{voice.name}</span>
+                                              <span className="text-[10px] text-muted-foreground">{voice.description}</span>
+                                            </span>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    {/* Preview button */}
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 shrink-0"
+                                          disabled={!selectedId || previewingVoice === selectedId}
+                                          onClick={() => {
+                                            if (selectedId) {
+                                              const voice = enrichedVoices.find(v => v.id === selectedId)
+                                              handleVoicePreview(selectedId, voice?.name || selectedId)
+                                            }
+                                          }}
+                                          aria-label={`Preview ${selectedPreset?.name || 'voice'}`}
+                                        >
+                                          {previewingVoice === selectedId ? (
+                                            <Pause className="h-3.5 w-3.5 text-cyan-400" />
+                                          ) : (
+                                            <Volume2 className="h-3.5 w-3.5" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p className="text-xs">{previewingVoice === selectedId ? 'Stop preview' : 'Preview voice'}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                  {selectedPreset?.description && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {selectedPreset.description}
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -1,4 +1,5 @@
-from typing import Any, ClassVar, Dict, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union
+
 
 from esperanto import (
     AIFactory,
@@ -18,11 +19,59 @@ ModelType = Union[LanguageModel, EmbeddingModel, SpeechToTextModel, TextToSpeech
 
 class Model(ObjectModel):
     table_name: ClassVar[str] = "model"
-    nullable_fields: ClassVar[set[str]] = {"credential"}
+    nullable_fields: ClassVar[set[str]] = {
+        "credential", "context_length", "max_completion_tokens",
+        "pricing_prompt", "pricing_completion", "modality",
+        "input_modalities", "output_modalities", "description",
+        # Extended pricing
+        "pricing_image", "pricing_audio", "pricing_web_search",
+        "pricing_internal_reasoning", "pricing_input_cache_read",
+        "pricing_input_cache_write",
+        # Architecture
+        "tokenizer", "instruct_type",
+        # Metadata
+        "hugging_face_id", "canonical_slug", "knowledge_cutoff",
+        "expiration_date", "supported_parameters", "is_moderated",
+        # Provider context
+        "provider_context_length",
+        # Sync tracking
+        "openrouter_created_at", "last_synced_at",
+    }
     name: str
     provider: str
     type: str
     credential: Optional[str] = None
+    # Extended metadata (populated from OpenRouter and other providers)
+    context_length: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
+    pricing_prompt: Optional[str] = None
+    pricing_completion: Optional[str] = None
+    modality: Optional[str] = None
+    input_modalities: Optional[List[str]] = None
+    output_modalities: Optional[List[str]] = None
+    description: Optional[str] = None
+    # Full pricing breakdown
+    pricing_image: Optional[str] = None
+    pricing_audio: Optional[str] = None
+    pricing_web_search: Optional[str] = None
+    pricing_internal_reasoning: Optional[str] = None
+    pricing_input_cache_read: Optional[str] = None
+    pricing_input_cache_write: Optional[str] = None
+    # Architecture
+    tokenizer: Optional[str] = None
+    instruct_type: Optional[str] = None
+    # Model metadata
+    hugging_face_id: Optional[str] = None
+    canonical_slug: Optional[str] = None
+    knowledge_cutoff: Optional[str] = None
+    expiration_date: Optional[str] = None
+    supported_parameters: Optional[List[str]] = None
+    is_moderated: Optional[bool] = None
+    # Provider-level context
+    provider_context_length: Optional[int] = None
+    # Sync tracking
+    openrouter_created_at: Optional[int] = None
+    last_synced_at: Optional[str] = None
 
     @classmethod
     async def get_models_by_type(cls, model_type):
@@ -69,6 +118,7 @@ class DefaultModels(RecordModel):
     # default_vision_model: Optional[str]
     default_embedding_model: Optional[str] = None
     default_tools_model: Optional[str] = None
+    default_reranker_model: Optional[str] = None
 
     @classmethod
     async def get_instance(cls) -> "DefaultModels":
@@ -114,6 +164,7 @@ class ModelManager:
             "embedding",
             "speech_to_text",
             "text_to_speech",
+            "reranking",
         ]:
             raise ConfigurationError(f"Invalid model type: {model.type}")
 
@@ -168,6 +219,14 @@ class ModelManager:
             )
         elif model.type == "text_to_speech":
             return AIFactory.create_text_to_speech(
+                model_name=model.name,
+                provider=provider,
+                config=config,
+            )
+        elif model.type == "reranking":
+            # Reranking models are loaded as language models for LLM-based reranking.
+            # The search pipeline sends a scoring prompt and parses the JSON response.
+            return AIFactory.create_language(
                 model_name=model.name,
                 provider=provider,
                 config=config,
@@ -245,6 +304,8 @@ class ModelManager:
             model_id = defaults.default_speech_to_text_model
         elif model_type == "large_context":
             model_id = defaults.large_context_model
+        elif model_type == "reranker":
+            model_id = defaults.default_reranker_model
 
         if not model_id:
             logger.warning(

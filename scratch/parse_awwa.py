@@ -1,5 +1,6 @@
 import re
 
+
 def find_unique_sets():
     sql_file = "/Users/jimmcknney/cset_clone/CSETWebApi/CSETWeb_Api/CSETWebCore.UpgradeLibrary/VersionUpgrader/SQL/1001_to_101_data2.sql"
     with open(sql_file, "r", encoding="utf-8", errors="ignore") as fh:

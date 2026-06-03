@@ -1,4 +1,5 @@
 from typing import List
+
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
@@ -22,6 +23,7 @@ async def get_pipeline_rules():
                 prompt=rule.prompt,
                 query_template=rule.query_template or "",
                 model_override=rule.model_override,
+                search_engine=rule.search_engine or "default",
                 is_active=rule.is_active,
                 created=str(rule.created),
                 updated=str(rule.updated),
@@ -45,6 +47,7 @@ async def create_pipeline_rule(rule_data: PipelineRuleCreate):
             prompt=rule_data.prompt,
             query_template=rule_data.query_template or "",
             model_override=rule_data.model_override,
+            search_engine=rule_data.search_engine or "default",
             is_active=rule_data.is_active,
         )
         await rule.save()
@@ -56,6 +59,7 @@ async def create_pipeline_rule(rule_data: PipelineRuleCreate):
             prompt=rule.prompt,
             query_template=rule.query_template or "",
             model_override=rule.model_override,
+            search_engine=rule.search_engine or "default",
             is_active=rule.is_active,
             created=str(rule.created),
             updated=str(rule.updated),
@@ -80,6 +84,7 @@ async def update_pipeline_rule(rule_id: str, rule_data: PipelineRuleCreate):
         rule.prompt = rule_data.prompt
         rule.query_template = rule_data.query_template or ""
         rule.model_override = rule_data.model_override
+        rule.search_engine = rule_data.search_engine or "default"
         rule.is_active = rule_data.is_active
 
         await rule.save()
@@ -91,6 +96,7 @@ async def update_pipeline_rule(rule_id: str, rule_data: PipelineRuleCreate):
             prompt=rule.prompt,
             query_template=rule.query_template or "",
             model_override=rule.model_override,
+            search_engine=rule.search_engine or "default",
             is_active=rule.is_active,
             created=str(rule.created),
             updated=str(rule.updated),

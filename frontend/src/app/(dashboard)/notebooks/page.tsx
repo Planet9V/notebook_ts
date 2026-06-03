@@ -10,11 +10,15 @@ import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { CreateNotebookDialog } from '@/components/notebooks/CreateNotebookDialog'
 import { Input } from '@/components/ui/input'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { ViewToggle, ViewMode } from '@/components/ui/view-toggle'
+import { DataTable } from '@/components/data-table'
+import { notebookColumns } from '@/components/columns/notebook-columns'
 
 export default function NotebooksPage() {
   const { t } = useTranslation()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const { data: notebooks, isLoading, refetch } = useNotebooks(false)
   const { data: archivedNotebooks } = useNotebooks(true)
 
@@ -69,6 +73,7 @@ export default function NotebooksPage() {
               aria-label={t('common.accessibility.searchNotebooks') || "Search notebooks"}
               className="w-full sm:w-64"
             />
+            <ViewToggle value={viewMode} onChange={setViewMode} />
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               {t('notebooks.newNotebook')}
@@ -76,28 +81,40 @@ export default function NotebooksPage() {
           </div>
         </div>
         
-        <div className="space-y-8">
-          <NotebookList 
-            notebooks={filteredActive} 
-            isLoading={isLoading}
-            title={t('notebooks.activeNotebooks')}
-            emptyTitle={isSearching ? t('common.noMatches') : undefined}
-            emptyDescription={isSearching ? t('common.tryDifferentSearch') : undefined}
-            onAction={!isSearching ? () => setCreateDialogOpen(true) : undefined}
-            actionLabel={!isSearching ? t('notebooks.newNotebook') : undefined}
-          />
-          
-          {hasArchived && (
+        {viewMode === 'cards' && (
+          <div className="space-y-8">
             <NotebookList 
-              notebooks={filteredArchived} 
-              isLoading={false}
-              title={t('notebooks.archivedNotebooks')}
-              collapsible
+              notebooks={filteredActive} 
+              isLoading={isLoading}
+              title={t('notebooks.activeNotebooks')}
               emptyTitle={isSearching ? t('common.noMatches') : undefined}
               emptyDescription={isSearching ? t('common.tryDifferentSearch') : undefined}
+              onAction={!isSearching ? () => setCreateDialogOpen(true) : undefined}
+              actionLabel={!isSearching ? t('notebooks.newNotebook') : undefined}
             />
-          )}
-        </div>
+            
+            {hasArchived && (
+              <NotebookList 
+                notebooks={filteredArchived} 
+                isLoading={false}
+                title={t('notebooks.archivedNotebooks')}
+                collapsible
+                emptyTitle={isSearching ? t('common.noMatches') : undefined}
+                emptyDescription={isSearching ? t('common.tryDifferentSearch') : undefined}
+              />
+            )}
+          </div>
+        )}
+
+        {viewMode === 'table' && (
+          <DataTable
+            columns={notebookColumns}
+            data={filteredActive ?? []}
+            searchPlaceholder="Search notebooks..."
+            isLoading={isLoading}
+            emptyMessage="No notebooks found"
+          />
+        )}
         </div>
       </div>
 

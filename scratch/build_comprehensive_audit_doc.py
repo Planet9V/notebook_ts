@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import json
 
 # Ensure project root is in path
 sys.path.append("/Users/jimmcknney/notebook_tetrel")

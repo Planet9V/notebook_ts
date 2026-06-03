@@ -339,6 +339,102 @@
   }
 }
 
+/* ==========================================
+   Luminescent Border Beam (Phase 2)
+   Hardware-accelerated conic-gradient rotation
+   using transform only — zero layout reflows.
+   ========================================== */
+
+@keyframes tetrel-border-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.tetrel-border-beam {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  /* Inner card sits above the spinning gradient */
+  z-index: 0;
+}
+
+.tetrel-border-beam::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 60%,
+    oklch(0.623 0.214 259.815 / 0.6) 75%,
+    oklch(0.697 0.174 194.2 / 0.8) 85%,
+    oklch(0.623 0.214 259.815 / 0.6) 95%,
+    transparent 100%
+  );
+  will-change: transform;
+  animation: tetrel-border-spin 4s linear infinite;
+  /* Paused by default — only active state enables */
+  animation-play-state: paused;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Active border beam — triggers on audited/selected cards */
+.tetrel-border-beam-active::before {
+  animation-play-state: running;
+  opacity: 1;
+}
+
+/* Inner card background mask — sits above the spinning gradient */
+.tetrel-border-beam::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--card);
+}
+
+/* Dark mode: slightly brighter beam */
+.dark .tetrel-border-beam-active::before {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 55%,
+    oklch(0.707 0.165 233.15 / 0.7) 70%,
+    oklch(0.697 0.174 194.2 / 0.9) 82%,
+    oklch(0.707 0.165 233.15 / 0.7) 94%,
+    transparent 100%
+  );
+}
+
+/* ==========================================
+   SVG Threat Flow Dash Animation (Phase 4)
+   Animated stroke-dashoffset for threat paths.
+   ========================================== */
+
+@keyframes tetrel-dash-flow {
+  from { stroke-dashoffset: 16; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.tetrel-threat-flow {
+  stroke-dasharray: 8 8;
+  animation: tetrel-dash-flow 1s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+/* Muted state — freezes all canvas motion instantly */
+.tetrel-canvas-muted .tetrel-threat-flow {
+  animation-play-state: paused;
+}
+
+.tetrel-canvas-muted .tetrel-border-beam-active::before {
+  animation-play-state: paused;
+}
+
 /* Premium empty state container */
 .tetrel-empty-state {
   @apply flex flex-col items-center justify-center py-16 px-8 text-center;

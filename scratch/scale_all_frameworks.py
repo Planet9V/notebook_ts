@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-import os
 import json
+import os
+
 
 def main():
     catalog_path = "/Users/jimmcknney/notebook_tetrel/scripts/cset_catalog.json"

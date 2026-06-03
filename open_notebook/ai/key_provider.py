@@ -19,7 +19,6 @@ from loguru import logger
 
 from open_notebook.domain.credential import Credential
 
-
 # =============================================================================
 # Provider Configuration Mapping
 # =============================================================================
@@ -58,6 +57,48 @@ PROVIDER_CONFIG = {
     "elevenlabs": {
         "env_var": "ELEVENLABS_API_KEY",
     },
+    "perplexity": {
+        "env_var": "PERPLEXITY_API_KEY",
+    },
+    "tavily": {
+        "env_var": "TAVILY_API_KEY",
+    },
+    "valyu": {
+        "env_var": "VALYU_API_KEY",
+    },
+    "newsapi": {
+        "env_var": "NEWSAPI_KEY",
+    },
+    "finnhub": {
+        "env_var": "FINNHUB_API_KEY",
+    },
+    "eia": {
+        "env_var": "EIA_API_KEY",
+    },
+    "codacy": {
+        "env_var": "CODACY_API_TOKEN",
+    },
+    "censys": {
+        "env_var": "CENSYS_API_KEY",
+    },
+    "fred": {
+        "env_var": "FRED_API_KEY",
+    },
+    "tripo": {
+        "env_var": "TRIPO_API_KEY",
+    },
+    "stitch": {
+        "env_var": "STITCH_API_KEY",
+    },
+    "huggingface": {
+        "env_var": "HUGGINGFACE_TOKEN",
+    },
+    "mapbox": {
+        "env_var": "MAPBOX_ACCESS_TOKEN",
+    },
+    "brave": {
+        "env_var": "BRAVE_API_KEY",
+    },
     # URL-based providers
     "ollama": {
         "env_var": "OLLAMA_API_BASE",
@@ -92,17 +133,19 @@ async def get_api_key(provider: str) -> Optional[str]:
     Returns:
         API key string or None if not configured
     """
-    cred = await _get_default_credential(provider)
+    provider_lower = provider.lower()
+
+    cred = await _get_default_credential(provider_lower)
     if cred and cred.api_key:
-        logger.debug(f"Using {provider} API key from Credential")
+        logger.debug(f"Using {provider_lower} API key from Credential")
         return cred.api_key.get_secret_value()
 
     # Fall back to environment variable
-    config_info = PROVIDER_CONFIG.get(provider.lower())
+    config_info = PROVIDER_CONFIG.get(provider_lower)
     if config_info:
         env_value = os.environ.get(config_info["env_var"])
         if env_value:
-            logger.debug(f"Using {provider} API key from environment variable")
+            logger.debug(f"Using {provider_lower} API key from environment variable")
         return env_value
 
     return None

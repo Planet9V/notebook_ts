@@ -171,6 +171,9 @@ Response ← Pydantic serialization ← Service ← Result
 | `source_insight` | Transformation output | id, source_id, insight_type, content, created, updated |
 | `reference` | Relationship: source → notebook | out (source), in (notebook) |
 | `artifact` | Relationship: note → notebook | out (note), in (notebook) |
+| `agent_config` | Agent orchestration configuration | id, name, description, type, default_model, system_prompt, allowed_tools, tenant_id, created, updated |
+| `agent_execution` | Active/completed agent task execution | id, agent_config_id, status (running, completed, failed), input_params, output_results, started_at, completed_at |
+| `agent_log` | Detailed step-by-step trace of agent execution | id, execution_id, step_name, tool_call, tool_input, tool_output, trace_level, created |
 
 **Relationship Graph**:
 ```
@@ -832,6 +835,112 @@ Async job submission (source processing, podcast generation) prevents request ti
 - **Database Queries**: SurrealDB metrics available via admin UI
 - **Token Usage**: Estimated via `estimate_tokens()` utility
 - **Job Status**: Poll `/commands/{id}` for async operations
+
+---
+
+## Advanced Capabilities Architecture
+
+### 1. Autonomous Agent Framework (Layer 1)
+Open Notebook incorporates a state-of-the-art, fully autonomous agent orchestration runtime built on top of LangGraph. Agents are defined as long-running, self-correcting state machines that can perform planning, research, coding, and multi-agent coordination with feedback loops.
+
+#### Config Schemas & State Management
+Each agent is configured via a defined schema and backed by relational/graph storage in SurrealDB.
+* **Agent Configuration Schema (`agent_config`):** Defines the identity, model preferences, system prompts, safety guardrails, and tool authorizations for each agent instance.
+* **Agent Execution (`agent_execution`):** Records execution instances, maintaining task lifecycle state (e.g., `queued`, `running`, `completed`, `failed`, `paused_for_human`), input variables, outputs, and token/monetary consumption.
+* **Agent Logs (`agent_log`):** Detailed execution history capturing full inputs, outputs, timestamps, and model thought logs for debugging and visual analysis.
+
+```mermaid
+erDiagram
+    tenant_org ||--o{ agent_config : owns
+    agent_config ||--o{ agent_execution : runs
+    agent_execution ||--o{ agent_log : records
+```
+
+#### SurrealDB Table Definitions
+* **`agent_config` schema**:
+  ```sql
+  DEFINE TABLE agent_config SCHEMAFULL;
+  DEFINE FIELD name ON agent_config TYPE string;
+  DEFINE FIELD description ON agent_config TYPE string;
+  DEFINE FIELD type ON agent_config TYPE string ASSERT $value INSIDE ["researcher", "coder", "analyst", "orchestrator"];
+  DEFINE FIELD default_model ON agent_config TYPE string;
+  DEFINE FIELD system_prompt ON agent_config TYPE string;
+  DEFINE FIELD allowed_tools ON agent_config TYPE array;
+  DEFINE FIELD tenant_id ON agent_config TYPE string;
+  DEFINE FIELD created ON agent_config TYPE datetime DEFAULT time::now();
+  DEFINE FIELD updated ON agent_config TYPE datetime DEFAULT time::now() VALUE time::now();
+  ```
+* **`agent_execution` schema**:
+  ```sql
+  DEFINE TABLE agent_execution SCHEMAFULL;
+  DEFINE FIELD agent_config_id ON agent_execution TYPE record(agent_config);
+  DEFINE FIELD status ON agent_execution TYPE string ASSERT $value INSIDE ["queued", "running", "completed", "failed", "paused"];
+  DEFINE FIELD input_params ON agent_execution TYPE object;
+  DEFINE FIELD output_results ON agent_execution TYPE object;
+  DEFINE FIELD started_at ON agent_execution TYPE datetime DEFAULT time::now();
+  DEFINE FIELD completed_at ON agent_execution TYPE option<datetime>;
+  ```
+* **`agent_log` schema**:
+  ```sql
+  DEFINE TABLE agent_log SCHEMAFULL;
+  DEFINE FIELD execution_id ON agent_log TYPE record(agent_execution);
+  DEFINE FIELD step_name ON agent_log TYPE string;
+  DEFINE FIELD tool_call ON agent_log TYPE option<string>;
+  DEFINE FIELD tool_input ON agent_log TYPE option<object>;
+  DEFINE FIELD tool_output ON agent_log TYPE option<object>;
+  DEFINE FIELD trace_level ON agent_log TYPE string ASSERT $value INSIDE ["info", "debug", "error"];
+  DEFINE FIELD created ON agent_log TYPE datetime DEFAULT time::now();
+  ```
+
+---
+
+### 2. Skills & MCP Toolsets (Layer 2)
+The runtime provides agents with a powerful, dynamic plugin architecture consisting of **Agentic Skills** and **Model Context Protocol (MCP)** tool connections.
+
+#### Skills Registry
+The system discovers, registers, and maps 46+ specialized agent skills dynamically at runtime. This registry exposes capabilities such as:
+* **System Integrations:** Gmail, Google Docs, Slack, Discord, and Calendly tools.
+* **Workspace Tools:** Office suites, PDF parsers, video/audio analytics via VideoDB, and local filesystem access.
+* **AI/Search Operations:** Tavily search, Exa search, Algolia indexers, and OpenRouter deep-reasoning pipelines.
+
+```
+Agent Execution Environment
+ ├── Local Skills (Gmail, Sales Campaigns, LinkedIn)
+ └── External MCP Servers (chrome-devtools, databases)
+```
+
+#### Registry Hub Architecture
+* **Dynamically Loaded Tools:** Tools are exposed to LLMs as JSON-schema function definitions. Each tool has strict input validation using Pydantic.
+* **System Environment Mappings:** Key environment variables (e.g., `GMAIL_CLIENT_SECRET`, `LINKEDIN_ACCESS_TOKEN`) are securely retrieved per tenant and injected into the execution thread sandboxes.
+* **Admin Visibility:** The system features an administrator control panel (`/admin/skills`) that displays all registered tools, their operational status, configuration parameters, and recent execution latency metrics.
+
+---
+
+### 3. Multi-Tenant Organization Folder Structures (Phase 2)
+To scale the platform to enterprise environments, Phase 2 implements a robust, secure multi-tenant and multi-organization architecture. This guarantees absolute data isolation and fine-grained access control.
+
+#### Directory Isolation
+Storage files, uploads, and runtime caches are physically segregated by organization IDs at the file system level:
+```
+/data/tenants/
+  ├── tenant_org_01/
+  │    ├── uploads/         <-- Tenant isolated media and document assets
+  │    ├── sqlite-db/       <-- Tenant isolated LangGraph state checkpoints
+  │    └── logs/            <-- Tenant isolated audit trails
+  └── tenant_org_02/
+       ├── uploads/
+       ├── sqlite-db/
+       └── logs/
+```
+
+#### Access Control & Audit Trails
+* **ACL Rules:** Access to notebooks, notes, and sources requires a valid tenant scope header (`X-Tenant-ID`). SurrealDB uses Row-Level Security (RLS) policies to verify tenant isolation at the query level:
+  ```sql
+  DEFINE TABLE notebook SCHEMAFULL
+    PERMISSIONS
+      FOR select, update, delete WHERE tenant_id = $auth.tenant_id;
+  ```
+* **Audit Logs:** Every read, write, execution, and admin access is signed and recorded in an immutable audit ledger (`audit_log` table) to maintain compliance (CSET/SOC2/HIPAA).
 
 ---
 

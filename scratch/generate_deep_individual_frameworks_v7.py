@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
+import hashlib
+import json
 import os
 import sys
-import json
-import hashlib
 import textwrap
 
 # Ensure project root is in path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scripts.generate_cset_library import (
-    FRAMEWORKS
-)
+from scripts.generate_cset_library import FRAMEWORKS
 
 # CSET Caching maps for parsed SQL data
 CSET_SETS = {}
@@ -376,7 +374,7 @@ def enrich_cset_details(fw_id, code, name, text, cat, purdue, guidance):
     elif "Incident" in cat or "Recovery" in cat or "Emergency" in cat:
         hardware_ref = " (aligned with incident response playbooks, offsite backups, and isolated write-once media)"
 
-    if hardware_ref and not hardware_ref.lower() in text.lower():
+    if hardware_ref and hardware_ref.lower() not in text.lower():
         if text.endswith("?"):
             text = text[:-1] + hardware_ref + "?"
         else:
@@ -410,7 +408,9 @@ def build_factual_cset_catalog():
     # Load high-fidelity unique fallback databases from generate_deep_individual_frameworks_v6.py
     # This guarantees that the other 55 frameworks have premium, highly realistic operational controls
     try:
-        from scratch.generate_deep_individual_frameworks_v6 import build_factual_cset_catalog as build_v6_catalog
+        from scratch.generate_deep_individual_frameworks_v6 import (
+            build_factual_cset_catalog as build_v6_catalog,
+        )
         # Create a temp mapping from v6's static database
         print("Extracting fallback databases from generate_deep_individual_frameworks_v6...")
         

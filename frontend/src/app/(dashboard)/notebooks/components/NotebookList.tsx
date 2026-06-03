@@ -4,6 +4,7 @@ import { NotebookResponse } from '@/lib/types/api'
 import { NotebookCard } from './NotebookCard'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { EmptyState } from '@/components/common/EmptyState'
+import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { Book, ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -35,9 +36,7 @@ export function NotebookList({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
-      </div>
+      <DataPageSkeleton layout="cards-grid" count={6} className="py-4" />
     )
   }
 

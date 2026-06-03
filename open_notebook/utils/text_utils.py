@@ -126,8 +126,12 @@ def extract_text_content(content) -> str:
     (e.g. Gemini's envelope format):
     [{'type': 'text', 'text': '...', 'extras': {...}}]
 
+    Also handles LangChain message objects (AIMessage, etc.) which have
+    a .content attribute.
+
     Args:
-        content: The content from an AI message, either a string or a list of parts.
+        content: The content from an AI message, either a string, a list of parts,
+                 or a LangChain message object.
 
     Returns:
         The extracted text content as a string.
@@ -142,4 +146,8 @@ def extract_text_content(content) -> str:
             elif isinstance(part, str):
                 text_parts.append(part)
         return "".join(text_parts)
+    # Handle LangChain message objects (AIMessage, HumanMessage, etc.)
+    if hasattr(content, "content"):
+        return extract_text_content(content.content)
     return str(content)
+

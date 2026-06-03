@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional, Set
 
 from fastapi import APIRouter, HTTPException
 from loguru import logger
@@ -29,6 +29,120 @@ def clean_id(val: str) -> str:
     if not val:
         return ""
     return str(val).split(":", 1)[-1]
+
+
+CSET_COMPONENT_MAPPING = {
+    "activedirectory": ["Active Directory"],
+    "applicationserver": ["Application Server"],
+    "audioswitch": ["Audio Switch"],
+    "buildingautomationmanagementsystems": ["Building Automation Management Systems"],
+    "dcs": ["DCS"],
+    "dnsserver": ["DNS Server"],
+    "databaseserver": ["Database Server"],
+    "dispatchconsole": ["Dispatch Console"],
+    "electronicsecuritysystem": ["Electronic Security System"],
+    "emergencymedicalservicecommunicationshardware": ["Emergency Medical Service Communications Hardware"],
+    "ethernetbackhaul": ["Ethernet Backhaul"],
+    "firewall": ["Firewall", "VPN", "Unidirectional Device", "Link Encryption", "IDS", "IPS"],
+    "handheldwirelessdevice": ["Handheld Wireless Device"],
+    "historian": ["Historian", "Database Server", "Application Server", "Imaging Server"],
+    "ids": ["IDS", "Firewall"],
+    "ipcamera": ["IP Camera"],
+    "ipphone": ["IP Phone"],
+    "ips": ["IPS", "Firewall"],
+    "imagingmodalitiesandequipment": ["Imaging Modalities and Equipment"],
+    "imagingserver": ["Imaging Server"],
+    "linkencryption": ["Link Encryption"],
+    "mailserver": ["Mail Server"],
+    "modem": ["Modem"],
+    "multiprotocollabelswitching": ["Multi Protocol Label Switching"],
+    "networkprinter": ["Network Printer"],
+    "networkscannerandcopier": ["Network Scanner And Copier"],
+    "opticalringsystem": ["Optical Ring System"],
+    "partner": ["Partner"],
+    "physiologicalmonitoringsystem": ["Physiological Monitoring System"],
+    "poweroverethernet": ["Power Over Ethernet"],
+    "publickiosk": ["Public Kiosk"],
+    "rfidtransmitter": ["RFID Transmitter"],
+    "radiosite": ["Radio Site"],
+    "realtimelocationsystem": ["Real Time Location System"],
+    "relaypanel": ["Relay Panel"],
+    "router": ["Router"],
+    "safetyinstrumentedsystem": ["Safety Instrumented System"],
+    "securityinformationandeventmanagementsystem": ["Security Information And Event Management System"],
+    "subscriberradio": ["Subscriber Radio"],
+    "switch": ["Switch", "VLAN Switch", "VLAN Router", "Router", "Ethernet Backhaul", "Optical Ring System", "Multi Protocol Label Switching"],
+    "terminalserver": ["Terminal Server"],
+    "unidirectionaldevice": ["Unidirectional Device"],
+    "vlanrouter": ["VLAN Router"],
+    "vlanswitch": ["VLAN Switch"],
+    "vpn": ["VPN", "Firewall"],
+    "webserver": ["Web Server"],
+    "windowsupdateserver": ["Windows Update Server"],
+    "wirelessmodem": ["Wireless Modem"],
+    "wirelessnetwork": ["Wireless Network"],
+    "rtu": ["RTU", "Relay Panel"],
+    "plc": ["DCS"],
+}
+
+
+async def get_active_cset_prefixes_for_session(sess_id: str, fw_id: str) -> Optional[set]:
+    """Resolves active CSET component prefixes for the Components framework session."""
+    if str(fw_id) != "regulation:Components":
+        return None
+
+    active_prefixes = {"Comp"}  # general component questions are always active
+
+    try:
+        sess_rec = ensure_record_id(sess_id)
+        sess_res = await repo_query("SELECT assessment_id FROM $id", {"id": sess_rec})
+        if not sess_res:
+            return active_prefixes
+
+        assessment_id = sess_res[0].get("assessment_id")
+        if not assessment_id:
+            return active_prefixes
+
+        assess_res = await repo_query("SELECT customer_id FROM $id", {"id": ensure_record_id(assessment_id)})
+        if not assess_res:
+            return active_prefixes
+
+        customer_id = assess_res[0].get("customer_id")
+        if not customer_id:
+            return active_prefixes
+
+        notebooks = await repo_query(
+            "SELECT id FROM notebook WHERE customer_id != NONE AND type::string(customer_id) = type::string($cust_id) AND (archived = false OR archived = None)",
+            {"cust_id": customer_id}
+        )
+        if not notebooks:
+            return active_prefixes
+
+        notebook_id = notebooks[0]["id"]
+
+        assets = await repo_query(
+            "SELECT type FROM asset WHERE notebook_id = $nb_id",
+            {"nb_id": notebook_id}
+        )
+
+        for asset in assets:
+            asset_type = asset.get("type", "")
+            if not asset_type:
+                continue
+            normalized_type = asset_type.lower().replace("_", "").replace(" ", "")
+            mapped_prefixes = CSET_COMPONENT_MAPPING.get(normalized_type, [])
+            for p in mapped_prefixes:
+                active_prefixes.add(p)
+            # Add basic capitalized/upper forms as fallback
+            active_prefixes.add(asset_type.upper())
+            active_prefixes.add(asset_type.capitalize())
+            active_prefixes.add(asset_type)
+            
+    except Exception as e:
+        logger.error(f"Error resolving active CSET prefixes: {e}")
+
+    return active_prefixes
+
 
 
 @router.post("/assessments", response_model=AssessmentResponse)
@@ -253,6 +367,9 @@ async def get_session_questions(session_id: str):
         session = sess_check[0]
         fw_id = session.get("version_lock")
         
+        # Resolve active prefixes for Components framework linkage
+        active_prefixes = await get_active_cset_prefixes_for_session(sess_id, fw_id)
+
         # Load all standard questions
         questions = await repo_query(
             "SELECT * FROM question WHERE type::string(regulation_id) = type::string($fw_id) ORDER BY standard_code ASC",
@@ -273,6 +390,21 @@ async def get_session_questions(session_id: str):
             q_id = str(q["id"])
             existing_ans = answer_map.get(q_id)
             
+            ans_val = "U"
+            if existing_ans:
+                ans_val = existing_ans["answer"]
+                
+            # Under "no exclusion" policy, mark questions as NA if their component type is not present on canvas
+            if active_prefixes is not None:
+                std_code = q.get("standard_code") or ""
+                is_active = False
+                for prefix in active_prefixes:
+                    if std_code.strip().startswith(prefix):
+                        is_active = True
+                        break
+                if not is_active:
+                    ans_val = "NA"
+            
             results.append({
                 "question_id": q_id,
                 "standard_code": q.get("standard_code") or "",
@@ -280,7 +412,7 @@ async def get_session_questions(session_id: str):
                 "description": q.get("description") or "",
                 "purdue_level": int(q.get("purdue_level") or 0),
                 "category": q.get("category") or "Control",
-                "answer": existing_ans["answer"] if existing_ans else "U",  # U for Unanswered
+                "answer": ans_val,
                 "comments": existing_ans["comments"] if existing_ans else "",
                 "evidence_url": existing_ans["evidence_url"] if existing_ans else "",
                 "updated_at": existing_ans["updated_at"] if existing_ans else ""
@@ -388,28 +520,51 @@ async def complete_session(session_id: str):
         
         answer_map = {ans["question_id"]: ans for ans in answers}
         
+        # Resolve active prefixes for Components framework linkage
+        active_prefixes = await get_active_cset_prefixes_for_session(sess_id, fw_id)
+        
         total_questions = len(questions)
-        answered_count = len(answers)
         
         yes_count = 0
         no_count = 0
         na_count = 0
         alt_count = 0
+        answered_count = 0
         
         # Calculate statistics
-        for ans in answers:
-            a = ans["answer"]
-            if a == "Y":
-                yes_count += 1
-            elif a == "N":
-                no_count += 1
-            elif a == "NA":
-                na_count += 1
-            elif a == "ALT":
-                alt_count += 1
+        for q in questions:
+            q_id = str(q["id"])
+            ans = answer_map.get(q_id)
+            
+            ans_val = "U"
+            if ans:
+                ans_val = ans["answer"]
                 
-        unanswered_count = total_questions - answered_count
-        no_count += unanswered_count  # Treat unanswered as NO for security posture
+            # Enforce "no exclusion" asset register linkage
+            is_active = True
+            if active_prefixes is not None:
+                std_code = q.get("standard_code") or ""
+                is_active = False
+                for prefix in active_prefixes:
+                    if std_code.strip().startswith(prefix):
+                        is_active = True
+                        break
+                if not is_active:
+                    ans_val = "NA"
+            
+            if ans_val == "Y":
+                yes_count += 1
+            elif ans_val == "N":
+                no_count += 1
+            elif ans_val == "NA":
+                na_count += 1
+            elif ans_val == "ALT":
+                alt_count += 1
+            elif ans_val == "U":
+                no_count += 1  # Unanswered defaults to NO
+                
+            if is_active and ans and ans["answer"] != "U":
+                answered_count += 1
         
         denominator = total_questions - na_count
         compliance_score = ((yes_count + alt_count) / denominator) * 100 if denominator > 0 else 0.0
@@ -421,13 +576,29 @@ async def complete_session(session_id: str):
             if cat not in category_map:
                 category_map[cat] = {"total": 0, "answered": 0, "yes_count": 0}
             
-            category_map[cat]["total"] += 1
-            
             q_id = str(q["id"])
             ans = answer_map.get(q_id)
+            
+            ans_val = "U"
             if ans:
-                category_map[cat]["answered"] += 1
-                if ans["answer"] in ["Y", "ALT"]:
+                ans_val = ans["answer"]
+                
+            is_active = True
+            if active_prefixes is not None:
+                std_code = q.get("standard_code") or ""
+                is_active = False
+                for prefix in active_prefixes:
+                    if std_code.strip().startswith(prefix):
+                        is_active = True
+                        break
+                if not is_active:
+                    ans_val = "NA"
+            
+            if ans_val != "NA":
+                category_map[cat]["total"] += 1
+                if ans and ans["answer"] != "U":
+                    category_map[cat]["answered"] += 1
+                if ans_val in ["Y", "ALT"]:
                     category_map[cat]["yes_count"] += 1
                     
         category_coverage = []
@@ -509,28 +680,51 @@ async def get_session_report(session_id: str):
         
         answer_map = {ans["question_id"]: ans for ans in answers}
         
+        # Resolve active prefixes for Components framework linkage
+        active_prefixes = await get_active_cset_prefixes_for_session(sess_id, fw_id)
+        
         total_questions = len(questions)
-        answered_count = len(answers)
         
         yes_count = 0
         no_count = 0
         na_count = 0
         alt_count = 0
+        answered_count = 0
         
         # Calculate statistics
-        for ans in answers:
-            a = ans["answer"]
-            if a == "Y":
-                yes_count += 1
-            elif a == "N":
-                no_count += 1
-            elif a == "NA":
-                na_count += 1
-            elif a == "ALT":
-                alt_count += 1
+        for q in questions:
+            q_id = str(q["id"])
+            ans = answer_map.get(q_id)
+            
+            ans_val = "U"
+            if ans:
+                ans_val = ans["answer"]
                 
-        unanswered_count = total_questions - answered_count
-        no_count += unanswered_count  # Treat unanswered as NO for security posture
+            # Enforce "no exclusion" asset register linkage
+            is_active = True
+            if active_prefixes is not None:
+                std_code = q.get("standard_code") or ""
+                is_active = False
+                for prefix in active_prefixes:
+                    if std_code.strip().startswith(prefix):
+                        is_active = True
+                        break
+                if not is_active:
+                    ans_val = "NA"
+            
+            if ans_val == "Y":
+                yes_count += 1
+            elif ans_val == "N":
+                no_count += 1
+            elif ans_val == "NA":
+                na_count += 1
+            elif ans_val == "ALT":
+                alt_count += 1
+            elif ans_val == "U":
+                no_count += 1  # Unanswered defaults to NO
+                
+            if is_active and ans and ans["answer"] != "U":
+                answered_count += 1
         
         completion_percentage = (answered_count / total_questions) * 100 if total_questions > 0 else 0.0
         
@@ -545,13 +739,29 @@ async def get_session_report(session_id: str):
             if cat not in category_map:
                 category_map[cat] = {"total": 0, "answered": 0, "yes_count": 0}
             
-            category_map[cat]["total"] += 1
-            
             q_id = str(q["id"])
             ans = answer_map.get(q_id)
+            
+            ans_val = "U"
             if ans:
-                category_map[cat]["answered"] += 1
-                if ans["answer"] in ["Y", "ALT"]:
+                ans_val = ans["answer"]
+                
+            is_active = True
+            if active_prefixes is not None:
+                std_code = q.get("standard_code") or ""
+                is_active = False
+                for prefix in active_prefixes:
+                    if std_code.strip().startswith(prefix):
+                        is_active = True
+                        break
+                if not is_active:
+                    ans_val = "NA"
+            
+            if ans_val != "NA":
+                category_map[cat]["total"] += 1
+                if ans and ans["answer"] != "U":
+                    category_map[cat]["answered"] += 1
+                if ans_val in ["Y", "ALT"]:
                     category_map[cat]["yes_count"] += 1
                     
         category_coverage = []
@@ -575,8 +785,23 @@ async def get_session_report(session_id: str):
             q_id = str(q["id"])
             ans = answer_map.get(q_id)
             
-            # Recommend fixing if unanswered or explicitly answered 'NO'
-            if not ans or ans["answer"] == "N":
+            ans_val = "U"
+            if ans:
+                ans_val = ans["answer"]
+                
+            is_active = True
+            if active_prefixes is not None:
+                std_code = q.get("standard_code") or ""
+                is_active = False
+                for prefix in active_prefixes:
+                    if std_code.strip().startswith(prefix):
+                        is_active = True
+                        break
+                if not is_active:
+                    ans_val = "NA"
+            
+            # Recommend fixing if active and (unanswered or explicitly answered 'NO')
+            if is_active and (ans_val == "U" or ans_val == "N"):
                 p_level = int(q.get("purdue_level") or 0)
                 
                 # Priority mapping: Purdue Level 1 & 2 is Critical (kinetic boundary)

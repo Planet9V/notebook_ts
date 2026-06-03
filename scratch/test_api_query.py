@@ -1,12 +1,18 @@
 import asyncio
 import os
 import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from open_notebook.database.repository import repo_query, ensure_record_id, db_connection
+from open_notebook.database.repository import (
+    db_connection,
+    ensure_record_id,
+    repo_query,
+)
+
 
 async def main():
     regulation_id = "NIST_800_82"

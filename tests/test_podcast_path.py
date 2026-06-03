@@ -73,8 +73,8 @@ class TestResolveAudioPath:
 
     def test_resolve_safe_path(self):
         """Paths inside DATA_FOLDER should be resolved and returned successfully."""
-        from open_notebook.config import DATA_FOLDER
         from api.routers.podcasts import _resolve_audio_path
+        from open_notebook.config import DATA_FOLDER
 
         # Use a path under DATA_FOLDER
         safe_rel_path = f"{DATA_FOLDER}/podcasts/episodes/test-file.mp3"
@@ -83,9 +83,10 @@ class TestResolveAudioPath:
 
     def test_resolve_file_uri(self):
         """Paths specified via file:// URI inside DATA_FOLDER should be resolved successfully."""
-        from open_notebook.config import DATA_FOLDER
         from pathlib import Path
+
         from api.routers.podcasts import _resolve_audio_path
+        from open_notebook.config import DATA_FOLDER
 
         base_dir_abs = Path(DATA_FOLDER).resolve()
         safe_abs_path = base_dir_abs / "podcasts" / "episodes" / "test-uri.mp3"
@@ -98,6 +99,7 @@ class TestResolveAudioPath:
         """Path traversal outside DATA_FOLDER must raise 403 HTTPException."""
         import pytest
         from fastapi import HTTPException
+
         from api.routers.podcasts import _resolve_audio_path
         
         traversal_paths = [

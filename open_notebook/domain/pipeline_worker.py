@@ -1,17 +1,18 @@
-import httpx
 import os
 import urllib.parse
 from typing import Dict, List, Optional
+
+import httpx
 from bs4 import BeautifulSoup
+from langchain_core.messages import HumanMessage, SystemMessage
 from loguru import logger
 from pydantic import SecretStr
 
-from open_notebook.domain.notebook import Notebook, Note, Source, Asset
-from open_notebook.domain.pipeline_rule import PipelineRule
-from open_notebook.domain.credential import Credential
 from open_notebook.ai.provision import provision_langchain_model
+from open_notebook.domain.credential import Credential
+from open_notebook.domain.notebook import Asset, Note, Notebook, Source
+from open_notebook.domain.pipeline_rule import PipelineRule
 from open_notebook.utils.text_utils import clean_thinking_content, extract_text_content
-from langchain_core.messages import HumanMessage, SystemMessage
 
 # Thread-safe scan tracking map: notebook_id -> count of running tasks
 ACTIVE_SCANS: dict[str, int] = {}
@@ -52,31 +53,41 @@ async def crawl_prospect_website(url: str) -> str:
     return clean_text[:40000]
 
 
-async def execute_web_search(query: str) -> List[dict]:
-    """Executes web search via Brave, Tavily, or free DuckDuckGo."""
+async def execute_web_search(query: str, search_engine: Optional[str] = "default") -> List[dict]:
+    """Executes web search via Brave, Valyu/Tavily, or free DuckDuckGo."""
     tavily_key = os.environ.get("TAVILY_API_KEY")
+    valyu_key = os.environ.get("VALYU_API_KEY")
     brave_key = os.environ.get("BRAVE_API_KEY")
+    perplexity_key = os.environ.get("PERPLEXITY_API_KEY")
 
     # Try to load keys from database Credential table
     try:
         creds = await Credential.get_all()
         for c in creds:
-            if c.provider == "tavily" and c.api_key:
+            if c.provider == "valyu" and c.api_key:
+                valyu_key = c.api_key.get_secret_value()
+            elif c.provider == "tavily" and c.api_key:
                 tavily_key = c.api_key.get_secret_value()
             elif c.provider == "brave" and c.api_key:
                 brave_key = c.api_key.get_secret_value()
+            elif c.provider == "perplexity" and c.api_key:
+                perplexity_key = c.api_key.get_secret_value()
     except Exception as e:
         logger.warning(f"Error fetching credentials for search: {e}")
 
-    # Try Tavily
-    if tavily_key:
-        logger.info(f"Executing search via Tavily for: {query}")
+    # Fallback valyu_key to tavily_key if not configured
+    search_key = valyu_key or tavily_key
+    engine = (search_engine or "default").lower()
+
+    # Try Valyu (hitting Tavily Search API under the hood)
+    if engine in ("default", "valyu") and search_key:
+        logger.info(f"Executing search via Valyu/Tavily for: {query}")
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     "https://api.tavily.com/search",
                     json={
-                        "api_key": tavily_key,
+                        "api_key": search_key,
                         "query": query,
                         "search_depth": "basic",
                         "max_results": 5
@@ -93,10 +104,12 @@ async def execute_web_search(query: str) -> List[dict]:
                         for r in data.get("results", [])
                     ]
         except Exception as e:
-            logger.warning(f"Tavily search failed: {e}")
+            logger.warning(f"Valyu/Tavily search failed: {e}")
+            if engine != "default":
+                return []
 
     # Try Brave
-    if brave_key:
+    if engine in ("default", "brave") and brave_key:
         logger.info(f"Executing search via Brave for: {query}")
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -117,40 +130,87 @@ async def execute_web_search(query: str) -> List[dict]:
                     return results
         except Exception as e:
             logger.warning(f"Brave search failed: {e}")
+            if engine != "default":
+                return []
+
+    # Try Perplexity Online Search
+    if engine in ("default", "perplexity") and perplexity_key:
+        logger.info(f"Executing search via Perplexity for: {query}")
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    "https://api.perplexity.ai/chat/completions",
+                    headers={"Authorization": f"Bearer {perplexity_key}"},
+                    json={
+                        "model": "sonar",
+                        "messages": [
+                            {"role": "system", "content": "You are a web search helper. Return a concise factual summary of search results."},
+                            {"role": "user", "content": query}
+                        ],
+                        "max_tokens": 800
+                    }
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    citations = data.get("citations", [])
+                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    
+                    results = []
+                    if citations:
+                        for i, url in enumerate(citations[:5], 1):
+                            results.append({
+                                "title": f"Web Reference {i}",
+                                "url": url,
+                                "content": content[:300] + "..." if len(content) > 300 else content
+                            })
+                    else:
+                        results.append({
+                            "title": "Perplexity Search Analysis",
+                            "url": "https://api.perplexity.ai",
+                            "content": content
+                        })
+                    return results
+        except Exception as e:
+            logger.warning(f"Perplexity search fallback failed: {e}")
+            if engine != "default":
+                return []
 
     # Fallback to DuckDuckGo HTML search (free, keyless)
-    logger.info(f"Executing search via DuckDuckGo fallback for: {query}")
-    try:
-        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url, headers=headers)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, "html.parser")
-                results = []
-                for a_tag in soup.find_all("a", class_="result__snippet"):
-                    parent = a_tag.find_parent("div", class_="result__body")
-                    if not parent:
-                        continue
-                    title_tag = parent.find("a", class_="result__url")
-                    if not title_tag:
-                        continue
-                    title = title_tag.get_text(strip=True)
-                    link = title_tag.get("href", "")
-                    snippet = a_tag.get_text(strip=True)
+    if engine in ("default", "duckduckgo"):
+        logger.info(f"Executing search via DuckDuckGo fallback for: {query}")
+        try:
+            url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url, headers=headers)
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, "html.parser")
+                    results = []
+                    for a_tag in soup.find_all("a", class_="result__snippet"):
+                        parent = a_tag.find_parent("div", class_="result__body")
+                        if not parent:
+                            continue
+                        title_tag = parent.find("a", class_="result__url")
+                        if not title_tag:
+                            continue
+                        title = title_tag.get_text(strip=True)
+                        link = title_tag.get("href", "")
+                        snippet = a_tag.get_text(strip=True)
 
-                    results.append({
-                        "title": title,
-                        "url": link,
-                        "content": snippet
-                    })
-                    if len(results) >= 5:
-                        break
-                return results
-    except Exception as e:
-        logger.error(f"DuckDuckGo fallback search failed: {e}")
+                        results.append({
+                            "title": title,
+                            "url": link,
+                            "content": snippet
+                        })
+                        if len(results) >= 5:
+                            break
+                    return results
+        except Exception as e:
+            logger.error(f"DuckDuckGo fallback search failed: {e}")
+
+    return []
 
     return []
 
@@ -294,7 +354,7 @@ async def run_pipeline_automation(notebook_id: str, stage: str):
                         query = query.replace("{prospect_website}", notebook.prospect_website or "")
 
                 try:
-                    search_results = await execute_web_search(query)
+                    search_results = await execute_web_search(query, search_engine=getattr(rule, "search_engine", "default"))
                     if not search_results:
                         output_content = f"Web search for '{query}' returned no results."
                     else:

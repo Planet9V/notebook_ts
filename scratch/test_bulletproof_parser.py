@@ -1,6 +1,7 @@
 import os
 import sys
 
+
 def parse_sql_values(vals_part):
     vals_part = vals_part.strip()
     if vals_part.startswith("("):

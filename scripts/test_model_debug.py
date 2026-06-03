@@ -3,6 +3,7 @@ import os
 import sys
 import traceback
 
+
 async def main():
     from open_notebook.ai.models import Model, ModelManager
     from open_notebook.domain.credential import Credential

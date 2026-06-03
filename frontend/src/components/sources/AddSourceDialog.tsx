@@ -24,6 +24,7 @@ import { useCreateSource } from '@/lib/hooks/use-sources'
 import { useSettings } from '@/lib/hooks/use-settings'
 import { CreateSourceRequest } from '@/lib/types/api'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import type { CreateSourceFormData } from './types'
 
 const MAX_BATCH_SIZE = 50
 
@@ -65,7 +66,7 @@ const createSourceSchema = z.object({
   path: ['title'],
 })
 
-type CreateSourceFormData = z.infer<typeof createSourceSchema>
+
 
 interface AddSourceDialogProps {
   open: boolean
@@ -551,11 +552,9 @@ export function AddSourceDialog({
           >
             {currentStep === 1 && (
               <SourceTypeStep
-                // @ts-expect-error - Type inference issue with zod schema
                 control={control}
                 register={register}
                 setValue={setValue}
-                // @ts-expect-error - Type inference issue with zod schema
                 errors={errors}
                 urlValidationErrors={urlValidationErrors}
                 onClearUrlErrors={handleClearUrlErrors}
@@ -573,7 +572,6 @@ export function AddSourceDialog({
             
             {currentStep === 3 && (
               <ProcessingStep
-                // @ts-expect-error - Type inference issue with zod schema
                 control={control}
                 transformations={transformations}
                 selectedTransformations={selectedTransformations}

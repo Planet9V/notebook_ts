@@ -14,6 +14,7 @@ import { ModelSelector } from '@/components/common/ModelSelector'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { toast } from 'sonner'
 
 interface TransformationPlaygroundProps {
   transformations: Transformation[] | undefined
@@ -34,13 +35,17 @@ export function TransformationPlayground({ transformations, selectedTransformati
       return
     }
 
-    const result = await executeTransformation.mutateAsync({
-      transformation_id: selectedId,
-      input_text: inputText,
-      model_id: modelId
-    })
-
-    setOutput(result.output)
+    try {
+      const result = await executeTransformation.mutateAsync({
+        transformation_id: selectedId,
+        input_text: inputText,
+        model_id: modelId
+      })
+      setOutput(result.output)
+      toast.success('Transformation complete')
+    } catch {
+      toast.error('Transformation failed')
+    }
   }
 
   const canExecute = selectedId && modelId && inputText.trim() && !executeTransformation.isPending

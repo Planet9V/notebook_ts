@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { getDateLocale } from '@/lib/utils/date-locale'
 import { InlineEdit } from '@/components/common/InlineEdit'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { toast } from 'sonner'
 
 interface NotebookHeaderProps {
   notebook: NotebookResponse
@@ -27,20 +28,26 @@ export function NotebookHeader({ notebook, isB2BMode, onToggleB2BMode }: Noteboo
 
   const handleUpdateName = async (name: string) => {
     if (!name || name === notebook.name) return
-    
-    await updateNotebook.mutateAsync({
-      id: notebook.id,
-      data: { name }
-    })
+    try {
+      await updateNotebook.mutateAsync({
+        id: notebook.id,
+        data: { name }
+      })
+    } catch {
+      toast.error('Failed to rename notebook')
+    }
   }
 
   const handleUpdateDescription = async (description: string) => {
     if (description === notebook.description) return
-    
-    await updateNotebook.mutateAsync({
-      id: notebook.id,
-      data: { description: description || undefined }
-    })
+    try {
+      await updateNotebook.mutateAsync({
+        id: notebook.id,
+        data: { description: description || undefined }
+      })
+    } catch {
+      toast.error('Failed to update description')
+    }
   }
 
   const handleArchiveToggle = () => {

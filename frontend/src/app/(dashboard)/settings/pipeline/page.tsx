@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { AppShell } from '@/components/layout/AppShell'
 import {
   Card,
@@ -36,9 +37,12 @@ import {
   useDeletePipelineRule,
 } from '@/lib/hooks/use-pipeline'
 import { useModels } from '@/lib/hooks/use-models'
+import { SearchableModelSelect, type ModelOption } from '@/components/common/SearchableModelSelect'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import Link from 'next/link'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
@@ -67,12 +71,30 @@ export default function PipelineSettingsPage() {
   const { data: rules, isLoading: rulesLoading } = usePipelineRules()
   const { data: models } = useModels()
 
+  // Map models to ModelOption for SearchableModelSelect
+  const languageModelOptions: ModelOption[] = useMemo(() => {
+    if (!models) return []
+    return models
+      .filter((m) => m.type === 'language')
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        provider: m.provider,
+        context_length: m.context_length,
+        pricing_prompt: m.pricing_prompt,
+        pricing_completion: m.pricing_completion,
+        modality: m.modality,
+        description: m.description,
+      }))
+  }, [models])
+
   const createRule = useCreatePipelineRule()
   const updateRule = useUpdatePipelineRule()
   const deleteRule = useDeletePipelineRule()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
+  const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null)
 
   // Form State
   const [stage, setStage] = useState('technical_discovery')
@@ -80,6 +102,7 @@ export default function PipelineSettingsPage() {
   const [prompt, setPrompt] = useState('')
   const [queryTemplate, setQueryTemplate] = useState('')
   const [modelOverride, setModelOverride] = useState<string>('default')
+  const [searchEngine, setSearchEngine] = useState('default')
   const [isActive, setIsActive] = useState(true)
 
   const handleOpenNew = () => {
@@ -91,17 +114,19 @@ export default function PipelineSettingsPage() {
     )
     setQueryTemplate('{client_name} main competitors and latest security news')
     setModelOverride('default')
+    setSearchEngine('default')
     setIsActive(true)
     setDialogOpen(true)
   }
 
-  const handleOpenEdit = (rule: any) => {
+  const handleOpenEdit = (rule: { id: string; stage: string; action_type: 'crawl' | 'search'; prompt: string; query_template?: string | null; model_override?: string | null; search_engine?: string | null; is_active: boolean }) => {
     setEditingRuleId(rule.id)
     setStage(rule.stage)
     setActionType(rule.action_type)
     setPrompt(rule.prompt)
     setQueryTemplate(rule.query_template || '')
     setModelOverride(rule.model_override || 'default')
+    setSearchEngine(rule.search_engine || 'default')
     setIsActive(rule.is_active)
     setDialogOpen(true)
   }
@@ -115,24 +140,38 @@ export default function PipelineSettingsPage() {
       prompt,
       query_template: actionType === 'search' ? queryTemplate : '',
       model_override: modelOverride === 'default' ? null : modelOverride,
+      search_engine: actionType === 'search' ? searchEngine : 'default',
       is_active: isActive,
     }
 
     try {
       if (editingRuleId) {
         await updateRule.mutateAsync({ id: editingRuleId, data: payload })
+        toast.success('Rule updated')
       } else {
         await createRule.mutateAsync(payload)
+        toast.success('Rule created')
       }
       setDialogOpen(false)
     } catch (err) {
       console.error(err)
+      toast.error('Failed to save rule')
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this automation rule?')) {
-      await deleteRule.mutateAsync(id)
+    setDeleteRuleId(id)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteRuleId) return
+    try {
+      await deleteRule.mutateAsync(deleteRuleId)
+      toast.success('Rule deleted')
+    } catch {
+      toast.error('Failed to delete rule')
+    } finally {
+      setDeleteRuleId(null)
     }
   }
 
@@ -217,9 +256,7 @@ export default function PipelineSettingsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {rulesLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <LoadingSpinner size="lg" />
-                  </div>
+                  <DataPageSkeleton layout="table" count={4} />
                 ) : !rules || rules.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground px-4 space-y-2">
                     <Info className="h-8 w-8 mx-auto text-muted-foreground/50" />
@@ -256,6 +293,28 @@ export default function PipelineSettingsPage() {
                                 </>
                               )}
                             </Badge>
+                            {rule.action_type === 'search' && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] font-medium py-0.5 px-1.5 border/20",
+                                  rule.search_engine === 'valyu' && "border-primary/30 bg-primary/5 text-primary",
+                                  rule.search_engine === 'perplexity' && "border-purple-500/30 bg-purple-500/5 text-purple-400",
+                                  rule.search_engine === 'brave' && "border-orange-500/30 bg-orange-500/5 text-orange-400",
+                                  rule.search_engine === 'duckduckgo' && "border-green-500/30 bg-green-500/5 text-green-400",
+                                  (!rule.search_engine || rule.search_engine === 'default') && "border-slate-500/30 bg-slate-500/5 text-slate-400"
+                                )}
+                              >
+                                {rule.search_engine === 'valyu' ? 'Valyu Deep Research' :
+                                 rule.search_engine === 'perplexity' ? 'Perplexity Online' :
+                                 rule.search_engine === 'brave' ? 'Brave Search' :
+                                 rule.search_engine === 'tavily' ? 'Tavily Search' :
+                                 rule.search_engine === 'newsapi' ? 'NewsAPI' :
+                                 rule.search_engine === 'google_scholar' ? 'Google Scholar' :
+                                 rule.search_engine === 'duckduckgo' ? 'DuckDuckGo' :
+                                 'Default Search'}
+                              </Badge>
+                            )}
                             {!rule.is_active && (
                               <Badge variant="destructive" className="text-[10px] uppercase font-bold py-0 px-1.5">
                                 Inactive
@@ -296,6 +355,7 @@ export default function PipelineSettingsPage() {
                             size="icon"
                             onClick={() => handleOpenEdit(rule)}
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            aria-label="Edit automation rule"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -304,6 +364,7 @@ export default function PipelineSettingsPage() {
                             size="icon"
                             onClick={() => handleDelete(rule.id)}
                             className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label="Delete automation rule"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -385,20 +446,44 @@ export default function PipelineSettingsPage() {
 
             {/* Dynamic parameters for Search */}
             {actionType === 'search' && (
-              <div className="space-y-1.5">
-                <Label htmlFor="query_template">Search Query Template</Label>
-                <Input
-                  id="query_template"
-                  value={queryTemplate}
-                  onChange={(e) => setQueryTemplate(e.target.value)}
-                  placeholder="e.g. {client_name} tech stack products"
-                  className="bg-sidebar/50"
-                  required
-                />
-                <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
-                  Use <code>{'{client_name}'}</code> as a dynamic placeholder. It will automatically populate the target deal/notebook title (e.g. "Acme Corp").
-                </p>
-              </div>
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="query_template">Search Query Template</Label>
+                  <Input
+                    id="query_template"
+                    value={queryTemplate}
+                    onChange={(e) => setQueryTemplate(e.target.value)}
+                    placeholder="e.g. {client_name} tech stack products"
+                    className="bg-sidebar/50"
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
+                    Use <code>{'{client_name}'}</code> as a dynamic placeholder. It will automatically populate the target deal/notebook title (e.g. "Acme Corp").
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="search_engine">Search Engine Provider</Label>
+                  <Select value={searchEngine} onValueChange={setSearchEngine}>
+                    <SelectTrigger id="search_engine" className="w-full bg-sidebar/50">
+                      <SelectValue placeholder="Select Search Engine" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default Sequential Fallback</SelectItem>
+                      <SelectItem value="valyu">Valyu Deep Research</SelectItem>
+                      <SelectItem value="tavily">Tavily Search</SelectItem>
+                      <SelectItem value="perplexity">Perplexity Online Search</SelectItem>
+                      <SelectItem value="newsapi">NewsAPI (News Articles)</SelectItem>
+                      <SelectItem value="google_scholar">Google Scholar (Academic)</SelectItem>
+                      <SelectItem value="brave">Brave Web Search</SelectItem>
+                      <SelectItem value="duckduckgo">DuckDuckGo Search (Keyless)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
+                    Select which primary search API provider is queried to run this agent intelligence task.
+                  </p>
+                </div>
+              </>
             )}
 
             {/* Prompt Instructions */}
@@ -421,19 +506,19 @@ export default function PipelineSettingsPage() {
             {/* Model Override */}
             <div className="space-y-1.5">
               <Label htmlFor="model_override">Intelligence Model Override</Label>
-              <Select value={modelOverride} onValueChange={setModelOverride}>
-                <SelectTrigger id="model_override" className="w-full bg-sidebar/50">
-                  <SelectValue placeholder="Use Default Chat Model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">System Default Chat Model</SelectItem>
-                  {models?.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name} ({m.provider})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <SearchableModelSelect
+                    models={languageModelOptions}
+                    value={modelOverride === 'default' ? '' : modelOverride}
+                    onValueChange={(val) => setModelOverride(val || 'default')}
+                    placeholder="System Default Chat Model"
+                    clearable={modelOverride !== 'default'}
+                    groupByProvider
+                    sortBy="name"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Active Status */}
@@ -461,6 +546,17 @@ export default function PipelineSettingsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteRuleId}
+        onOpenChange={(open) => !open && setDeleteRuleId(null)}
+        title="Delete Automation Rule"
+        description="Are you sure you want to delete this automation rule? This cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleDeleteConfirm}
+        isLoading={deleteRule.isPending}
+        confirmVariant="destructive"
+      />
     </AppShell>
   )
 }

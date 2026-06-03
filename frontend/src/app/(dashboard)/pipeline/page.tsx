@@ -1,12 +1,15 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { AppShell } from '@/components/layout/AppShell'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { ViewToggle, ViewMode } from '@/components/ui/view-toggle'
+import { DataTable } from '@/components/data-table'
+import { notebookColumns } from '@/components/columns/notebook-columns'
 import { RefreshCw, TrendingUp, DollarSign, Briefcase, Award } from 'lucide-react'
 
 // Dynamically import KanbanBoard to bypass SSR and avoid hydration errors with drag-and-drop
@@ -17,6 +20,7 @@ const KanbanBoard = dynamic(() => import('./components/KanbanBoard').then(mod =>
 export default function PipelinePage() {
   const { t } = useTranslation()
   const { data: notebooks, isLoading, refetch } = useNotebooks(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban')
 
   // Calculate pipeline-wide KPI analytics
   const metrics = useMemo(() => {
@@ -49,10 +53,13 @@ export default function PipelinePage() {
                 {t('pipeline.subtitle', 'Prospect intelligence tracking, visual deal flow, and client alignment')}
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="border-sidebar-border hover:bg-sidebar-accent">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {t('common.refresh', 'Refresh')}
-            </Button>
+            <div className="flex items-center gap-3">
+              <ViewToggle value={viewMode} onChange={setViewMode} showKanban={true} />
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="border-sidebar-border hover:bg-sidebar-accent">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {t('common.refresh', 'Refresh')}
+              </Button>
+            </div>
           </div>
 
           {/* Metric Grid */}
@@ -122,16 +129,33 @@ export default function PipelinePage() {
             </Card>
           </div>
 
-          {/* Kanban Board Container */}
+          {/* Board / Table Container */}
           <div className="relative">
-            {isLoading ? (
-              <div className="flex h-96 items-center justify-center border border-sidebar-border rounded-lg bg-background/20 backdrop-blur-sm">
-                <div className="flex flex-col items-center gap-2">
-                  <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    {t('pipeline.loadingDeals', 'Hydrating Sales Pipeline...')}
-                  </p>
-                </div>
+            {viewMode === 'table' ? (
+              <DataTable
+                columns={notebookColumns}
+                data={notebooks || []}
+                searchPlaceholder="Search deals..."
+                isLoading={isLoading}
+                emptyMessage="No deals in pipeline"
+              />
+            ) : isLoading ? (
+              <div className="grid grid-cols-5 gap-4">
+                {Array.from({ length: 5 }).map((_, col) => (
+                  <div key={col} className="border border-sidebar-border/30 rounded-lg bg-background/20 backdrop-blur-sm p-3 space-y-3">
+                    <div className="h-4 w-24 rounded bg-slate-700/40 animate-pulse" />
+                    {Array.from({ length: 2 + (col % 3) }).map((_, card) => (
+                      <div key={card} className="border border-white/5 rounded-md bg-slate-900/40 p-3 space-y-2">
+                        <div className="h-3.5 w-full rounded bg-slate-700/30 animate-pulse" style={{ animationDelay: `${col * 0.1 + card * 0.05}s` }} />
+                        <div className="h-3 w-2/3 rounded bg-slate-700/20 animate-pulse" style={{ animationDelay: `${col * 0.1 + card * 0.05 + 0.1}s` }} />
+                        <div className="flex gap-2 pt-1">
+                          <div className="h-5 w-16 rounded-full bg-slate-700/25 animate-pulse" />
+                          <div className="h-5 w-12 rounded-full bg-slate-700/20 animate-pulse" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             ) : (
               <KanbanBoard notebooks={notebooks || []} />

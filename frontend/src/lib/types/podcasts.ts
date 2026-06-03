@@ -71,6 +71,8 @@ export interface PodcastGenerationRequest {
   content?: string
   notebook_id?: string
   briefing_suffix?: string | null
+  tts_engine?: string  // "default" | "kokoro" | "openai"
+  voice_mapping?: Record<string, string>  // speaker_name → voice_id
 }
 
 export interface PodcastGenerationResponse {

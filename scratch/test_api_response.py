@@ -1,5 +1,6 @@
 import httpx
 
+
 def main():
     try:
         r = httpx.get("http://localhost:8502/api/regulations/ACSC_ESSENTIAL_8/questions")

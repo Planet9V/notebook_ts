@@ -492,6 +492,10 @@ async def draft_copilot(request: DraftCopilotRequest):
         if not model:
             raise HTTPException(status_code=400, detail="No default chat model configured.")
 
+        from esperanto import LanguageModel
+        if isinstance(model, LanguageModel) and hasattr(model, "to_langchain"):
+            model = model.to_langchain()
+
         response = await model.ainvoke([
             SystemMessage(content=system_instruction),
             HumanMessage(content=user_prompt),

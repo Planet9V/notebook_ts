@@ -5,6 +5,11 @@ export interface Transformation {
   description: string
   prompt: string
   apply_default: boolean
+  category: 'transformation' | 'gtm_research'
+  search_engine?: string
+  search_model_id?: string
+  color_tag?: string
+  target_context?: string
   created: string
   updated: string
 }
@@ -15,6 +20,11 @@ export interface CreateTransformationRequest {
   description: string
   prompt: string
   apply_default?: boolean
+  category?: string
+  search_engine?: string
+  search_model_id?: string
+  color_tag?: string
+  target_context?: string
 }
 
 export interface UpdateTransformationRequest {
@@ -23,6 +33,11 @@ export interface UpdateTransformationRequest {
   description?: string
   prompt?: string
   apply_default?: boolean
+  category?: string
+  search_engine?: string
+  search_model_id?: string
+  color_tag?: string
+  target_context?: string
 }
 
 export interface ExecuteTransformationRequest {

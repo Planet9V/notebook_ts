@@ -12,12 +12,16 @@ import { useNotebook } from '@/lib/hooks/use-notebooks'
 import { useNotebookSources } from '@/lib/hooks/use-sources'
 import { useNotes } from '@/lib/hooks/use-notes'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useNotebookColumnsStore } from '@/lib/stores/notebook-columns-store'
 import { useIsDesktop } from '@/lib/hooks/use-media-query'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, StickyNote, MessageSquare } from 'lucide-react'
+import { FileText, StickyNote, MessageSquare, Mic } from 'lucide-react'
+import { VoiceChatPanel } from '@/components/voice/VoiceChatPanel'
+import { Button } from '@/components/ui/button'
+import { useBreadcrumbLabel } from '@/lib/hooks/use-breadcrumb-label'
 
 export type ContextMode = 'off' | 'insights' | 'full'
 
@@ -44,17 +48,27 @@ export default function NotebookPage() {
   } = useNotebookSources(notebookId)
   const { data: notes, isLoading: notesLoading } = useNotes(notebookId)
 
+  // Set human-readable breadcrumb label
+  useBreadcrumbLabel(notebook?.name)
+
+  useEffect(() => {
+    document.title = notebook?.name ? `${notebook.name} | Tetrel` : 'Notebook | Tetrel'
+  }, [notebook?.name])
+
   // Get collapse states for dynamic layout
   const { sourcesCollapsed, notesCollapsed } = useNotebookColumnsStore()
 
   // Detect desktop to avoid double-mounting ChatColumn
   const isDesktop = useIsDesktop()
 
-  // Mobile tab state (Sources, Notes, or Chat)
-  const [mobileActiveTab, setMobileActiveTab] = useState<'sources' | 'notes' | 'chat'>('chat')
+  // Mobile tab state (Sources, Notes, Chat, or Voice)
+  const [mobileActiveTab, setMobileActiveTab] = useState<'sources' | 'notes' | 'chat' | 'voice'>('chat')
 
   // B2B Drafting Mode toggle
   const [isB2BMode, setIsB2BMode] = useState<boolean>(false)
+
+  // Voice panel state (desktop overlay)
+  const [showVoicePanel, setShowVoicePanel] = useState(false)
 
   // Context selection state
   const [contextSelections, setContextSelections] = useState<ContextSelections>({
@@ -113,9 +127,11 @@ export default function NotebookPage() {
 
   if (notebookLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <AppShell>
+        <div className="flex-1 p-6">
+          <DataPageSkeleton layout="detail" />
+        </div>
+      </AppShell>
     )
   }
 
@@ -157,8 +173,8 @@ export default function NotebookPage() {
               {!isDesktop && (
                 <>
                   <div className="lg:hidden mb-4">
-                    <Tabs value={mobileActiveTab} onValueChange={(value) => setMobileActiveTab(value as 'sources' | 'notes' | 'chat')}>
-                      <TabsList className="grid w-full grid-cols-3">
+                    <Tabs value={mobileActiveTab} onValueChange={(value) => setMobileActiveTab(value as 'sources' | 'notes' | 'chat' | 'voice')}>
+                      <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="sources" className="gap-2">
                           <FileText className="h-4 w-4" />
                           {t('navigation.sources')}
@@ -170,6 +186,10 @@ export default function NotebookPage() {
                         <TabsTrigger value="chat" className="gap-2">
                           <MessageSquare className="h-4 w-4" />
                           {t('common.chat')}
+                        </TabsTrigger>
+                        <TabsTrigger value="voice" className="gap-2">
+                          <Mic className="h-4 w-4" />
+                          Voice
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
@@ -207,6 +227,17 @@ export default function NotebookPage() {
                         sources={sources}
                         sourcesLoading={sourcesLoading}
                       />
+                    )}
+                    {mobileActiveTab === 'voice' && (
+                      <div className="flex-1 overflow-hidden">
+                        <VoiceChatPanel
+                          context={{
+                            notebookId: notebookId,
+                            pageType: 'notebook',
+                            contextLabel: notebook?.name || 'Notebook',
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                 </>
@@ -251,13 +282,37 @@ export default function NotebookPage() {
                 </div>
 
                 {/* Chat Column - always expanded, takes remaining space */}
-                <div className="transition-all duration-150 flex-1 min-w-0 lg:pr-6 lg:-mr-6">
+                <div className="transition-all duration-150 flex-1 min-w-0 lg:pr-6 lg:-mr-6 relative">
                   <ChatColumn
                     notebookId={notebookId}
                     contextSelections={contextSelections}
                     sources={sources}
                     sourcesLoading={sourcesLoading}
                   />
+
+                  {/* Voice Panel Toggle Button */}
+                  <Button
+                    variant={showVoicePanel ? 'default' : 'outline'}
+                    size="icon"
+                    className="absolute bottom-4 right-4 z-10 h-12 w-12 rounded-full shadow-lg"
+                    onClick={() => setShowVoicePanel(!showVoicePanel)}
+                    aria-label={showVoicePanel ? 'Close voice chat' : 'Open voice chat'}
+                  >
+                    <Mic className="h-5 w-5" />
+                  </Button>
+
+                  {/* Voice Panel Overlay */}
+                  {showVoicePanel && (
+                    <div className="absolute bottom-20 right-4 z-20 w-[400px] max-h-[500px] shadow-2xl rounded-xl overflow-hidden border bg-background">
+                      <VoiceChatPanel
+                        context={{
+                          notebookId: notebookId,
+                          pageType: 'notebook',
+                          contextLabel: notebook?.name || 'Notebook',
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </>

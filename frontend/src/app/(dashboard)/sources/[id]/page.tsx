@@ -1,13 +1,15 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { useSourceChat } from '@/lib/hooks/useSourceChat'
 import { ChatPanel } from '@/components/source/ChatPanel'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 import { SourceDetailContent } from '@/components/source/SourceDetailContent'
+import { useBreadcrumbLabel } from '@/lib/hooks/use-breadcrumb-label'
+import { sourcesApi } from '@/lib/api/sources'
 
 export default function SourceDetailPage() {
   const router = useRouter()
@@ -17,6 +19,15 @@ export default function SourceDetailPage() {
 
   // Initialize source chat
   const chat = useSourceChat(sourceId)
+
+  // Lightweight breadcrumb label
+  const [sourceTitle, setSourceTitle] = useState<string | undefined>()
+  useEffect(() => {
+    if (sourceId) {
+      sourcesApi.get(sourceId).then(s => setSourceTitle(s.title || undefined)).catch(() => {})
+    }
+  }, [sourceId])
+  useBreadcrumbLabel(sourceTitle)
 
   const handleBack = useCallback(() => {
     const returnPath = navigation.getReturnPath()

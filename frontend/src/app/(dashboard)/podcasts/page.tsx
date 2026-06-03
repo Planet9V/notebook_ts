@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
@@ -16,6 +16,10 @@ import { needsModelSetup } from '@/lib/types/podcasts'
 export default function PodcastsPage() {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'episodes' | 'templates'>('episodes')
+
+  useEffect(() => {
+    document.title = 'Podcasts | Tetrel'
+  }, [])
 
   const { episodeProfiles } = useEpisodeProfiles()
   const { speakerProfiles } = useSpeakerProfiles(episodeProfiles)

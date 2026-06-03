@@ -6,6 +6,8 @@ from loguru import logger
 from api.models import (
     AssetCreate,
     AssetResponse,
+    EdgeCreate,
+    EdgeResponse,
     NotebookCreate,
     NotebookDeletePreview,
     NotebookDeleteResponse,
@@ -541,14 +543,13 @@ def matches_vuln(manufacturer: Optional[str], os_v: Optional[str], fw_v: Optiona
 @router.post("/graph/validate", response_model=GraphValidationResponse)
 async def validate_graph(request: GraphValidationRequest):
     """
-    Perform a Purdue Model Zone boundary security audit using NetworkX.
+    Perform a Purdue Model Zone and CSET Security Assurance Level (SAL) boundary audit.
     Ensures absolute firewall-mediated separation between process control (Level 1-2)
-    and enterprise operations (Level 4).
-    Also performs IP duplication conflicts and subnet boundary crossings checks.
+    and enterprise operations (Level 4), validates cybersecurity zone placement,
+    audits edge communication protocols and encryption, and performs IP/subnet validation.
     """
     try:
         import ipaddress
-
         import networkx as nx
 
         # Validate that all edge endpoints exist in the nodes list
@@ -559,6 +560,37 @@ async def validate_graph(request: GraphValidationRequest):
                     status_code=400,
                     detail=f"Edge '{e.id}' references non-existent node: source='{e.source}', target='{e.target}'"
                 )
+
+        # 1. Identify zone nodes and calculate coordinate-based containment
+        zone_nodes = [n for n in request.nodes if n.type == "zone"]
+        device_nodes = [n for n in request.nodes if n.type != "zone"]
+
+        # Track zone properties for easy lookup
+        zone_properties = {}
+        for z in zone_nodes:
+            zone_properties[z.id] = {
+                "sal": z.zone_sal or "Low",
+                "type": z.zone_type or "Control",
+                "label": z.hostname or z.id
+            }
+
+        # Resolve parent zone mapping
+        node_zones = {}
+        for n in request.nodes:
+            if n.type == "zone":
+                continue
+            pid = n.parentId
+            if not pid:
+                # Coordinate-based intersection check
+                if n.x is not None and n.y is not None:
+                    for z in zone_nodes:
+                        if (z.x is not None and z.y is not None and 
+                            z.width is not None and z.height is not None):
+                            if (z.x <= n.x <= (z.x + z.width) and 
+                                z.y <= n.y <= (z.y + z.height)):
+                                pid = z.id
+                                break
+            node_zones[n.id] = pid
 
         G = nx.DiGraph()
         
@@ -584,18 +616,17 @@ async def validate_graph(request: GraphValidationRequest):
             node_violations[n.id] = []
             
         for e in request.edges:
-            G.add_edge(e.source, e.target, id=e.id)
+            G.add_edge(e.source, e.target, id=e.id, protocol=e.protocol, encrypted=e.encrypted)
             edge_violations[e.id] = []
             
         violated_nodes = set()
         violated_edges = set()
         threat_paths = []
         
-        # 1. IP Conflict Check
-        # Group nodes by their IP address to find duplicates
+        # 1. IP Conflict Check (only for non-zone nodes)
         ip_groups = {}
         for node_id, ip in node_ips.items():
-            if ip:
+            if ip and node_types.get(node_id) != "zone":
                 ip_groups.setdefault(ip, []).append(node_id)
                 
         for ip, nodes_with_ip in ip_groups.items():
@@ -606,6 +637,8 @@ async def validate_graph(request: GraphValidationRequest):
 
         # 2. Missing Parameters Check (Warnings for PLC / RTU / Level 1-2 devices)
         for n in request.nodes:
+            if n.type == "zone":
+                continue
             if n.purdueLevel <= 2 and n.type in ["plc", "rtu"]:
                 missing = []
                 if not n.ip_address:
@@ -619,13 +652,88 @@ async def validate_graph(request: GraphValidationRequest):
 
         # 2.5 Vulnerability Grounding Scan (CVE matching)
         for n in request.nodes:
+            if n.type == "zone":
+                continue
             vuln_desc = matches_vuln(n.manufacturer, n.os_version, n.firmware_version)
             if vuln_desc:
                 violated_nodes.add(n.id)
                 node_violations[n.id].append(f"Security Vulnerability Detected: {vuln_desc}")
 
+        # 3. Purdue Swimlane / Zone Mismatch Checks
+        for n in request.nodes:
+            if n.type == "zone":
+                continue
+            assigned_zone_id = node_zones.get(n.id)
+            zone_info = zone_properties.get(assigned_zone_id) if assigned_zone_id else None
+            
+            # Check Purdue Level 4 swimlane or Corporate Zone violations for controllers
+            is_corp_zone = zone_info and zone_info["type"].lower() in ["corporate", "enterprise"]
+            if n.purdueLevel == 4 and n.type in ["plc", "rtu"]:
+                violated_nodes.add(n.id)
+                node_violations[n.id].append("Purdue Zone Violation: PLC/RTU resides inside Level 4 (Enterprise Network) swimlane.")
+            elif is_corp_zone and n.type in ["plc", "rtu"]:
+                violated_nodes.add(n.id)
+                node_violations[n.id].append(f"Purdue Zone Violation: PLC/RTU resides inside Corporate Zone '{zone_info['label']}'.")
 
-        # 3. Direct Zone Bypass Check (Bidirectional)
+            # Check if critical device is placed in a Low SAL zone
+            if n.type in ["plc", "rtu"] and zone_info and zone_info["sal"] == "Low":
+                node_violations[n.id].append(f"Critical asset in Low Security Zone: PLC/RTU should be placed in a high-security zone (High or Very High SAL).")
+
+        # 4. Connection Properties & CSET Deficiencies
+        for e in request.edges:
+            edge_id = e.id
+            src = e.source
+            tgt = e.target
+            proto = (e.protocol or "").strip().lower()
+            enc = bool(e.encrypted)
+            
+            src_zone_id = node_zones.get(src)
+            tgt_zone_id = node_zones.get(tgt)
+            src_zone = zone_properties.get(src_zone_id) if src_zone_id else None
+            tgt_zone = zone_properties.get(tgt_zone_id) if tgt_zone_id else None
+
+            # Deficiency 4.1: Unencrypted Control Protocols crossing zone boundaries
+            control_protocols = ['modbus', 'dnp3', 'opc-ua', 'ethernet/ip', 'profinet']
+            if proto in control_protocols and not enc:
+                if src_zone_id != tgt_zone_id:
+                    violated_edges.add(edge_id)
+                    violated_nodes.add(src)
+                    violated_nodes.add(tgt)
+                    msg = f"Unencrypted Control Protocol Crossing Boundary: Control protocol '{e.protocol}' is transmitted unencrypted across zone boundaries."
+                    edge_violations[edge_id].append(msg)
+                    if msg not in node_violations[src]:
+                        node_violations[src].append(msg)
+                    if msg not in node_violations[tgt]:
+                        node_violations[tgt].append(msg)
+
+            # Deficiency 4.2: Unencrypted common protocols crossing zone boundaries or traversing to Level 4
+            unencrypted_risky = ['http', 'telnet', 'ftp', 'smb', 'rdp']
+            if proto in unencrypted_risky and not enc:
+                if src_zone_id != tgt_zone_id or node_levels.get(src) == 4 or node_levels.get(tgt) == 4:
+                    violated_edges.add(edge_id)
+                    msg = f"Unencrypted Connection crossing security boundary: Insecure protocol '{e.protocol}' transmitted without encryption."
+                    edge_violations[edge_id].append(msg)
+
+            # Deficiency 4.3: SAL Boundary crossing checks (High vs Low SAL zones without encryption or firewall)
+            if src_zone and tgt_zone:
+                src_sal = src_zone["sal"]
+                tgt_sal = tgt_zone["sal"]
+                is_src_high = src_sal in ["High", "Very High"]
+                is_tgt_high = tgt_sal in ["High", "Very High"]
+                
+                if is_src_high != is_tgt_high: # Crosses SAL boundary
+                    if not enc and node_types.get(src) != "firewall" and node_types.get(tgt) != "firewall":
+                        violated_edges.add(edge_id)
+                        violated_nodes.add(src)
+                        violated_nodes.add(tgt)
+                        msg = f"SAL Boundary Violation: Unencrypted connection between High SAL '{src_zone['label'] if is_src_high else tgt_zone['label']}' and Lower SAL enclaves must be encrypted or mediated by a firewall."
+                        edge_violations[edge_id].append(msg)
+                        if msg not in node_violations[src]:
+                            node_violations[src].append(msg)
+                        if msg not in node_violations[tgt]:
+                            node_violations[tgt].append(msg)
+
+        # 5. Direct Zone Bypass Check (Bidirectional)
         for u, v, data in G.edges(data=True):
             u_lvl = node_levels.get(u, 1)
             v_lvl = node_levels.get(v, 1)
@@ -633,6 +741,9 @@ async def validate_graph(request: GraphValidationRequest):
             v_type = node_types.get(v, "")
             edge_id = data.get("id", "")
             
+            if u_type == "zone" or v_type == "zone":
+                continue
+                
             if abs(u_lvl - v_lvl) > 1:
                 # Direct crossing of >1 levels without a mediating firewall
                 if u_type != "firewall" and v_type != "firewall":
@@ -644,7 +755,7 @@ async def validate_graph(request: GraphValidationRequest):
                         violated_edges.add(edge_id)
                         edge_violations[edge_id].append("Direct Zone Bypass: Direct crossing of Purdue levels without firewall mediation.")
                         
-        # 4. Subnet Boundary Check (IP Routing Validation)
+        # 6. Subnet Boundary Check (IP Routing Validation)
         # Verify if u and v are on the same subnet when connected directly without intermediate firewall/switch
         for u, v, data in G.edges(data=True):
             edge_id = data.get("id", "")
@@ -655,6 +766,9 @@ async def validate_graph(request: GraphValidationRequest):
             type_u = node_types.get(u)
             type_v = node_types.get(v)
             
+            if type_u == "zone" or type_v == "zone":
+                continue
+                
             # Only perform subnet checks if both nodes have valid IP addresses and subnet masks,
             # and neither is a mediating firewall or switch (or they represent endpoints)
             if ip_u and ip_v and mask_u and mask_v:
@@ -673,23 +787,22 @@ async def validate_graph(request: GraphValidationRequest):
                     except ValueError as ve:
                         logger.warning(f"Invalid IP or Subnet configuration during subnet check for edge '{edge_id}': {str(ve)}")
                         
-        # 5. Firewall Mediation Check (Bidirectional reachability check via Undirected Graph)
+        # 7. Firewall Mediation Check (Bidirectional reachability check via Undirected Graph)
         U = G.to_undirected()
         U_no_firewall = U.copy()
         
-        # Remove firewall nodes to check for unmediated paths
-        firewall_nodes = [node_id for node_id, n_type in node_types.items() if n_type == "firewall"]
-        U_no_firewall.remove_nodes_from(firewall_nodes)
+        # Remove firewall and zone nodes to check for unmediated paths
+        bypass_nodes = [node_id for node_id, n_type in node_types.items() if n_type in ["firewall", "zone"]]
+        U_no_firewall.remove_nodes_from(bypass_nodes)
         
         # Run linear-time component reachability
         for comp in list(nx.connected_components(U_no_firewall)):
-            comp_1_2 = [n for n in comp if node_levels.get(n, 1) <= 2]
-            comp_4 = [n for n in comp if node_levels.get(n, 1) == 4]
+            comp_1_2 = [n for n in comp if node_levels.get(n, 1) <= 2 and node_types.get(n) != "zone"]
+            comp_4 = [n for n in comp if node_levels.get(n, 1) == 4 and node_types.get(n) != "zone"]
             
             if comp_1_2 and comp_4:
                 # There exists at least one unmediated path in this component.
-                # Find shortest path from each Level 1-2 source in this component
-                # to each Level 4 target in this component.
+                # Find shortest path from each Level 1-2 source in this component to each Level 4 target.
                 for src in comp_1_2:
                     for tgt in comp_4:
                         try:
@@ -702,7 +815,6 @@ async def validate_graph(request: GraphValidationRequest):
                                     node_violations[node_id].append("Unmediated Path: Critical communication route to enterprise operations bypasses all firewalls.")
                             for i in range(len(path) - 1):
                                 n1, n2 = path[i], path[i+1]
-                                # Check directed edge in original graph G (either direction)
                                 edge_id_to_flag = None
                                 edge_data = G.get_edge_data(n1, n2)
                                 if edge_data and "id" in edge_data:
@@ -722,11 +834,10 @@ async def validate_graph(request: GraphValidationRequest):
         # Return verified requirements if topology is clean and secure
         verified_requirements = []
         has_critical_violations = len(threat_paths) > 0 or len(violated_edges) > 0 or any(
-            any("conflict" in v.lower() or "vulnerability" in v.lower() for v in violations)
+            any("conflict" in v.lower() or "vulnerability" in v.lower() or "bypass" in v.lower() or "violation" in v.lower() for v in violations)
             for violations in node_violations.values()
         )
         if not has_critical_violations:
-
             verified_requirements = [
                 "hs50-dema",
                 "hs50-glitch",
@@ -758,6 +869,7 @@ async def validate_graph(request: GraphValidationRequest):
         raise
     except Exception as e:
         logger.exception("Error in graph validation")
+        raise HTTPException(status_code=500, detail=str(e))
         raise HTTPException(
             status_code=500, detail=f"Error performing graph audit: {str(e)}"
         )
@@ -1094,6 +1206,11 @@ async def save_notebook_asset(notebook_id: str, asset: AssetCreate):
             y=float(res_data.get("y")),
             created=_format_datetime(res_data.get("created")),
             updated=_format_datetime(res_data.get("updated")),
+            parentId=res_data.get("parentId"),
+            width=res_data.get("width") if res_data.get("width") is not None else None,
+            height=res_data.get("height") if res_data.get("height") is not None else None,
+            zone_sal=res_data.get("zone_sal"),
+            zone_type=res_data.get("zone_type"),
         )
     except HTTPException:
         raise
@@ -1138,6 +1255,11 @@ async def list_notebook_assets(notebook_id: str):
                 y=float(res.get("y")),
                 created=_format_datetime(res.get("created")),
                 updated=_format_datetime(res.get("updated")),
+                parentId=res.get("parentId"),
+                width=res.get("width") if res.get("width") is not None else None,
+                height=res.get("height") if res.get("height") is not None else None,
+                zone_sal=res.get("zone_sal"),
+                zone_type=res.get("zone_type"),
             )
             for res in results
         ]
@@ -1146,6 +1268,188 @@ async def list_notebook_assets(notebook_id: str):
     except Exception as e:
         logger.error(f"Error listing assets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/notebooks/{notebook_id}/assets/{node_id}")
+async def delete_notebook_asset(notebook_id: str, node_id: str):
+    """
+    Delete an asset associated with a notebook by its node_id.
+    """
+    try:
+        # Verify notebook exists
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+        nb_exists = await repo_query("SELECT id FROM $id", {"id": ensure_record_id(nb_rec)})
+        if not nb_exists:
+            raise HTTPException(status_code=404, detail="Notebook not found")
+
+        # Find the asset
+        existing = await repo_query(
+            "SELECT id FROM asset WHERE notebook_id = $notebook_id AND node_id = $node_id",
+            {"notebook_id": notebook_id, "node_id": node_id}
+        )
+
+        if not existing:
+            raise HTTPException(status_code=404, detail="Asset not found")
+
+        rec_id = existing[0]["id"]
+        # Delete from SurrealDB
+        await repo_query("DELETE $id", {"id": ensure_record_id(rec_id)})
+
+        return {"message": "Asset deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting asset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/notebooks/{notebook_id}/edges", response_model=List[EdgeResponse])
+async def sync_notebook_edges(notebook_id: str, edges: List[EdgeCreate]):
+    """
+    Sync all edges for a notebook. Replaces the set of edges in the database
+    with the provided list.
+    """
+    try:
+        # Verify notebook exists
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+        nb_exists = await repo_query("SELECT id FROM $id", {"id": ensure_record_id(nb_rec)})
+        if not nb_exists:
+            raise HTTPException(status_code=404, detail="Notebook not found")
+
+        # Get current edges for this notebook in DB
+        existing_edges = await repo_query(
+            "SELECT id, edge_id FROM asset_edge WHERE notebook_id = $notebook_id",
+            {"notebook_id": notebook_id}
+        )
+
+        incoming_ids = {e.edge_id for e in edges}
+        
+        # Delete edges that are in DB but not in the incoming list
+        for existing in existing_edges:
+            if existing["edge_id"] not in incoming_ids:
+                await repo_query("DELETE $id", {"id": ensure_record_id(existing["id"])})
+
+        # Upsert incoming edges
+        results = []
+        for edge in edges:
+            data = edge.model_dump()
+            data["notebook_id"] = notebook_id
+            
+            # Check if edge already exists
+            edge_existing = await repo_query(
+                "SELECT id FROM asset_edge WHERE notebook_id = $notebook_id AND edge_id = $edge_id",
+                {"notebook_id": notebook_id, "edge_id": edge.edge_id}
+            )
+            
+            if edge_existing:
+                rec_id = edge_existing[0]["id"]
+                result = await repo_update("asset_edge", rec_id, data)
+                if not result:
+                    raise HTTPException(status_code=500, detail="Failed to update edge")
+                res_data = result[0]
+            else:
+                result = await repo_create("asset_edge", data)
+                if isinstance(result, list):
+                    if not result:
+                        raise HTTPException(status_code=500, detail="Failed to create edge")
+                    res_data = result[0]
+                else:
+                    res_data = result
+            results.append(res_data)
+
+        return [
+            EdgeResponse(
+                id=str(res.get("id")),
+                notebook_id=str(res.get("notebook_id")),
+                edge_id=str(res.get("edge_id")),
+                source=str(res.get("source")),
+                target=str(res.get("target")),
+                protocol=res.get("protocol"),
+                encrypted=res.get("encrypted"),
+                created=_format_datetime(res.get("created")),
+                updated=_format_datetime(res.get("updated")),
+            )
+            for res in results
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error syncing edges: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/notebooks/{notebook_id}/edges", response_model=List[EdgeResponse])
+async def list_notebook_edges(notebook_id: str):
+    """
+    List all edges under a specific notebook.
+    """
+    try:
+        # Verify notebook exists
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+        nb_exists = await repo_query("SELECT id FROM $id", {"id": ensure_record_id(nb_rec)})
+        if not nb_exists:
+            raise HTTPException(status_code=404, detail="Notebook not found")
+
+        # Fetch edges
+        results = await repo_query(
+            "SELECT * FROM asset_edge WHERE notebook_id = $notebook_id ORDER BY created ASC",
+            {"notebook_id": notebook_id}
+        )
+
+        return [
+            EdgeResponse(
+                id=str(res.get("id")),
+                notebook_id=str(res.get("notebook_id")),
+                edge_id=str(res.get("edge_id")),
+                source=str(res.get("source")),
+                target=str(res.get("target")),
+                protocol=res.get("protocol"),
+                encrypted=res.get("encrypted"),
+                created=_format_datetime(res.get("created")),
+                updated=_format_datetime(res.get("updated")),
+            )
+            for res in results
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing edges: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/notebooks/{notebook_id}/edges/{edge_id}")
+async def delete_notebook_edge(notebook_id: str, edge_id: str):
+    """
+    Delete an edge associated with a notebook by its edge_id.
+    """
+    try:
+        # Verify notebook exists
+        nb_rec = notebook_id if ":" in notebook_id else f"notebook:{notebook_id}"
+        nb_exists = await repo_query("SELECT id FROM $id", {"id": ensure_record_id(nb_rec)})
+        if not nb_exists:
+            raise HTTPException(status_code=404, detail="Notebook not found")
+
+        # Find the edge
+        existing = await repo_query(
+            "SELECT id FROM asset_edge WHERE notebook_id = $notebook_id AND edge_id = $edge_id",
+            {"notebook_id": notebook_id, "edge_id": edge_id}
+        )
+
+        if not existing:
+            raise HTTPException(status_code=404, detail="Edge not found")
+
+        rec_id = existing[0]["id"]
+        # Delete from SurrealDB
+        await repo_query("DELETE $id", {"id": ensure_record_id(rec_id)})
+
+        return {"message": "Edge deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting edge: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 

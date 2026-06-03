@@ -45,7 +45,10 @@ export async function GET(request: NextRequest) {
 
     if (hostHeader) {
       // Extract just the hostname (remove port if present)
-      const hostname = hostHeader.split(':')[0]
+      let hostname = hostHeader.split(':')[0]
+      if (hostname === 'localhost') {
+        hostname = '127.0.0.1'
+      }
 
       // Construct the API URL with port 5055
       const apiUrl = `${proto}://${hostname}:5055`
@@ -60,9 +63,9 @@ export async function GET(request: NextRequest) {
     console.error('[runtime-config] Auto-detection failed:', error)
   }
 
-  // Priority 3: Fallback to localhost
-  console.log('[runtime-config] Using fallback: http://localhost:5055')
+  // Priority 3: Fallback to 127.0.0.1
+  console.log('[runtime-config] Using fallback: http://127.0.0.1:5055')
   return NextResponse.json({
-    apiUrl: 'http://localhost:5055',
+    apiUrl: 'http://127.0.0.1:5055',
   })
 }

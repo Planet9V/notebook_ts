@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
+import json
 import os
 import sys
-import json
 
 # Ensure project root is in path so we can import from scripts
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.generate_cset_library import (
-    run_global_cset_parser,
+    FRAMEWORKS,
     get_cset_parsed_questions,
-    FRAMEWORKS
+    run_global_cset_parser,
 )
+
 
 def build_factual_cset_catalog():
     print("Step 1: Running global CSET SQL database parser...")

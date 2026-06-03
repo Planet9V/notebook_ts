@@ -24,6 +24,7 @@ class TestPipelineRulesApi:
         mock_rule.prompt = "Extract specs"
         mock_rule.query_template = ""
         mock_rule.model_override = None
+        mock_rule.search_engine = "default"
         mock_rule.is_active = True
         mock_rule.created = "2026-01-01T00:00:00Z"
         mock_rule.updated = "2026-01-01T00:00:00Z"
@@ -48,6 +49,7 @@ class TestPipelineRulesApi:
         mock_rule.prompt = "Find competitors"
         mock_rule.query_template = "Competitors of {client_name}"
         mock_rule.model_override = "gpt-4"
+        mock_rule.search_engine = "default"
         mock_rule.is_active = True
         mock_rule.created = "2026-01-01T00:00:00Z"
         mock_rule.updated = "2026-01-01T00:00:00Z"
@@ -83,6 +85,7 @@ class TestPipelineRulesApi:
         mock_rule.prompt = "Old prompt"
         mock_rule.query_template = ""
         mock_rule.model_override = None
+        mock_rule.search_engine = "default"
         mock_rule.is_active = True
         mock_rule.created = "2026-01-01T00:00:00Z"
         mock_rule.updated = "2026-01-01T00:00:00Z"
@@ -243,6 +246,7 @@ class TestPipelineWorker:
         mock_rule.query_template = "Competitors of {client_name}"
         mock_rule.is_active = True
         mock_rule.model_override = "gpt-4"
+        mock_rule.search_engine = "default"
         mock_rule_cls.get_all = AsyncMock(return_value=[mock_rule])
 
         # Mock Web Search
@@ -268,7 +272,7 @@ class TestPipelineWorker:
         await run_pipeline_automation("notebook:nb123", "research")
 
         # Verify search execution
-        mock_search.assert_called_once_with("Competitors of Test Client Corp")
+        mock_search.assert_called_once_with("Competitors of Test Client Corp", search_engine="default")
 
         # Verify source creation (compiled snippets)
         expected_context = (

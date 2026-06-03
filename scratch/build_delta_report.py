@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import json
 
 # Ensure project root is in path so we can import scripts
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

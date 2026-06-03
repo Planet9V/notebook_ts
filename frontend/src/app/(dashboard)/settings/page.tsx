@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
 import { SettingsForm } from './components/SettingsForm'
 import { useSettings } from '@/lib/hooks/use-settings'
@@ -14,6 +15,10 @@ export default function SettingsPage() {
   const { t } = useTranslation()
   const { refetch } = useSettings()
   const pathname = usePathname()
+
+  useEffect(() => {
+    document.title = 'Settings | Tetrel'
+  }, [])
 
   const tabs = [
     { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },

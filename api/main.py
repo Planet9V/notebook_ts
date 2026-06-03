@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -14,30 +15,45 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from api.auth import PasswordAuthMiddleware
 from api.routers import (
+    activities,
+    agents,
+    assessments,
     auth,
     chat,
     config,
+    contacts,
+    containers,
     context,
     credentials,
     customers,
     embedding,
     embedding_rebuild,
     episode_profiles,
+    import_export,
     insights,
     languages,
     models,
     notebooks,
     notes,
+    pipeline,
+    platform,
     podcasts,
+    projects,
     regulations,
+    research_items,
+    scheduled_search,
     search,
     settings,
     source_chat,
     sources,
     speaker_profiles,
+    styleguides,
     transformations,
-    pipeline,
-    assessments,
+    voice,
+    voice_rag,
+    voice_sessions,
+    skills,
+    mcp,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -151,11 +167,55 @@ async def lifespan(app: FastAPI):
 
     logger.success("API initialization completed successfully")
 
+    # Start periodic model sync (daily, background)
+    sync_task = asyncio.create_task(_periodic_model_sync())
+
     # Yield control to the application
     yield
 
-    # Shutdown: cleanup if needed
+    # Shutdown: cancel background tasks
+    sync_task.cancel()
+    try:
+        await sync_task
+    except asyncio.CancelledError:
+        pass
     logger.info("API shutdown complete")
+
+
+async def _periodic_model_sync():
+    """
+    Background task that syncs provider models once per day.
+    First sync runs 30 seconds after startup, then every 24 hours.
+    Only updates models whose attributes have actually changed.
+    """
+    import os
+
+    SYNC_INTERVAL_HOURS = int(os.environ.get("MODEL_SYNC_INTERVAL_HOURS", "24"))
+
+    # Initial delay: let the app fully start before syncing
+    await asyncio.sleep(30)
+
+    while True:
+        try:
+            from open_notebook.ai.model_discovery import sync_all_providers
+
+            logger.info("Starting periodic model sync...")
+            results = await sync_all_providers()
+
+            total_discovered = sum(r[0] for r in results.values())
+            total_new = sum(r[1] for r in results.values())
+            total_existing = sum(r[2] for r in results.values())
+
+            logger.success(
+                f"Periodic model sync complete: "
+                f"{total_discovered} discovered, {total_new} new, "
+                f"{total_existing} existing across {len(results)} providers"
+            )
+        except Exception as e:
+            logger.error(f"Periodic model sync failed: {e}")
+
+        # Sleep until next sync
+        await asyncio.sleep(SYNC_INTERVAL_HOURS * 3600)
 
 
 app = FastAPI(
@@ -294,7 +354,9 @@ async def open_notebook_error_handler(request: Request, exc: OpenNotebookError):
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(config.router, prefix="/api", tags=["config"])
 app.include_router(notebooks.router, prefix="/api", tags=["notebooks"])
+app.include_router(import_export.router, prefix="/api", tags=["import_export"])
 app.include_router(customers.router, prefix="/api", tags=["customers"])
+app.include_router(contacts.router, prefix="/api", tags=["contacts"])
 app.include_router(regulations.router, prefix="/api", tags=["regulations"])
 app.include_router(search.router, prefix="/api", tags=["search"])
 app.include_router(models.router, prefix="/api", tags=["models"])
@@ -317,7 +379,19 @@ app.include_router(source_chat.router, prefix="/api", tags=["source-chat"])
 app.include_router(credentials.router, prefix="/api", tags=["credentials"])
 app.include_router(languages.router, prefix="/api", tags=["languages"])
 app.include_router(pipeline.router, prefix="/api", tags=["pipeline"])
+app.include_router(scheduled_search.router, prefix="/api", tags=["scheduled-searches"])
 app.include_router(assessments.router, prefix="/api", tags=["assessments"])
+app.include_router(projects.router, prefix="/api", tags=["projects"])
+app.include_router(research_items.router, prefix="/api", tags=["research-items"])
+app.include_router(styleguides.router, prefix="/api", tags=["styleguides"])
+app.include_router(voice.router, prefix="/api", tags=["voice"])
+app.include_router(containers.router, prefix="/api", tags=["containers"])
+app.include_router(platform.router, prefix="/api", tags=["platform"])
+app.include_router(voice_rag.router, prefix="/api", tags=["voice-rag"])
+app.include_router(voice_sessions.router, prefix="/api", tags=["voice-sessions"])
+app.include_router(agents.router, prefix="/api", tags=["agents"])
+app.include_router(skills.router, prefix="/api", tags=["skills"])
+app.include_router(mcp.router, prefix="/api", tags=["mcp"])
 
 
 @app.get("/")

@@ -1,9 +1,10 @@
 from typing import List
+
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
-from api.models import RegulationResponse, QuestionResponse
-from open_notebook.database.repository import repo_query, ensure_record_id
+from api.models import QuestionResponse, RegulationResponse
+from open_notebook.database.repository import ensure_record_id, repo_query
 
 router = APIRouter()
 
@@ -48,8 +49,8 @@ async def get_regulation_questions(regulation_id: str):
             raise HTTPException(status_code=404, detail="Regulation not found")
             
         results = await repo_query(
-            "SELECT * FROM question WHERE regulation_id = $regulation_id ORDER BY standard_code ASC",
-            {"regulation_id": str(target_id)}
+            "SELECT * FROM question WHERE type::string(regulation_id) = type::string($regulation_id) ORDER BY standard_code ASC",
+            {"regulation_id": regulation_id}
         )
         
         questions = []

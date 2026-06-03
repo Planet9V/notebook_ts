@@ -1,223 +1,292 @@
-# API Reference
+# API Reference — Tetrel Notebook
 
-Complete REST API for Open Notebook. All endpoints are served from the API backend (default: `http://localhost:5055`).
-
-**Base URL**: `http://localhost:5055` (development) or environment-specific production URL
-
-**Interactive Docs**: Use FastAPI's built-in Swagger UI at `http://localhost:5055/docs` for live testing and exploration. This is the primary reference for all endpoints, request/response schemas, and real-time testing.
-
----
-
-## Quick Start
-
-### 1. Authentication
-
-Simple password-based (development only):
-
-```bash
-curl http://localhost:5055/api/notebooks \
-  -H "Authorization: Bearer your_password"
-```
-
-**⚠️ Production**: Replace with OAuth/JWT. See [Security Configuration](../5-CONFIGURATION/security.md) for details.
-
-### 2. Base API Flow
-
-Most operations follow this pattern:
-1. Create a **Notebook** (container for research)
-2. Add **Sources** (PDFs, URLs, text)
-3. Query via **Chat** or **Search**
-4. View results and **Notes**
-
-### 3. Testing Endpoints
-
-Instead of memorizing endpoints, use the interactive API docs:
-- Navigate to `http://localhost:5055/docs`
-- Try requests directly in the browser
-- See request/response schemas in real-time
-- Test with your own data
+> **Version:** 2.0  
+> **Last Updated:** 2026-06-02  
+> **Backend Base URL:** `http://localhost:5055/api` (Development default)  
+> **Target Audience:** Developers, Integrators, and Autonomous Coding Agents  
+> **Protocol Support:** REST (JSON), Server-Sent Events (SSE), WebRTC (LiveKit)
 
 ---
 
-## API Endpoints Overview
+## 1. Getting Started & Authentication
 
-### Main Resource Types
+All API operations require a Bearer token or authorization header in development (aligned to [ADR-009: Development Mode Auth](../DECISIONS.md#adr-009-development-mode-auth)).
 
-**Notebooks** - Research projects containing sources and notes
-- `GET/POST /notebooks` - List and create
-- `GET/PUT/DELETE /notebooks/{id}` - Read, update, delete
+### Development Authentication Header
+Include the `X-Password` header or a standard Bearer authorization header:
 
-**Sources** - Content items (PDFs, URLs, text)
-- `GET/POST /sources` - List and add content
-- `GET /sources/{id}` - Fetch source details
-- `POST /sources/{id}/retry` - Retry failed processing
-- `GET /sources/{id}/download` - Download original file
-
-**Notes** - User-created or AI-generated research notes
-- `GET/POST /notes` - List and create
-- `GET/PUT/DELETE /notes/{id}` - Read, update, delete
-
-**Chat** - Conversational AI interface
-- `GET/POST /chat/sessions` - Manage chat sessions
-- `POST /chat/execute` - Send message and get response
-- `POST /chat/context/build` - Prepare context for chat
-
-**Search** - Find content by text or semantic similarity
-- `POST /search` - Full-text or vector search
-- `POST /ask` - Ask a question (search + synthesize)
-
-**Transformations** - Custom prompts for extracting insights
-- `GET/POST /transformations` - Create custom extraction rules
-- `POST /sources/{id}/insights` - Apply transformation to source
-
-**Models** - Configure AI providers
-- `GET /models` - Available models
-- `GET /models/defaults` - Current defaults
-- `POST /models/config` - Set defaults
-
-**Credentials** - Manage AI provider credentials
-- `GET/POST /credentials` - List and create credentials
-- `GET/PUT/DELETE /credentials/{id}` - CRUD operations
-- `POST /credentials/{id}/test` - Test connection
-- `POST /credentials/{id}/discover` - Discover models from provider
-- `POST /credentials/{id}/register-models` - Register discovered models
-- `GET /credentials/status` - Provider status overview
-- `GET /credentials/env-status` - Environment variable status
-- `POST /credentials/migrate-from-env` - Migrate env vars to credentials
-
-**Health & Status**
-- `GET /health` - Health check
-- `GET /commands/{id}` - Track async operations
+```bash
+Authorization: Bearer your_open_notebook_password
+```
 
 ---
 
-## Authentication
+## 2. Purdue Security & Compliance API (Phase 1 / D4)
 
-### Current (Development)
+### 2.1 Validate Purdue Zone Topology
+Performs a Purdue Model Zone boundary security audit. Ensures firewall-mediated separation between process control (Level 1–2) and enterprise networks (Level 4), identifies IP duplication conflicts, and subnet boundary crossings.
 
-All requests require password header:
-
-```bash
-curl -H "Authorization: Bearer your_password" http://localhost:5055/api/notebooks
+* **Endpoint:** `POST /api/graph/validate`
+* **Authentication:** Required
+* **Request Body (`GraphValidationRequest`):**
+```json
+{
+  "nodes": [
+    {
+      "id": "node_plc_1",
+      "name": "Safety PLC",
+      "type": "plc",
+      "purdueLevel": 1,
+      "ip_address": "192.168.1.10",
+      "mac_address": "00:0a:95:9d:68:16",
+      "subnet_mask": "255.255.255.0",
+      "hostname": "plc-safety-01"
+    },
+    {
+      "id": "node_firewall_1",
+      "name": "Zone Firewall",
+      "type": "firewall",
+      "purdueLevel": 3,
+      "ip_address": "192.168.1.1",
+      "mac_address": "00:0a:95:9d:68:17",
+      "subnet_mask": "255.255.255.0",
+      "hostname": "fw-zone-01"
+    },
+    {
+      "id": "node_workstation_1",
+      "name": "Enterprise Workstation",
+      "type": "workstation",
+      "purdueLevel": 4,
+      "ip_address": "10.0.0.15",
+      "mac_address": "00:0a:95:9d:68:18",
+      "subnet_mask": "255.255.255.0",
+      "hostname": "workstation-ent-01"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "node_plc_1",
+      "target": "node_workstation_1"
+    }
+  ]
+}
 ```
 
-Password configured via `OPEN_NOTEBOOK_PASSWORD` environment variable.
-
-> **📖 See [Security Configuration](../5-CONFIGURATION/security.md)** for complete authentication setup, API examples, and production hardening.
-
-### Production
-
-**⚠️ Not secure.** Replace with:
-- OAuth 2.0 (recommended)
-- JWT tokens
-- API keys
-
-See [Security Configuration](../5-CONFIGURATION/security.md) for production setup.
-
----
-
-## Common Patterns
-
-### Pagination
-
-```bash
-# List sources with limit/offset
-curl 'http://localhost:5055/sources?limit=20&offset=10'
+* **Response Body (`GraphValidationResponse` - 200 OK):**
+```json
+{
+  "violatedNodes": ["node_plc_1", "node_workstation_1"],
+  "violatedEdges": ["edge_1"],
+  "threatPaths": [
+    ["node_plc_1", "node_workstation_1"]
+  ],
+  "verifiedRequirements": [],
+  "nodeViolations": {
+    "node_plc_1": [
+      "Direct Zone Bypass: Connected directly to Level 4 device without a firewall.",
+      "Unmediated Path: Critical communication route to enterprise operations bypasses all firewalls."
+    ],
+    "node_workstation_1": [
+      "Direct Zone Bypass: Connected directly to Level 1 device without a firewall.",
+      "Unmediated Path: Critical communication route to enterprise operations bypasses all firewalls."
+    ]
+  },
+  "edgeViolations": {
+    "edge_1": [
+      "Direct Zone Bypass: Direct crossing of Purdue levels without firewall mediation.",
+      "Unmediated communication route crossing security zones."
+    ]
+  }
+}
 ```
 
-### Filtering & Sorting
-
+* **Example Request (cURL):**
 ```bash
-# Filter by notebook, sort by date
-curl 'http://localhost:5055/sources?notebook_id=notebook:abc&sort_by=created&sort_order=asc'
-```
-
-### Async Operations
-
-Some operations (source processing, podcast generation) return immediately with a command ID:
-
-```bash
-# Submit async operation
-curl -X POST http://localhost:5055/sources -F async_processing=true
-# Response: {"id": "source:src001", "command_id": "command:cmd123"}
-
-# Poll status
-curl http://localhost:5055/commands/command:cmd123
-```
-
-### Streaming Responses
-
-The `/ask` endpoint streams responses as Server-Sent Events:
-
-```bash
-curl -N 'http://localhost:5055/ask' \
+curl -X POST http://localhost:5055/api/graph/validate \
+  -H "Authorization: Bearer test_password" \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is AI?"}'
-
-# Outputs: data: {"type":"strategy",...}
-#          data: {"type":"answer",...}
-#          data: {"type":"final_answer",...}
-```
-
-### Multipart File Upload
-
-```bash
-curl -X POST http://localhost:5055/sources \
-  -F "type=upload" \
-  -F "notebook_id=notebook:abc" \
-  -F "file=@document.pdf"
+  -d '{
+    "nodes": [
+      {"id": "n1", "name": "PLC", "type": "plc", "purdueLevel": 1, "ip_address": "192.168.1.10"},
+      {"id": "n2", "name": "PC", "type": "workstation", "purdueLevel": 4, "ip_address": "10.0.0.10"}
+    ],
+    "edges": [
+      {"id": "e1", "source": "n1", "target": "n2"}
+    ]
+  }'
 ```
 
 ---
 
-## Error Handling
+## 3. Search & Hybrid RAG Engine (Layer 3 / D6, D11)
 
-All errors return JSON with status code:
+### 3.1 Perform Semantic Search
+Executes full-text keyword or semantic vector search across local sources/notes, optionally augmented with Valyu hybrid indexes and LLM-based reranking.
+
+* **Endpoint:** `POST /api/search`
+* **Authentication:** Required
+* **Request Body (`SearchRequest`):**
+```json
+{
+  "query": "cryptographic diode hardware isolation",
+  "type": "hybrid",
+  "limit": 10,
+  "minimum_score": 0.3,
+  "search_sources": true,
+  "search_notes": false,
+  "reranker": true
+}
+```
+
+* **Response Body (`SearchResponse` - 200 OK):**
+```json
+{
+  "results": [
+    {
+      "id": "source:cset_framework_iec_62443",
+      "title": "IEC 62443 Boundary Controls",
+      "content": "SR 5.4 outlines the requirements for unidirectional cryptographic hardware diodes to achieve absolute physical zone boundary isolation...",
+      "url": "https://cisa.gov/cset",
+      "relevance": 0.94,
+      "score": 0.94,
+      "source_origin": "Local KB"
+    },
+    {
+      "id": "valyu:source_102",
+      "title": "Valyu Diode Specifications",
+      "content": "Optical isolators and hardware diodes ensure read-only electrical signals across Level 2 process networks...",
+      "url": "https://valyu.ai/specs",
+      "relevance": 0.81,
+      "score": 0.81,
+      "source_origin": "Valyu"
+    }
+  ],
+  "total_count": 2,
+  "search_type": "hybrid"
+}
+```
+
+### 3.2 Interactive Ask Engine (LangGraph Streaming)
+Streams multi-agent search strategy formulation, raw extraction hits, and final compiled synthesis as Server-Sent Events (SSE).
+
+* **Endpoint:** `POST /api/ask`
+* **Authentication:** Required
+* **Request Body (`AskRequest`):**
+```json
+{
+  "question": "Explain Purdue Level 2 boundary isolation guidelines."
+}
+```
+* **Response Body (Streaming - `text/event-stream`):**
+```
+data: {"type": "strategy", "reasoning": "Formulating search terms for Purdue Level 2 boundary isolation...", "searches": [{"term": "Purdue Level 2 boundary isolation", "instructions": "Search local documents"}]}
+
+data: {"type": "answer", "content": "According to the IEC 62443 standard, Level 2 (Local Supervisory) represents control zones where HMIs reside..."}
+
+data: {"type": "final_answer", "content": "### Purdue Level 2 Boundary Summary\nBoundary isolation between Level 2 and Level 3 networks requires dedicated firewall rules..."}
+```
+
+---
+
+## 4. Pipeline CRM & Notebooks API
+
+### 4.1 Create Notebook (Pipeline Card)
+Creates a new notebook container, which functions as a card in the Sales Pipeline Kanban board.
+
+* **Endpoint:** `POST /api/notebooks`
+* **Authentication:** Required
+* **Request Body (`NotebookCreate`):**
+```json
+{
+  "name": "Water Treatment Plant Audit Plan",
+  "description": "Compliance assessment for public utilities sector.",
+  "stage": "proposal",
+  "client_name": "Municipal Utilities Group",
+  "estimated_value": 45000.0,
+  "prospect_website": "https://municipalwater.org",
+  "contacts": [
+    {
+      "name": "Willem de Vries",
+      "email": "w.devries@municipalwater.org",
+      "phone": "+31 6 12345678"
+    }
+  ],
+  "customer_id": "organization:customer_a"
+}
+```
+
+* **Response Body (`NotebookResponse` - 201 Created):**
+```json
+{
+  "id": "notebook:water_treatment_audit",
+  "name": "Water Treatment Plant Audit Plan",
+  "description": "Compliance assessment for public utilities sector.",
+  "archived": false,
+  "created": "2026-06-02T14:30:00Z",
+  "updated": "2026-06-02T14:30:00Z",
+  "source_count": 0,
+  "note_count": 0,
+  "stage": "proposal",
+  "client_name": "Municipal Utilities Group",
+  "estimated_value": 45000.0,
+  "prospect_website": "https://municipalwater.org",
+  "contacts": [
+    {
+      "name": "Willem de Vries",
+      "email": "w.devries@municipalwater.org",
+      "phone": "+31 6 12345678"
+    }
+  ],
+  "customer_id": "organization:customer_a"
+}
+```
+
+---
+
+## 5. Voice & Podcast API (Phase 6 / D8)
+
+### 5.1 Real-Time Voice RAG Interaction
+Streams user STT audio segments, performs RAG context searches, processes using default LLM, and responds with synthetic Kokoro audio stream.
+
+* **Endpoint:** `POST /api/voice/rag`
+* **Authentication:** Required
+* **Headers:** `Content-Type: multipart/form-data`
+* **Request Form Fields:**
+  * `audio`: File upload (PCM/WAV)
+  * `session_id`: Unique chat thread string (Optional)
+* **Response Body (Streaming - `audio/wav` + SSE meta):**
+```
+--audio_boundary
+Content-Type: application/json
+{
+  "citations": [
+    {"id": "source:iec_62443", "title": "IEC 62443 Standard Section 4.1"}
+  ]
+}
+--audio_boundary
+Content-Type: audio/wav
+[RAW AUDIO BYTES]
+```
+
+---
+
+## 6. Global Error Structure
+
+Every API error is formatted as a standardized JSON response matching FastAPIs default structure:
 
 ```json
-{"detail": "Notebook not found"}
+{
+  "detail": "Descriptive error message indicating boundary condition failure or API quota issues."
+}
 ```
 
-### Common Status Codes
+### Common HTTP Status Codes
 
-| Code | Meaning | Example |
-|------|---------|---------|
-| 200 | Success | Operation completed |
-| 400 | Bad Request | Invalid input |
-| 404 | Not Found | Resource doesn't exist |
-| 409 | Conflict | Resource already exists |
-| 500 | Server Error | Database/processing error |
-
----
-
-## Tips for Developers
-
-1. **Start with interactive docs** (`http://localhost:5055/docs`) - this is the definitive reference
-2. **Enable logging** for debugging (check API logs: `docker logs`)
-3. **Streaming endpoints** require special handling (Server-Sent Events, not standard JSON)
-4. **Async operations** return immediately; always poll status before assuming completion
-5. **Vector search** requires embedding model configured (check `/models`)
-6. **Model overrides** are per-request; set in body, not config
-7. **CORS enabled** in development; configure for production
-
----
-
-## Learning Path
-
-1. **Authentication**: Add `X-Password` header to all requests
-2. **Create a notebook**: `POST /notebooks` with name and description
-3. **Add a source**: `POST /sources` with file, URL, or text
-4. **Query your content**: `POST /chat/execute` to ask questions
-5. **Explore advanced features**: Search, transformations, streaming
-
----
-
-## Production Considerations
-
-- Replace password auth with OAuth/JWT (see [Security](../5-CONFIGURATION/security.md))
-- Add rate limiting via reverse proxy (Nginx, CloudFlare, Kong)
-- Enable CORS restrictions (currently allows all origins)
-- Use HTTPS via reverse proxy (see [Reverse Proxy](../5-CONFIGURATION/reverse-proxy.md))
-- Set up API versioning strategy (currently implicit)
-
-See [Security Configuration](../5-CONFIGURATION/security.md) and [Reverse Proxy Setup](../5-CONFIGURATION/reverse-proxy.md) for complete production setup.
+| Code | Cause | Recommended Action |
+|---|---|---|
+| **`400 Bad Request`** | Invalid input parameters, SurrealQL syntax error, or subnet configuration issue. | Review request JSON payload schema validation. |
+| **`401 Unauthorized`** | Missing or incorrect Bearer token in the request headers. | Set the `OPEN_NOTEBOOK_PASSWORD` environment variable or check configurations. |
+| **`404 Not Found`** | Requested Notebook, Source, Note, or Organization record does not exist. | Check database IDs. |
+| **`429 Too Many Requests`**| OpenRouter / Perplexity rate limit exceeded. | Switch default LLM models to local Ollama/LMStudio instance. |
+| **`500 Server Error`** | Database connection timeout or failure in the Docker containers. | Verify SurrealDB container health. |

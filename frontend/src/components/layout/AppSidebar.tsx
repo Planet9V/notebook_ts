@@ -44,7 +44,17 @@ import {
   TrendingUp,
   Users,
   ShieldCheck,
+  Telescope,
+  FolderKanban,
+  LayoutDashboard,
+  Palette,
+  BookOpen,
+  AudioLines,
+  Boxes,
+  FlaskConical,
+  Contact2,
 } from 'lucide-react'
+import { VoiceStatusIndicator } from '@/components/voice/VoiceStatusIndicator'
 
 const getNavigation = (t: TFunction) => [
   {
@@ -54,13 +64,23 @@ const getNavigation = (t: TFunction) => [
     ],
   },
   {
-    title: t('navigation.process'),
+    title: t('navigation.operations', 'Operations'),
     items: [
-      { name: t('navigation.notebooks'), href: '/notebooks', icon: Book },
+      { name: t('navigation.operationsHub', 'Operations Hub'), href: '/operations', icon: LayoutDashboard },
+      { name: t('navigation.pipeline', 'Pipeline'), href: '/pipeline', icon: TrendingUp },
+      { name: t('navigation.customerLedger', 'Customer Ledger'), href: '/customer-ledger', icon: Users },
+      { name: t('navigation.contacts', 'Contacts'), href: '/contacts', icon: Contact2 },
+      { name: t('navigation.researchIntelligence', 'Research Intelligence'), href: '/research', icon: Telescope },
+      { name: t('navigation.projectDelivery', 'Project Delivery'), href: '/projects', icon: FolderKanban },
+    ],
+  },
+  {
+    title: t('navigation.intelligence', 'Intelligence'),
+    items: [
       { name: t('navigation.askAndSearch'), href: '/search', icon: Search },
-      { name: t('navigation.pipeline', 'Sales Pipeline'), href: '/pipeline', icon: TrendingUp },
-      { name: t('navigation.customers', 'Customer Ledger'), href: '/customers', icon: Users },
+      { name: t('navigation.notebooks'), href: '/notebooks', icon: Book },
       { name: t('navigation.compliance', 'Compliance Hub'), href: '/compliance', icon: ShieldCheck },
+      { name: 'Voice Lab', href: '/voice-playground', icon: FlaskConical },
     ],
   },
   {
@@ -74,6 +94,10 @@ const getNavigation = (t: TFunction) => [
     items: [
       { name: t('navigation.models'), href: '/settings/api-keys', icon: Bot },
       { name: t('navigation.transformations'), href: '/transformations', icon: Shuffle },
+      { name: 'Style Guides', href: '/settings/styleguides', icon: Palette },
+      { name: 'Voice AI', href: '/settings/voice', icon: AudioLines },
+      { name: 'Containers', href: '/settings/containers', icon: Boxes },
+      { name: 'Documentation', href: '/documentation', icon: BookOpen },
       { name: t('navigation.settings'), href: '/settings', icon: Settings },
       { name: t('navigation.advanced'), href: '/advanced', icon: Wrench },
     ],
@@ -112,7 +136,9 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div
+      <aside
+        role="complementary"
+        aria-label="Application navigation"
         className={cn(
           'app-sidebar tetrel-sidebar-accent flex h-full flex-col bg-sidebar border-sidebar-border border-r transition-all duration-300',
           isCollapsed ? 'w-16' : 'w-64'
@@ -167,6 +193,7 @@ export function AppSidebar() {
         </div>
 
         <nav
+          aria-label="Main navigation"
           className={cn(
             'flex-1 space-y-1 py-4 overflow-y-auto',
             isCollapsed ? 'px-2' : 'px-3'
@@ -271,6 +298,7 @@ export function AppSidebar() {
                         isActive && 'bg-sidebar-accent text-sidebar-accent-foreground',
                         isCollapsed ? 'justify-center px-2' : 'justify-start'
                       )}
+                      aria-label={isCollapsed ? item.name : undefined}
                     >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && <span>{item.name}</span>}
@@ -307,22 +335,24 @@ export function AppSidebar() {
             isCollapsed && 'px-2'
           )}
         >
-          {/* Command Palette hint */}
+          {/* Command Palette trigger */}
           {!isCollapsed && (
-            <div className="px-3 py-1.5 text-xs text-sidebar-foreground/60">
+            <button
+              type="button"
+              onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+              className="w-full px-3 py-2 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-md transition-colors cursor-pointer group"
+              aria-label={t('common.quickActions')}
+            >
               <div className="flex items-center justify-between">
                  <span className="flex items-center gap-1.5">
-                  <Command className="h-3 w-3" />
+                  <Search className="h-3.5 w-3.5 group-hover:text-cyan-500 transition-colors" />
                   {t('common.quickActions')}
                 </span>
                 <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                   {isMac ? <span className="text-xs">⌘</span> : <span>Ctrl+</span>}K
                 </kbd>
               </div>
-               <p className="mt-1 text-[10px] text-sidebar-foreground/40">
-                {t('common.quickActionsDesc')}
-              </p>
-            </div>
+            </button>
           )}
 
            <div
@@ -358,6 +388,9 @@ export function AppSidebar() {
             )}
           </div>
 
+          {/* Voice Status Indicator */}
+          <VoiceStatusIndicator className={cn(isCollapsed && 'justify-center px-1')} />
+
           {isCollapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -384,7 +417,7 @@ export function AppSidebar() {
             </Button>
           )}
         </div>
-      </div>
+      </aside>
     </TooltipProvider>
   )
 }

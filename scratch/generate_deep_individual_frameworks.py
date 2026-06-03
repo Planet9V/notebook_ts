@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import os
 import json
+import os
 import re
 from collections import defaultdict
+
 
 def parse_awwa_from_sql():
     sql_file = "/Users/jimmcknney/cset_clone/CSETWebApi/CSETWeb_Api/CSETWebCore.UpgradeLibrary/VersionUpgrader/SQL/1001_to_101_data2.sql"

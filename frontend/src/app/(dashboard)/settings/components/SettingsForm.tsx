@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
@@ -71,13 +72,24 @@ export function SettingsForm() {
   }, [hasResetForm, reset, settings])
 
   const onSubmit = async (data: SettingsFormData) => {
-    await updateSettings.mutateAsync(data)
+    try {
+      await updateSettings.mutateAsync(data)
+      toast.success(t('common.success'))
+    } catch {
+      toast.error(t('common.error'))
+    }
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
+      <div className="space-y-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg border p-6 space-y-4">
+            <div className="h-5 w-48 rounded bg-slate-700/40 animate-pulse" />
+            <div className="h-3.5 w-72 rounded bg-slate-700/20 animate-pulse" />
+            <div className="h-10 w-full rounded-md bg-slate-700/15 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+          </div>
+        ))}
       </div>
     )
   }

@@ -61,6 +61,7 @@ FROM python:3.12-slim-bookworm AS runtime
 # supervisor: service management/orchestration
 # curl: health checks
 # Node.js 20: running Next.js standalone frontend
+# docker-ce-cli: container observatory (talk to host Docker via mounted socket)
 RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
     echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
     echo "Acquire::BrokenProxy true;" >> /etc/apt/apt.conf.d/99custom && \
@@ -68,8 +69,17 @@ RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
     ffmpeg \
     supervisor \
     curl \
+    ca-certificates \
+    gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && chmod a+r /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" \
+       > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends docker-ce-cli gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv using the official method
@@ -104,16 +114,22 @@ COPY --from=frontend-builder /app/frontend/start-server.js /app/frontend/start-s
 # Expose ports for Frontend (8502) and API (5055)
 EXPOSE 8502 5055
 
-RUN mkdir -p /app/data
+# Create non-root user for security; add supplementary docker group for socket access
+RUN groupadd --gid 1001 appuser && \
+    useradd --uid 1001 --gid 1001 --create-home --shell /bin/bash appuser
+RUN (groupadd --gid 999 docker 2>/dev/null || groupadd docker 2>/dev/null || true) && \
+    usermod -aG docker appuser
 
-# Ensure wait-for-api script is executable
-RUN chmod +x /app/scripts/wait-for-api.sh
+RUN mkdir -p /app/data /var/log/supervisor
+
+# Ensure scripts are executable
+RUN chmod +x /app/scripts/wait-for-api.sh /app/scripts/docker-entrypoint.sh
 
 # Copy supervisord configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Create log directories for supervisor
-RUN mkdir -p /var/log/supervisor
+# Set ownership of writable directories to non-root user
+RUN chown -R appuser:appuser /app/data /var/log/supervisor /app/tiktoken-cache
 
 # Runtime API URL Configuration
 # The API_URL environment variable can be set at container runtime to configure
@@ -121,4 +137,6 @@ RUN mkdir -p /var/log/supervisor
 # to work in different deployment scenarios without rebuilding.
 # Example: docker run -e API_URL=https://your-domain.com/api ...
 
+# Entrypoint fixes docker socket GID at runtime, then execs CMD as appuser
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

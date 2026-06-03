@@ -12,6 +12,9 @@ import { Separator } from '@/components/ui/separator'
 import { GeneratePodcastDialog } from '@/components/podcasts/GeneratePodcastDialog'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import type { TFunction } from 'i18next'
+import { ViewToggle, ViewMode } from '@/components/ui/view-toggle'
+import { DataTable } from '@/components/data-table'
+import { podcastColumns } from '@/components/columns/podcast-columns'
 
 const getSTATUS_ORDER = (t: TFunction): Array<{
   key: 'running' | 'completed' | 'failed' | 'pending'
@@ -52,6 +55,7 @@ function SummaryBadge({ label, value }: { label: string; value: number }) {
 export function EpisodesTab() {
   const { t } = useTranslation()
   const [showGenerateDialog, setShowGenerateDialog] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const {
     episodes,
     statusGroups,
@@ -90,6 +94,7 @@ export function EpisodesTab() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ViewToggle value={viewMode} onChange={setViewMode} />
           <Button onClick={() => setShowGenerateDialog(true)}>
             {t('podcasts.generateBtn')}
           </Button>
@@ -127,51 +132,65 @@ export function EpisodesTab() {
         </Alert>
       ) : null}
 
-      {isLoading ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {t('podcasts.loadingEpisodes')}
-        </div>
-      ) : null}
-
-      {emptyState ? (
-        <div className="rounded-lg border border-dashed bg-muted/30 p-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            {t('podcasts.noEpisodesYet')}
-          </p>
-        </div>
-      ) : null}
-
-      {getSTATUS_ORDER(t).map(({ key, title, description }) => {
-        const data = statusGroups[key]
-        if (!data || data.length === 0) {
-          return null
-        }
-
-        return (
-          <section key={key} className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold leading-tight">{title}</h3>
-              {description ? (
-                <p className="text-sm text-muted-foreground">{description}</p>
-              ) : null}
+      {viewMode === 'cards' && (
+        <>
+          {isLoading ? (
+            <div className="flex items-center gap-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('podcasts.loadingEpisodes')}
             </div>
-            <Separator />
-            <div className="space-y-4">
-              {data.map((episode) => (
-                <EpisodeCard
-                  key={episode.id}
-                  episode={episode}
-                  onDelete={handleDelete}
-                  deleting={deleteEpisode.isPending}
-                  onRetry={handleRetry}
-                  retrying={retryEpisode.isPending}
-                />
-              ))}
+          ) : null}
+
+          {emptyState ? (
+            <div className="rounded-lg border border-dashed bg-muted/30 p-10 text-center">
+              <p className="text-sm text-muted-foreground">
+                {t('podcasts.noEpisodesYet')}
+              </p>
             </div>
-          </section>
-        )
-      })}
+          ) : null}
+
+          {getSTATUS_ORDER(t).map(({ key, title, description }) => {
+            const data = statusGroups[key]
+            if (!data || data.length === 0) {
+              return null
+            }
+
+            return (
+              <section key={key} className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold leading-tight">{title}</h3>
+                  {description ? (
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                  ) : null}
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                  {data.map((episode) => (
+                    <EpisodeCard
+                      key={episode.id}
+                      episode={episode}
+                      onDelete={handleDelete}
+                      deleting={deleteEpisode.isPending}
+                      onRetry={handleRetry}
+                      retrying={retryEpisode.isPending}
+                    />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+        </>
+      )}
+
+      {viewMode === 'table' && (
+        <DataTable
+          columns={podcastColumns}
+          data={episodes}
+          searchPlaceholder="Search episodes..."
+          isLoading={isLoading}
+          emptyMessage="No episodes"
+        />
+      )}
 
       <GeneratePodcastDialog
         open={showGenerateDialog}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { CSETNetworkCanvas } from '../components/CSETNetworkCanvas'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,10 @@ import Link from 'next/link'
 
 export default function TestCanvasPage() {
   const [verifiedChecks, setVerifiedChecks] = useState<string[]>([])
+
+  useEffect(() => {
+    document.title = 'Test Canvas | Tetrel'
+  }, [])
 
   const handleValidationSuccess = (verified: string[]) => {
     setVerifiedChecks(verified)

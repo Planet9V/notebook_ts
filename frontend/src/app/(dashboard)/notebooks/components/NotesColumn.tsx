@@ -24,6 +24,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CollapsibleColumn, createCollapseButton } from '@/components/notebooks/CollapsibleColumn'
 import { useNotebookColumnsStore } from '@/lib/stores/notebook-columns-store'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { toast } from 'sonner'
 
 interface NotesColumnProps {
   notes?: NoteResponse[]
@@ -65,10 +66,12 @@ export function NotesColumn({
 
     try {
       await deleteNote.mutateAsync(noteToDelete)
+      toast.success(t('common.success'))
       setDeleteDialogOpen(false)
       setNoteToDelete(null)
     } catch (error) {
       console.error('Failed to delete note:', error)
+      toast.error(t('common.error'))
     }
   }
 

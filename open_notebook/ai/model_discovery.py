@@ -8,14 +8,15 @@ AI providers and automatically register them in the database.
 import asyncio
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import httpx
 from loguru import logger
 
 from open_notebook.ai.models import Model
-from open_notebook.domain.credential import Credential
 from open_notebook.database.repository import repo_query
+from open_notebook.domain.credential import Credential
 
 
 @dataclass
@@ -24,8 +25,36 @@ class DiscoveredModel:
 
     name: str
     provider: str
-    model_type: str  # language, embedding, speech_to_text, text_to_speech
+    model_type: str  # language, embedding, reranking, image_generation, audio, video, ...
     description: Optional[str] = None
+    context_length: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
+    pricing_prompt: Optional[str] = None
+    pricing_completion: Optional[str] = None
+    modality: Optional[str] = None  # e.g. "text->text", "text+image->text+image"
+    input_modalities: Optional[List[str]] = None
+    output_modalities: Optional[List[str]] = None
+    # Full pricing breakdown
+    pricing_image: Optional[str] = None
+    pricing_audio: Optional[str] = None
+    pricing_web_search: Optional[str] = None
+    pricing_internal_reasoning: Optional[str] = None
+    pricing_input_cache_read: Optional[str] = None
+    pricing_input_cache_write: Optional[str] = None
+    # Architecture
+    tokenizer: Optional[str] = None
+    instruct_type: Optional[str] = None
+    # Metadata
+    hugging_face_id: Optional[str] = None
+    canonical_slug: Optional[str] = None
+    knowledge_cutoff: Optional[str] = None
+    expiration_date: Optional[str] = None
+    supported_parameters: Optional[List[str]] = None
+    is_moderated: Optional[bool] = None
+    # Provider-level context
+    provider_context_length: Optional[int] = None
+    # Sync tracking
+    openrouter_created_at: Optional[int] = None
 
 
 # =============================================================================
@@ -71,6 +100,8 @@ GOOGLE_MODEL_TYPES = {
 
 OLLAMA_MODEL_TYPES = {
     # Ollama models can do multiple things, classify by common names
+    # NOTE: embedding patterns are checked BEFORE language patterns in classify_model_type,
+    # so "qwen3-embedding" correctly matches embedding before "qwen" matches language.
     "language": [
         "llama",
         "mistral",
@@ -94,7 +125,41 @@ OLLAMA_MODEL_TYPES = {
         "zephyr",
         "tinyllama",
     ],
-    "embedding": ["nomic-embed", "mxbai-embed", "all-minilm", "bge-", "e5-", "embed", "embedding"],
+    "embedding": [
+        "nomic-embed",
+        "mxbai-embed",
+        "all-minilm",
+        "bge-",
+        "e5-",
+        "snowflake-arctic-embed",
+        "qwen3-embedding",
+        "embedding",
+        "embed",
+    ],
+    "reranking": [
+        "rerank",
+        "reranker",
+    ],
+}
+
+OPENROUTER_MODEL_TYPES = {
+    # OpenRouter hosts many providers; classify by model name patterns
+    "reranking": [
+        "rerank",
+        "reranker",
+    ],
+    "embedding": [
+        "embedding",
+        "embed",
+        "text-embedding",
+        "nomic-embed",
+        "bge-",
+        "e5-",
+        "voyage",
+        "jina-embeddings",
+    ],
+    "speech_to_text": ["whisper"],
+    "language": [],  # everything else defaults to language
 }
 
 MISTRAL_MODEL_TYPES = {
@@ -139,6 +204,11 @@ MINIMAX_MODEL_TYPES = {
     "language": ["minimax", "abab"],
 }
 
+DEEPGRAM_MODEL_TYPES = {
+    "speech_to_text": ["nova"],
+    "text_to_speech": ["aura"],
+}
+
 
 def classify_model_type(model_name: str, provider: str) -> str:
     """
@@ -152,12 +222,14 @@ def classify_model_type(model_name: str, provider: str) -> str:
         "openai": OPENAI_MODEL_TYPES,
         "google": GOOGLE_MODEL_TYPES,
         "ollama": OLLAMA_MODEL_TYPES,
+        "openrouter": OPENROUTER_MODEL_TYPES,
         "mistral": MISTRAL_MODEL_TYPES,
         "groq": GROQ_MODEL_TYPES,
         "deepseek": DEEPSEEK_MODEL_TYPES,
         "xai": XAI_MODEL_TYPES,
         "voyage": VOYAGE_MODEL_TYPES,
         "elevenlabs": ELEVENLABS_MODEL_TYPES,
+        "deepgram": DEEPGRAM_MODEL_TYPES,
         "dashscope": DASHSCOPE_MODEL_TYPES,
         "minimax": MINIMAX_MODEL_TYPES,
     }
@@ -165,7 +237,7 @@ def classify_model_type(model_name: str, provider: str) -> str:
     mapping = type_mappings.get(provider, {})
 
     # Check each type in order of specificity
-    for model_type in ["speech_to_text", "text_to_speech", "embedding", "language"]:
+    for model_type in ["speech_to_text", "text_to_speech", "reranking", "embedding", "language"]:
         patterns = mapping.get(model_type, [])
         for pattern in patterns:
             if pattern in name_lower:
@@ -450,8 +522,36 @@ async def discover_xai_models() -> List[DiscoveredModel]:
     return models
 
 
+def classify_openrouter_by_modality(model_id: str, architecture: dict) -> str:
+    """
+    Classify an OpenRouter model using its output modalities first,
+    then falling back to name-based pattern matching.
+    """
+    output_mods = architecture.get("output_modalities", [])
+    input_mods = architecture.get("input_modalities", [])
+
+    # Output-modality-based classification (most specific first)
+    if "image" in output_mods and "text" in output_mods:
+        return "image_generation"
+    if "audio" in output_mods:
+        return "audio"
+
+    # Name-based classification for reranking/embedding
+    name_lower = model_id.lower()
+    for pattern in ["rerank", "reranker"]:
+        if pattern in name_lower:
+            return "reranking"
+    for pattern in ["embedding", "embed", "text-embedding", "nomic-embed",
+                     "bge-", "e5-", "voyage", "jina-embeddings"]:
+        if pattern in name_lower:
+            return "embedding"
+
+    # Default: language (covers text->text and all multimodal-input text-output)
+    return "language"
+
+
 async def discover_openrouter_models() -> List[DiscoveredModel]:
-    """Fetch available models from OpenRouter API."""
+    """Fetch available models from OpenRouter API with ALL attributes."""
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         return []
@@ -469,16 +569,68 @@ async def discover_openrouter_models() -> List[DiscoveredModel]:
 
             for model in data.get("data", []):
                 model_id = model.get("id", "")
-                if model_id:
-                    # OpenRouter models are typically language models
-                    models.append(
-                        DiscoveredModel(
-                            name=model_id,
-                            provider="openrouter",
-                            model_type="language",
-                            description=model.get("name"),
-                        )
+                if not model_id:
+                    continue
+
+                # Architecture
+                architecture = model.get("architecture", {})
+                modality_str = architecture.get("modality", "")
+                input_mods = architecture.get("input_modalities", [])
+                output_mods = architecture.get("output_modalities", [])
+                tokenizer = architecture.get("tokenizer")
+                instruct_type = architecture.get("instruct_type")
+
+                # Classify using modality + name patterns
+                model_type = classify_openrouter_by_modality(model_id, architecture)
+
+                # Full pricing breakdown
+                pricing = model.get("pricing", {})
+
+                # Context/completion limits
+                context_length = model.get("context_length")
+                top_provider = model.get("top_provider", {}) or {}
+                max_completion_tokens = top_provider.get("max_completion_tokens")
+                is_moderated = top_provider.get("is_moderated")
+                provider_ctx = top_provider.get("context_length")
+
+                models.append(
+                    DiscoveredModel(
+                        name=model_id,
+                        provider="openrouter",
+                        model_type=model_type,
+                        description=model.get("name"),
+                        context_length=context_length,
+                        max_completion_tokens=max_completion_tokens,
+                        # Core pricing
+                        pricing_prompt=pricing.get("prompt"),
+                        pricing_completion=pricing.get("completion"),
+                        # Extended pricing
+                        pricing_image=pricing.get("image"),
+                        pricing_audio=pricing.get("audio"),
+                        pricing_web_search=pricing.get("web_search"),
+                        pricing_internal_reasoning=pricing.get("internal_reasoning"),
+                        pricing_input_cache_read=pricing.get("input_cache_read"),
+                        pricing_input_cache_write=pricing.get("input_cache_write"),
+                        # Modality
+                        modality=modality_str,
+                        input_modalities=input_mods if input_mods else None,
+                        output_modalities=output_mods if output_mods else None,
+                        # Architecture
+                        tokenizer=tokenizer,
+                        instruct_type=instruct_type,
+                        # Metadata
+                        hugging_face_id=model.get("hugging_face_id"),
+                        canonical_slug=model.get("canonical_slug"),
+                        knowledge_cutoff=model.get("knowledge_cutoff"),
+                        expiration_date=model.get("expiration_date"),
+                        supported_parameters=model.get("supported_parameters"),
+                        is_moderated=is_moderated,
+                        # Provider context
+                        provider_context_length=provider_ctx,
+                        # Sync tracking
+                        openrouter_created_at=model.get("created"),
                     )
+                )
     except Exception as e:
         logger.warning(f"Failed to discover OpenRouter models: {e}")
 
@@ -526,6 +678,130 @@ async def discover_elevenlabs_models() -> List[DiscoveredModel]:
         DiscoveredModel(name=m, provider="elevenlabs", model_type="text_to_speech")
         for m in elevenlabs_models
     ]
+
+
+async def discover_deepgram_models() -> List[DiscoveredModel]:
+    """Discover available Deepgram STT and TTS models via the /v1/models API."""
+    api_key = os.environ.get("DEEPGRAM_API_KEY")
+    if not api_key:
+        return []
+
+    models: List[DiscoveredModel] = []
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.deepgram.com/v1/models",
+                headers={"Authorization": f"Token {api_key}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # STT models
+            for model in data.get("stt", []):
+                model_id = model.get("canonical_name") or model.get("name", "")
+                if model_id:
+                    models.append(
+                        DiscoveredModel(
+                            name=model_id,
+                            provider="deepgram",
+                            model_type="speech_to_text",
+                            description=model.get("name", model_id),
+                        )
+                    )
+
+            # TTS models
+            for model in data.get("tts", []):
+                model_id = model.get("canonical_name") or model.get("name", "")
+                if model_id:
+                    models.append(
+                        DiscoveredModel(
+                            name=model_id,
+                            provider="deepgram",
+                            model_type="text_to_speech",
+                            description=model.get("name", model_id),
+                        )
+                    )
+
+            if models:
+                logger.info(f"Discovered {len(models)} Deepgram models via API")
+                return models
+    except Exception as e:
+        logger.warning(f"Failed to discover Deepgram models from API: {e}")
+
+    # Fallback: static list of well-known models
+    stt_models = ["nova-3", "nova-2", "nova-2-general", "nova-2-meeting", "nova-2-phonecall"]
+    tts_models = [
+        "aura-2-thalia-en", "aura-2-andromeda-en", "aura-2-arcas-en",
+        "aura-2-helios-en", "aura-2-luna-en", "aura-2-orion-en",
+        "aura-2-perseus-en", "aura-2-stella-en",
+    ]
+
+    for m in stt_models:
+        models.append(
+            DiscoveredModel(
+                name=m, provider="deepgram", model_type="speech_to_text",
+                description=f"Deepgram {m.replace('-', ' ').title()}",
+            )
+        )
+    for m in tts_models:
+        models.append(
+            DiscoveredModel(
+                name=m, provider="deepgram", model_type="text_to_speech",
+                description=f"Deepgram Aura-2 voice: {m.split('-')[2].title()}",
+            )
+        )
+
+    logger.info(f"Using {len(models)} fallback Deepgram models")
+    return models
+
+
+async def discover_kokoro_models() -> List[DiscoveredModel]:
+    """Discover Kokoro TTS voices from the local service."""
+    kokoro_url = os.environ.get("KOKORO_TTS_URL", "http://kokoro-tts:8880")
+
+    # Hardcoded fallback voices matching api/routers/voice.py KOKORO_VOICES
+    KOKORO_FALLBACK = [
+        "af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky",
+        "am_adam", "am_michael",
+        "bf_emma", "bf_isabella",
+        "bm_george", "bm_lewis",
+    ]
+
+    models: List[DiscoveredModel] = []
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{kokoro_url}/v1/audio/voices")
+            if resp.status_code == 200:
+                data = resp.json()
+                voices = data.get("voices", data) if isinstance(data, dict) else data
+                for v in voices:
+                    voice_id = v.get("id", v) if isinstance(v, dict) else str(v)
+                    voice_name = v.get("name", voice_id) if isinstance(v, dict) else str(v)
+                    models.append(
+                        DiscoveredModel(
+                            name=voice_id,
+                            provider="kokoro",
+                            model_type="text_to_speech",
+                            description=f"Kokoro TTS voice: {voice_name}",
+                        )
+                    )
+                if models:
+                    return models
+    except Exception as e:
+        logger.warning(f"Failed to discover Kokoro models from service: {e}")
+
+    # Fallback: register hardcoded voice list (always available)
+    for v in KOKORO_FALLBACK:
+        models.append(
+            DiscoveredModel(
+                name=v,
+                provider="kokoro",
+                model_type="text_to_speech",
+                description=f"Kokoro TTS voice: {v.replace('_', ' ').title()}",
+            )
+        )
+    return models
 
 
 async def discover_dashscope_models() -> List[DiscoveredModel]:
@@ -677,6 +953,8 @@ PROVIDER_DISCOVERY_FUNCTIONS = {
     "openrouter": discover_openrouter_models,
     "voyage": discover_voyage_models,
     "elevenlabs": discover_elevenlabs_models,
+    "kokoro": discover_kokoro_models,
+    "deepgram": discover_deepgram_models,
     "openai_compatible": discover_openai_compatible_models,
     "dashscope": discover_dashscope_models,
     "minimax": discover_minimax_models,
@@ -726,6 +1004,7 @@ async def sync_provider_models(
     discovered_count = len(discovered)
     new_count = 0
     existing_count = 0
+    updated_count = 0
 
     if not auto_register:
         return discovered_count, 0, 0
@@ -733,45 +1012,130 @@ async def sync_provider_models(
     if not discovered:
         return 0, 0, 0
 
-    # Batch fetch existing models to avoid N+1 query pattern
+    # Batch fetch existing models (with IDs) to support upsert
+    existing_by_name: Dict[str, dict] = {}
     try:
         existing_models = await repo_query(
-            "SELECT string::lowercase(name) as name, string::lowercase(type) as type FROM model "
+            "SELECT * FROM model "
             "WHERE string::lowercase(provider) = $provider",
             {"provider": provider.lower()},
         )
-        # Create a set of (name, type) tuples for O(1) lookup
-        existing_keys = set()
         for m in existing_models:
-            existing_keys.add((m.get("name", ""), m.get("type", "")))
+            key = m.get("name", "").lower()
+            existing_by_name[key] = m
     except Exception as e:
         logger.warning(f"Failed to fetch existing models for {provider}: {e}")
-        existing_keys = set()
+
+    now_iso = datetime.now(timezone.utc).isoformat()
 
     for model in discovered:
-        model_key = (model.name.lower(), model.model_type.lower())
+        name_key = model.name.lower()
+        existing = existing_by_name.get(name_key)
 
-        # Check if model already exists using pre-fetched data
-        if model_key in existing_keys:
+        # Build the full field dict from discovered model
+        all_fields = {
+            "type": model.model_type,
+            "description": model.description,
+            "context_length": model.context_length,
+            "max_completion_tokens": model.max_completion_tokens,
+            "pricing_prompt": model.pricing_prompt,
+            "pricing_completion": model.pricing_completion,
+            "pricing_image": model.pricing_image,
+            "pricing_audio": model.pricing_audio,
+            "pricing_web_search": model.pricing_web_search,
+            "pricing_internal_reasoning": model.pricing_internal_reasoning,
+            "pricing_input_cache_read": model.pricing_input_cache_read,
+            "pricing_input_cache_write": model.pricing_input_cache_write,
+            "modality": model.modality,
+            "input_modalities": model.input_modalities,
+            "output_modalities": model.output_modalities,
+            "tokenizer": model.tokenizer,
+            "instruct_type": model.instruct_type,
+            "hugging_face_id": model.hugging_face_id,
+            "canonical_slug": model.canonical_slug,
+            "knowledge_cutoff": model.knowledge_cutoff,
+            "expiration_date": model.expiration_date,
+            "supported_parameters": model.supported_parameters,
+            "is_moderated": model.is_moderated,
+            "provider_context_length": model.provider_context_length,
+            "openrouter_created_at": model.openrouter_created_at,
+            "last_synced_at": now_iso,
+        }
+
+        if existing:
             existing_count += 1
-            continue
+            existing_id = existing.get("id", "")
+            if not existing_id:
+                continue
 
-        # Create new model
-        try:
-            new_model = Model(
-                name=model.name,
-                provider=model.provider,
-                type=model.model_type,
-            )
-            await new_model.save()
-            new_count += 1
-            logger.info(f"Registered new model: {model.provider}/{model.name} ({model.model_type})")
-        except Exception as e:
-            logger.warning(f"Failed to register model {model.name}: {e}")
+            # Check if anything actually changed to avoid unnecessary writes
+            changed = False
+            for k, v in all_fields.items():
+                if k == "last_synced_at":
+                    continue  # Always different, skip for comparison
+                if existing.get(k) != v:
+                    changed = True
+                    break
+
+            if changed:
+                try:
+                    set_clause = ", ".join(
+                        f"{k} = ${k}" for k in all_fields
+                    )
+                    await repo_query(
+                        f"UPDATE {existing_id} SET {set_clause}",
+                        all_fields,
+                    )
+                    updated_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to update model {model.name}: {e}")
+            else:
+                # Only update sync timestamp
+                try:
+                    await repo_query(
+                        f"UPDATE {existing_id} SET last_synced_at = $ts",
+                        {"ts": now_iso},
+                    )
+                except Exception:
+                    pass  # Non-critical
+        else:
+            # Create new model with ALL metadata
+            try:
+                new_model = Model(
+                    name=model.name,
+                    provider=model.provider,
+                    **all_fields,
+                )
+                await new_model.save()
+                new_count += 1
+                logger.info(f"Registered new model: {model.provider}/{model.name} ({model.model_type})")
+            except Exception as e:
+                logger.warning(f"Failed to register model {model.name}: {e}")
+
+    # Update sync_status record
+    try:
+        await repo_query(
+            "UPSERT sync_status SET provider = $provider, last_sync = $now, "
+            "models_synced = $synced, models_updated = $updated, models_added = $added, "
+            "next_sync = $next WHERE provider = $provider",
+            {
+                "provider": provider,
+                "now": now_iso,
+                "synced": discovered_count,
+                "updated": updated_count,
+                "added": new_count,
+                "next": datetime(datetime.now(timezone.utc).year,
+                                 datetime.now(timezone.utc).month,
+                                 datetime.now(timezone.utc).day,
+                                 3, 0, 0, tzinfo=timezone.utc).isoformat(),
+            },
+        )
+    except Exception as e:
+        logger.warning(f"Failed to update sync_status for {provider}: {e}")
 
     logger.info(
         f"Synced {provider}: {discovered_count} discovered, "
-        f"{new_count} new, {existing_count} existing"
+        f"{new_count} new, {existing_count} existing, {updated_count} updated"
     )
     return discovered_count, new_count, existing_count
 
@@ -823,6 +1187,10 @@ async def get_provider_model_count(provider: str) -> Dict[str, int]:
     counts = {
         "language": 0,
         "embedding": 0,
+        "reranking": 0,
+        "image_generation": 0,
+        "audio": 0,
+        "video": 0,
         "speech_to_text": 0,
         "text_to_speech": 0,
     }

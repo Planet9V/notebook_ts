@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { Control, FieldErrors, UseFormRegister, UseFormSetValue, useWatch } from "react-hook-form"
+import type { CreateSourceFormData } from '../types'
 import { FileIcon, LinkIcon, FileTextIcon } from "lucide-react"
 import { useTranslation } from "@/lib/hooks/use-translation"
 import { FormSection } from "@/components/ui/form-section"
@@ -12,17 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Controller } from "react-hook-form"
 
-interface CreateSourceFormData {
-  type: 'link' | 'upload' | 'text'
-  title?: string
-  url?: string
-  content?: string
-  file?: FileList | File
-  notebooks?: string[]
-  transformations?: string[]
-  embed: boolean
-  async_processing: boolean
-}
+
 
 // Helper functions for batch URL parsing
 function parseUrls(text: string): string[] {

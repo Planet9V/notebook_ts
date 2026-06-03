@@ -40,6 +40,20 @@ PROVIDER_ENV_CONFIG: Dict[str, dict] = {
     "openrouter": {"required": ["OPENROUTER_API_KEY"]},
     "voyage": {"required": ["VOYAGE_API_KEY"]},
     "elevenlabs": {"required": ["ELEVENLABS_API_KEY"]},
+    "perplexity": {"required": ["PERPLEXITY_API_KEY"]},
+    "tavily": {"required": ["TAVILY_API_KEY"]},
+    "valyu": {"required": ["VALYU_API_KEY"]},
+    "newsapi": {"required": ["NEWSAPI_KEY"]},
+    "finnhub": {"required": ["FINNHUB_API_KEY"]},
+    "eia": {"required": ["EIA_API_KEY"]},
+    "codacy": {"required": ["CODACY_API_TOKEN"]},
+    "censys": {"required": ["CENSYS_API_KEY"]},
+    "fred": {"required": ["FRED_API_KEY"]},
+    "tripo": {"required": ["TRIPO_API_KEY"]},
+    "stitch": {"required": ["STITCH_API_KEY"]},
+    "huggingface": {"required": ["HUGGINGFACE_TOKEN"]},
+    "mapbox": {"required": ["MAPBOX_ACCESS_TOKEN"]},
+    "brave": {"required": ["BRAVE_API_KEY"]},
     "ollama": {"required": ["OLLAMA_API_BASE"]},
     "vertex": {
         "required": ["VERTEX_PROJECT", "VERTEX_LOCATION"],
@@ -72,6 +86,20 @@ PROVIDER_MODALITIES: Dict[str, List[str]] = {
     "openrouter": ["language"],
     "voyage": ["embedding"],
     "elevenlabs": ["text_to_speech"],
+    "perplexity": ["language"],
+    "tavily": ["language"],
+    "valyu": ["language"],
+    "newsapi": ["language"],
+    "finnhub": ["language"],
+    "eia": ["language"],
+    "codacy": ["language"],
+    "censys": ["language"],
+    "fred": ["language"],
+    "tripo": ["language"],
+    "stitch": ["language"],
+    "huggingface": ["language", "embedding"],
+    "mapbox": ["language"],
+    "brave": ["language"],
     "ollama": ["language", "embedding"],
     "vertex": ["language", "embedding"],
     "azure": ["language", "embedding", "speech_to_text", "text_to_speech"],
@@ -405,6 +433,187 @@ async def test_credential(credential_id: str) -> dict:
             )
             return {"provider": provider, "success": success, "message": message}
 
+        if provider == "tavily":
+            api_key = config.get("api_key")
+            if not api_key:
+                return {"provider": provider, "success": False, "message": "No API key configured"}
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.post(
+                        "https://api.tavily.com/search",
+                        json={"api_key": api_key, "query": "test", "max_results": 1}
+                    )
+                    if resp.status_code == 200:
+                        return {"provider": provider, "success": True, "message": "Connected successfully to Tavily Search"}
+                    else:
+                        return {"provider": provider, "success": False, "message": f"Tavily returned {resp.status_code}"}
+            except Exception as e:
+                return {"provider": provider, "success": False, "message": f"Connection error: {str(e)[:100]}"}
+
+        if provider == "valyu":
+            api_key = config.get("api_key")
+            if not api_key:
+                return {"provider": provider, "success": False, "message": "No API key configured"}
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.post(
+                        "https://api.valyu.ai/v1/search",
+                        headers={
+                            "Content-Type": "application/json",
+                            "X-API-Key": api_key,
+                        },
+                        json={"query": "test", "search_type": "all", "max_num_results": 1}
+                    )
+                    if resp.status_code == 200:
+                        return {"provider": provider, "success": True, "message": "Connected successfully to Valyu Search"}
+                    else:
+                        return {"provider": provider, "success": False, "message": f"Valyu returned {resp.status_code}"}
+            except Exception as e:
+                return {"provider": provider, "success": False, "message": f"Connection error: {str(e)[:100]}"}
+
+        if provider == "perplexity":
+            api_key = config.get("api_key")
+            if not api_key:
+                return {"provider": provider, "success": False, "message": "No API key configured"}
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(
+                        "https://api.perplexity.ai/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": "sonar",
+                            "messages": [
+                                {"role": "user", "content": "Hi"}
+                            ],
+                        }
+                    )
+                    if resp.status_code == 200:
+                        return {"provider": provider, "success": True, "message": "Connected successfully to Perplexity AI"}
+                    elif resp.status_code == 401:
+                        return {"provider": provider, "success": False, "message": "Invalid API key"}
+                    else:
+                        # Include response body for diagnostics
+                        try:
+                            err_detail = resp.json().get("error", {}).get("message", resp.text[:100])
+                        except Exception:
+                            err_detail = resp.text[:100]
+                        return {"provider": provider, "success": False, "message": f"Perplexity returned {resp.status_code}: {err_detail}"}
+            except Exception as e:
+                return {"provider": provider, "success": False, "message": f"Connection error: {str(e)[:100]}"}
+
+        # --- Simple GET-based search/data providers ---
+        simple_providers = {
+            "newsapi": {
+                "display": "NewsAPI",
+                "url": "https://newsapi.org/v2/top-headlines",
+                "params": lambda k: {"apiKey": k, "country": "us", "pageSize": 1},
+                "headers": lambda k: {},
+            },
+            "brave": {
+                "display": "Brave Search",
+                "url": "https://api.search.brave.com/res/v1/web/search",
+                "params": lambda k: {"q": "test", "count": 1},
+                "headers": lambda k: {"X-Subscription-Token": k, "Accept": "application/json"},
+            },
+            "finnhub": {
+                "display": "Finnhub",
+                "url": "https://finnhub.io/api/v1/quote",
+                "params": lambda k: {"symbol": "AAPL", "token": k},
+                "headers": lambda k: {},
+            },
+            "eia": {
+                "display": "EIA.gov",
+                "url": "https://api.eia.gov/v2/",
+                "params": lambda k: {"api_key": k},
+                "headers": lambda k: {},
+            },
+            "fred": {
+                "display": "FRED",
+                "url": "https://api.stlouisfed.org/fred/series",
+                "params": lambda k: {"series_id": "GNPCA", "api_key": k, "file_type": "json"},
+                "headers": lambda k: {},
+            },
+            "codacy": {
+                "display": "Codacy",
+                "url": "https://api.codacy.com/api/v3/user",
+                "params": lambda k: {},
+                "headers": lambda k: {"api-token": k, "Accept": "application/json"},
+            },
+            "censys": {
+                "display": "Censys",
+                "url": "https://search.censys.io/api/v2/hosts/search",
+                "params": lambda k: {"q": "services.service_name: HTTP", "per_page": 1},
+                "headers": lambda k: {
+                    "Authorization": "Basic " + __import__("base64").b64encode(k.encode()).decode(),
+                    "Accept": "application/json",
+                },
+            },
+            "tripo": {
+                "display": "Tripo",
+                "url": "https://api.tripo3d.ai/v2/openapi/user/balance",
+                "params": lambda k: {},
+                "headers": lambda k: {"Authorization": f"Bearer {k}", "Content-Type": "application/json"},
+            },
+            "stitch": {
+                "display": "Stitch",
+                "url": "https://api.stitchdata.com/v2/import/status",
+                "params": lambda k: {},
+                "headers": lambda k: {"Authorization": f"Bearer {k}", "Accept": "application/json"},
+            },
+            "huggingface": {
+                "display": "Hugging Face",
+                "url": "https://huggingface.co/api/whoami-v2",
+                "params": lambda k: {},
+                "headers": lambda k: {"Authorization": f"Bearer {k}", "Accept": "application/json"},
+            },
+            "mapbox": {
+                "display": "Mapbox",
+                "url": "https://api.mapbox.com/tokens/v2",
+                "params": lambda k: {"access_token": k},
+                "headers": lambda k: {},
+            },
+        }
+
+        if provider in simple_providers:
+            api_key = config.get("api_key")
+            if not api_key:
+                return {"provider": provider, "success": False, "message": "No API key configured"}
+            prov_cfg = simple_providers[provider]
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    # Censys uses httpx auth= for proper Basic Auth
+                    kwargs: dict = {
+                        "params": prov_cfg["params"](api_key),
+                        "headers": prov_cfg["headers"](api_key),
+                    }
+                    if provider == "censys":
+                        # Censys key format: API_ID:API_SECRET
+                        if ":" in api_key:
+                            uid, secret = api_key.split(":", 1)
+                            kwargs["auth"] = (uid, secret)
+                            kwargs["headers"] = {"Accept": "application/json"}
+                        # else fall through with the base64 header approach
+
+                    resp = await client.get(prov_cfg["url"], **kwargs)
+                    display = prov_cfg["display"]
+                    logger.debug(f"[test_credential] {display}: status={resp.status_code}, body={resp.text[:200]}")
+                    if 200 <= resp.status_code < 300:
+                        return {"provider": provider, "success": True, "message": f"Connected successfully to {display}"}
+                    elif resp.status_code in (401, 403):
+                        return {"provider": provider, "success": False, "message": f"Invalid API key for {display} (HTTP {resp.status_code}). Verify the key at the provider's dashboard."}
+                    else:
+                        try:
+                            err_body = resp.json()
+                            err_detail = err_body.get("error", err_body.get("message", resp.text[:150]))
+                        except Exception:
+                            err_detail = resp.text[:150]
+                        return {"provider": provider, "success": False, "message": f"{display} returned {resp.status_code}: {err_detail}"}
+            except Exception as e:
+                return {"provider": provider, "success": False, "message": f"Connection error: {str(e)[:100]}"}
+
         # Standard provider: use Esperanto to create and test
         from esperanto.factory import AIFactory
 
@@ -498,6 +707,50 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
         "elevenlabs": [
             "eleven_multilingual_v2", "eleven_turbo_v2_5",
             "eleven_turbo_v2", "eleven_monolingual_v1",
+        ],
+        "perplexity": [
+            "sonar",
+            "sonar-pro",
+            "sonar-reasoning",
+        ],
+        "tavily": [
+            "tavily-search",
+        ],
+        "valyu": [
+            "valyu-search",
+        ],
+        "newsapi": [
+            "newsapi-search",
+        ],
+        "finnhub": [
+            "finnhub-market-data",
+        ],
+        "eia": [
+            "eia-energy-data",
+        ],
+        "codacy": [
+            "codacy-analysis",
+        ],
+        "censys": [
+            "censys-search",
+        ],
+        "fred": [
+            "fred-economic-data",
+        ],
+        "tripo": [
+            "tripo-3d-generation",
+        ],
+        "stitch": [
+            "stitch-data-import",
+        ],
+        "huggingface": [
+            "huggingface-inference",
+        ],
+        "mapbox": [
+            "mapbox-maps",
+        ],
+        "brave": [
+            "brave-search",
         ],
     }
 

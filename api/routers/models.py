@@ -13,7 +13,6 @@ from api.models import (
     ModelResponse,
     ProviderAvailabilityResponse,
 )
-from open_notebook.domain.credential import Credential
 from open_notebook.ai.connection_tester import test_individual_model
 from open_notebook.ai.key_provider import provision_provider_keys
 from open_notebook.ai.model_discovery import (
@@ -23,6 +22,7 @@ from open_notebook.ai.model_discovery import (
     sync_provider_models,
 )
 from open_notebook.ai.models import DefaultModels, Model
+from open_notebook.domain.credential import Credential
 from open_notebook.exceptions import InvalidInputError
 
 router = APIRouter()
@@ -40,6 +40,12 @@ class DiscoveredModelResponse(BaseModel):
     provider: str
     model_type: str
     description: Optional[str] = None
+    context_length: Optional[int] = None
+    pricing_prompt: Optional[str] = None
+    pricing_completion: Optional[str] = None
+    modality: Optional[str] = None
+    input_modalities: Optional[List[str]] = None
+    output_modalities: Optional[List[str]] = None
 
 
 class ProviderSyncResponse(BaseModel):
@@ -57,6 +63,17 @@ class AllProvidersSyncResponse(BaseModel):
     results: Dict[str, ProviderSyncResponse]
     total_discovered: int
     total_new: int
+
+
+class SyncStatusResponse(BaseModel):
+    """Response model for sync status."""
+
+    provider: str
+    last_sync: Optional[str] = None
+    models_synced: Optional[int] = None
+    models_updated: Optional[int] = None
+    models_added: Optional[int] = None
+    next_sync: Optional[str] = None
 
 
 class ProviderModelCountResponse(BaseModel):
@@ -81,6 +98,44 @@ class ModelTestResponse(BaseModel):
     success: bool
     message: str
     details: Optional[str] = None
+
+
+def _model_to_response(model: Model) -> ModelResponse:
+    """Convert a Model domain object to a ModelResponse."""
+    return ModelResponse(
+        id=model.id or "",
+        name=model.name,
+        provider=model.provider,
+        type=model.type,
+        credential=model.credential,
+        context_length=model.context_length,
+        max_completion_tokens=model.max_completion_tokens,
+        pricing_prompt=model.pricing_prompt,
+        pricing_completion=model.pricing_completion,
+        pricing_image=model.pricing_image,
+        pricing_audio=model.pricing_audio,
+        pricing_web_search=model.pricing_web_search,
+        pricing_internal_reasoning=model.pricing_internal_reasoning,
+        pricing_input_cache_read=model.pricing_input_cache_read,
+        pricing_input_cache_write=model.pricing_input_cache_write,
+        modality=model.modality,
+        input_modalities=model.input_modalities,
+        output_modalities=model.output_modalities,
+        description=model.description,
+        tokenizer=model.tokenizer,
+        instruct_type=model.instruct_type,
+        hugging_face_id=model.hugging_face_id,
+        canonical_slug=model.canonical_slug,
+        knowledge_cutoff=model.knowledge_cutoff,
+        expiration_date=model.expiration_date,
+        supported_parameters=model.supported_parameters,
+        is_moderated=model.is_moderated,
+        provider_context_length=model.provider_context_length,
+        openrouter_created_at=model.openrouter_created_at,
+        last_synced_at=model.last_synced_at,
+        created=str(model.created),
+        updated=str(model.updated),
+    )
 
 
 # Provider priority for auto-assignment (higher priority first)
@@ -178,15 +233,7 @@ async def get_models(
             models = await Model.get_all()
 
         return [
-            ModelResponse(
-                id=model.id,
-                name=model.name,
-                provider=model.provider,
-                type=model.type,
-                credential=model.credential,
-                created=str(model.created),
-                updated=str(model.updated),
-            )
+            _model_to_response(model)
             for model in models
         ]
     except Exception as e:
@@ -199,7 +246,7 @@ async def create_model(model_data: ModelCreate):
     """Create a new model configuration."""
     try:
         # Validate model type
-        valid_types = ["language", "embedding", "text_to_speech", "speech_to_text"]
+        valid_types = ["language", "embedding", "text_to_speech", "speech_to_text", "reranking", "image_generation", "audio", "video"]
         if model_data.type not in valid_types:
             raise HTTPException(
                 status_code=400,
@@ -228,18 +275,18 @@ async def create_model(model_data: ModelCreate):
             provider=model_data.provider,
             type=model_data.type,
             credential=model_data.credential,
+            context_length=model_data.context_length,
+            max_completion_tokens=model_data.max_completion_tokens,
+            pricing_prompt=model_data.pricing_prompt,
+            pricing_completion=model_data.pricing_completion,
+            modality=model_data.modality,
+            input_modalities=model_data.input_modalities,
+            output_modalities=model_data.output_modalities,
+            description=model_data.description,
         )
         await new_model.save()
 
-        return ModelResponse(
-            id=new_model.id or "",
-            name=new_model.name,
-            provider=new_model.provider,
-            type=new_model.type,
-            credential=new_model.credential,
-            created=str(new_model.created),
-            updated=str(new_model.updated),
-        )
+        return _model_to_response(new_model)
     except HTTPException:
         raise
     except InvalidInputError as e:
@@ -304,6 +351,7 @@ async def get_default_models():
             default_speech_to_text_model=defaults.default_speech_to_text_model,  # type: ignore[attr-defined]
             default_embedding_model=defaults.default_embedding_model,  # type: ignore[attr-defined]
             default_tools_model=defaults.default_tools_model,  # type: ignore[attr-defined]
+            default_reranker_model=defaults.default_reranker_model,  # type: ignore[attr-defined]
         )
     except Exception as e:
         logger.error(f"Error fetching default models: {str(e)}")
@@ -339,6 +387,8 @@ async def update_default_models(defaults_data: DefaultModelsResponse):
             defaults.default_embedding_model = defaults_data.default_embedding_model  # type: ignore[attr-defined]
         if defaults_data.default_tools_model is not None:
             defaults.default_tools_model = defaults_data.default_tools_model  # type: ignore[attr-defined]
+        if defaults_data.default_reranker_model is not None:
+            defaults.default_reranker_model = defaults_data.default_reranker_model  # type: ignore[attr-defined]
 
         await defaults.update()
 
@@ -352,6 +402,7 @@ async def update_default_models(defaults_data: DefaultModelsResponse):
             default_speech_to_text_model=defaults.default_speech_to_text_model,  # type: ignore[attr-defined]
             default_embedding_model=defaults.default_embedding_model,  # type: ignore[attr-defined]
             default_tools_model=defaults.default_tools_model,  # type: ignore[attr-defined]
+            default_reranker_model=defaults.default_reranker_model,  # type: ignore[attr-defined]
         )
     except HTTPException:
         raise
@@ -580,6 +631,36 @@ async def sync_all_models():
         )
 
 
+@router.get("/models/sync-status", response_model=List[SyncStatusResponse])
+async def get_sync_status():
+    """
+    Get sync status for all providers.
+
+    Returns when each provider was last synced, how many models were
+    synced/updated/added, and when the next sync is scheduled.
+    """
+    try:
+        from open_notebook.database.repository import repo_query as rq
+
+        statuses = await rq("SELECT * FROM sync_status ORDER BY provider", {})
+        return [
+            SyncStatusResponse(
+                provider=s.get("provider", ""),
+                last_sync=str(s.get("last_sync", "")) if s.get("last_sync") else None,
+                models_synced=s.get("models_synced"),
+                models_updated=s.get("models_updated"),
+                models_added=s.get("models_added"),
+                next_sync=str(s.get("next_sync", "")) if s.get("next_sync") else None,
+            )
+            for s in statuses
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching sync status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching sync status: {str(e)}"
+        )
+
+
 @router.get("/models/count/{provider}", response_model=ProviderModelCountResponse)
 async def get_model_count(provider: str):
     """
@@ -625,6 +706,31 @@ async def get_models_by_provider(provider: str):
                 provider=model.get("provider", ""),
                 type=model.get("type", ""),
                 credential=model.get("credential"),
+                context_length=model.get("context_length"),
+                max_completion_tokens=model.get("max_completion_tokens"),
+                pricing_prompt=model.get("pricing_prompt"),
+                pricing_completion=model.get("pricing_completion"),
+                pricing_image=model.get("pricing_image"),
+                pricing_audio=model.get("pricing_audio"),
+                pricing_web_search=model.get("pricing_web_search"),
+                pricing_internal_reasoning=model.get("pricing_internal_reasoning"),
+                pricing_input_cache_read=model.get("pricing_input_cache_read"),
+                pricing_input_cache_write=model.get("pricing_input_cache_write"),
+                modality=model.get("modality"),
+                input_modalities=model.get("input_modalities"),
+                output_modalities=model.get("output_modalities"),
+                description=model.get("description"),
+                tokenizer=model.get("tokenizer"),
+                instruct_type=model.get("instruct_type"),
+                hugging_face_id=model.get("hugging_face_id"),
+                canonical_slug=model.get("canonical_slug"),
+                knowledge_cutoff=model.get("knowledge_cutoff"),
+                expiration_date=model.get("expiration_date"),
+                supported_parameters=model.get("supported_parameters"),
+                is_moderated=model.get("is_moderated"),
+                provider_context_length=model.get("provider_context_length"),
+                openrouter_created_at=model.get("openrouter_created_at"),
+                last_synced_at=model.get("last_synced_at"),
                 created=str(model.get("created", "")),
                 updated=str(model.get("updated", "")),
             )
@@ -712,6 +818,10 @@ async def auto_assign_defaults():
         models_by_type: Dict[str, List[Dict]] = {
             "language": [],
             "embedding": [],
+            "reranking": [],
+            "image_generation": [],
+            "audio": [],
+            "video": [],
             "text_to_speech": [],
             "speech_to_text": [],
         }
@@ -727,6 +837,7 @@ async def auto_assign_defaults():
             ("default_transformation_model", "language", defaults.default_transformation_model),  # type: ignore[attr-defined]
             ("default_tools_model", "language", defaults.default_tools_model),  # type: ignore[attr-defined]
             ("large_context_model", "language", defaults.large_context_model),  # type: ignore[attr-defined]
+            ("default_reranker_model", "reranking", defaults.default_reranker_model),  # type: ignore[attr-defined]
             ("default_embedding_model", "embedding", defaults.default_embedding_model),  # type: ignore[attr-defined]
             ("default_text_to_speech_model", "text_to_speech", defaults.default_text_to_speech_model),  # type: ignore[attr-defined]
             ("default_speech_to_text_model", "speech_to_text", defaults.default_speech_to_text_model),  # type: ignore[attr-defined]

@@ -16,6 +16,7 @@ import { Transformation } from '@/lib/types/transformations'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSFORMATION_QUERY_KEYS } from '@/lib/hooks/use-transformations'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { toast } from 'sonner'
 
 const transformationSchema = z.object({
   name: z.string().min(1),
@@ -81,30 +82,35 @@ export function TransformationEditorDialog({ open, onOpenChange, transformation 
   }, [open, transformation, fetchedTransformation, reset])
 
   const onSubmit = async (data: TransformationFormData) => {
-    if (transformation) {
-      await updateTransformation.mutateAsync({
-        id: transformation.id,
-        data: {
+    try {
+      if (transformation) {
+        await updateTransformation.mutateAsync({
+          id: transformation.id,
+          data: {
+            name: data.name,
+            title: data.title || undefined,
+            description: data.description || undefined,
+            prompt: data.prompt,
+            apply_default: Boolean(data.apply_default),
+          },
+        })
+        queryClient.invalidateQueries({ queryKey: TRANSFORMATION_QUERY_KEYS.transformation(transformation.id) })
+        toast.success('Transformation updated')
+      } else {
+        await createTransformation.mutateAsync({
           name: data.name,
-          title: data.title || undefined,
-          description: data.description || undefined,
+          title: data.title || data.name,
+          description: data.description || '',
           prompt: data.prompt,
           apply_default: Boolean(data.apply_default),
-        },
-      })
-      queryClient.invalidateQueries({ queryKey: TRANSFORMATION_QUERY_KEYS.transformation(transformation.id) })
-    } else {
-      await createTransformation.mutateAsync({
-        name: data.name,
-        title: data.title || data.name,
-        description: data.description || '',
-        prompt: data.prompt,
-        apply_default: Boolean(data.apply_default),
-      })
+        })
+        toast.success('Transformation created')
+      }
+      reset()
+      onOpenChange(false)
+    } catch {
+      toast.error('Failed to save transformation')
     }
-
-    reset()
-    onOpenChange(false)
   }
 
   const handleClose = () => {

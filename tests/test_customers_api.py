@@ -67,8 +67,8 @@ class TestCustomersAPI:
             }
         ]
         
-        # Side effect for the two queries
-        mock_repo_query.side_effect = [mock_customers, mock_notebooks]
+        # Side effect for the three queries: customers, notebooks, contacts GROUP BY
+        mock_repo_query.side_effect = [mock_customers, mock_notebooks, []]
 
         response = client.get("/api/customers")
         assert response.status_code == 200
@@ -225,9 +225,11 @@ class TestCustomersAPI:
                 "updated": "2026-01-01T00:00:00Z",
             }],
             # UPDATE notebook query return (can be empty list)
-            []
+            [],
+            # DELETE contact query return
+            [],
         ]
-        
+
         mock_repo_delete.return_value = True
 
         response = client.delete("/api/customers/123")

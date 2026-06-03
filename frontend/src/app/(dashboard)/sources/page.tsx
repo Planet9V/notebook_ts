@@ -6,6 +6,7 @@ import { sourcesApi } from '@/lib/api/sources'
 import { SourceListResponse } from '@/lib/types/api'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { EmptyState } from '@/components/common/EmptyState'
+import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { AppShell } from '@/components/layout/AppShell'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { FileText, Link as LinkIcon, Upload, AlignLeft, Trash2, ArrowUpDown } from 'lucide-react'
@@ -254,8 +255,14 @@ export default function SourcesPage() {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex h-full items-center justify-center">
-          <LoadingSpinner />
+        <div className="flex flex-col h-full w-full max-w-none px-6 py-6">
+          <div className="mb-6 flex-shrink-0">
+            <h1 className="text-2xl font-semibold tracking-tight">{t('sources.allSources')}</h1>
+            <p className="mt-2 text-muted-foreground">
+              {t('sources.allSourcesDesc')}
+            </p>
+          </div>
+          <DataPageSkeleton layout="table" count={8} />
         </div>
       </AppShell>
     )
@@ -398,6 +405,7 @@ export default function SourcesPage() {
                       size="icon"
                       onClick={(e) => handleDeleteClick(e, source)}
                       className="text-destructive hover:text-destructive"
+                      aria-label={`Delete source ${source.title || 'untitled'}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

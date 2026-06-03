@@ -84,7 +84,7 @@ export function AddExistingSourceDialog({
       setIsSearching(true)
       const response = await searchApi.search({
         query: debouncedSearchQuery,
-        type: 'text',
+        type: 'vector',
         search_sources: true,
         search_notes: false,
         limit: 100,

@@ -1,44 +1,72 @@
+import dotenv
 import asyncio
 import os
 import sys
-from dotenv import load_dotenv
 
-load_dotenv()
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+dotenv.load_dotenv()
+sys.path.append(os.getcwd())
 
-from open_notebook.database.repository import repo_query, ensure_record_id, db_connection
+from open_notebook.database.repository import repo_query
 
 async def main():
-    async with db_connection() as db:
-        # 1. Let's query one question
-        res = await db.query("SELECT id, regulation_id FROM question LIMIT 1")
-        print("Raw query result from driver:")
-        print(res)
-        if res and len(res) > 0:
-            q = res[0]
-            print("Type of id:", type(q.get("id")))
-            print("Type of regulation_id:", type(q.get("regulation_id")))
-            print("Value of regulation_id:", q.get("regulation_id"))
-
-        # 2. Try querying using record ID vs string literal vs type::record
-        target_id_str = "regulation:NIST_800_82"
-        target_id_record = ensure_record_id(target_id_str)
+    print("====================================================")
+    print("QUERYING REGULATION METADATA FOR INGAA & NIST 800-53")
+    print("====================================================\n")
+    
+    reg_ingaa = await repo_query("SELECT * FROM regulation:INGAA_GUIDE")
+    reg_nist = await repo_query("SELECT * FROM regulation:NIST_800_53")
+    
+    print("INGAA REGULATION METADATA:")
+    if reg_ingaa:
+        print(f"  ID: {reg_ingaa[0]['id']}")
+        print(f"  Name: {reg_ingaa[0]['name']}")
+        print(f"  Category: {reg_ingaa[0]['category']}")
+        print(f"  Description: {reg_ingaa[0]['description']}")
+    else:
+        print("  INGAA Regulation not found!")
         
-        # Test A: WHERE regulation_id = $id (with record ID object)
-        res_a = await db.query("SELECT count() FROM question WHERE regulation_id = $id GROUP ALL", {"id": target_id_record})
-        print("Test A (record ID object parameter):", res_a)
-
-        # Test B: WHERE regulation_id = $id (with string parameter)
-        res_b = await db.query("SELECT count() FROM question WHERE regulation_id = $id GROUP ALL", {"id": target_id_str})
-        print("Test B (string parameter):", res_b)
-
-        # Test C: WHERE regulation_id = type::record($id) (with string parameter)
-        res_c = await db.query("SELECT count() FROM question WHERE regulation_id = type::record($id) GROUP ALL", {"id": target_id_str})
-        print("Test C (type::record cast of string parameter):", res_c)
-
-        # Test D: WHERE regulation_id = $id (with str(record_id) parameter)
-        res_d = await db.query("SELECT count() FROM question WHERE regulation_id = $id GROUP ALL", {"id": str(target_id_record)})
-        print("Test D (str(record_id) parameter):", res_d)
+    print("\nNIST 800-53 REGULATION METADATA:")
+    if reg_nist:
+        print(f"  ID: {reg_nist[0]['id']}")
+        print(f"  Name: {reg_nist[0]['name']}")
+        print(f"  Category: {reg_nist[0]['category']}")
+        print(f"  Description: {reg_nist[0]['description']}")
+    else:
+        print("  NIST 800-53 Regulation not found!")
+        
+    print("\n----------------------------------------------------\n")
+    
+    ingaa_count = await repo_query("SELECT count() FROM question WHERE regulation_id = 'regulation:INGAA_GUIDE' GROUP ALL")
+    nist_count = await repo_query("SELECT count() FROM question WHERE regulation_id = 'regulation:NIST_800_53' GROUP ALL")
+    
+    print(f"Total questions in database for INGAA: {ingaa_count}")
+    print(f"Total questions in database for NIST 800-53: {nist_count}")
+    print("\n----------------------------------------------------\n")
+    
+    print("FETCHING FULL DETAILS OF SAMPLE QUESTIONS FOR INGAA:")
+    ingaa_qs = await repo_query("SELECT * FROM question WHERE regulation_id = 'regulation:INGAA_GUIDE' LIMIT 2")
+    for idx, q in enumerate(ingaa_qs):
+        print(f"\n[INGAA Question {idx+1}]")
+        print(f"  ID: {q['id']}")
+        print(f"  Standard Code: {q.get('standard_code')}")
+        print(f"  Category: {q.get('category')}")
+        print(f"  Purdue Level: {q.get('purdue_level')}")
+        print(f"  Question Text: {q.get('question_text')}")
+        print(f"  Guidance/Description (FULL LONG TEXT):")
+        print(f"    {q.get('description')}")
+        
+    print("\n----------------------------------------------------\n")
+    print("FETCHING FULL DETAILS OF SAMPLE QUESTIONS FOR NIST 800-53:")
+    nist_qs = await repo_query("SELECT * FROM question WHERE regulation_id = 'regulation:NIST_800_53' LIMIT 2")
+    for idx, q in enumerate(nist_qs):
+        print(f"\n[NIST 800-53 Question {idx+1}]")
+        print(f"  ID: {q['id']}")
+        print(f"  Standard Code: {q.get('standard_code')}")
+        print(f"  Category: {q.get('category')}")
+        print(f"  Purdue Level: {q.get('purdue_level')}")
+        print(f"  Question Text: {q.get('question_text')}")
+        print(f"  Guidance/Description (FULL LONG TEXT):")
+        print(f"    {q.get('description')}")
 
 if __name__ == "__main__":
     asyncio.run(main())

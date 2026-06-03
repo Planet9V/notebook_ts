@@ -5,6 +5,7 @@ export interface PipelineRule {
   prompt: string
   query_template: string
   model_override: string | null
+  search_engine?: string
   is_active: boolean
   created: string
   updated: string
@@ -16,6 +17,7 @@ export interface PipelineRuleCreate {
   prompt: string
   query_template?: string
   model_override?: string | null
+  search_engine?: string
   is_active: boolean
 }
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import os
 import json
+import os
 import re
+
 
 def get_enhanced_guidance(fw_id, code, text, category, purdue_level, sector):
     """

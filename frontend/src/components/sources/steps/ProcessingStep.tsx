@@ -1,6 +1,7 @@
 "use client"
 
 import { Control, Controller } from "react-hook-form"
+import type { CreateSourceFormData } from '../types'
 import { useTranslation } from "@/lib/hooks/use-translation"
 import { FormSection } from "@/components/ui/form-section"
 import { CheckboxList } from "@/components/ui/checkbox-list"
@@ -8,17 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Transformation } from "@/lib/types/transformations"
 import { SettingsResponse } from "@/lib/types/api"
 
-interface CreateSourceFormData {
-  type: 'link' | 'upload' | 'text'
-  title?: string
-  url?: string
-  content?: string
-  file?: FileList | File
-  notebooks?: string[]
-  transformations?: string[]
-  embed: boolean
-  async_processing: boolean
-}
+
 
 interface ProcessingStepProps {
   control: Control<CreateSourceFormData>

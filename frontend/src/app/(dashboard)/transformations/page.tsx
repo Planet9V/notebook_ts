@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DefaultPromptEditor } from './components/DefaultPromptEditor'
 import { TransformationsList } from './components/TransformationsList'
 import { TransformationPlayground } from './components/TransformationPlayground'
+import { GtmResearchTemplates } from './components/GtmResearchTemplates'
 import { useTransformations } from '@/lib/hooks/use-transformations'
 import { Transformation } from '@/lib/types/transformations'
-import { Wand2, Play, RefreshCw } from 'lucide-react'
+import { Wand2, Play, RefreshCw, Telescope } from 'lucide-react'
 import { useTranslation } from '@/lib/hooks/use-translation'
 
 export default function TransformationsPage() {
@@ -17,6 +18,16 @@ export default function TransformationsPage() {
   const [activeTab, setActiveTab] = useState('transformations')
   const [selectedTransformation, setSelectedTransformation] = useState<Transformation | undefined>()
   const { data: transformations, isLoading, refetch } = useTransformations()
+
+  // Separate transformations from GTM Research templates
+  const regularTransformations = useMemo(
+    () => transformations?.filter((t) => !t.category || t.category === 'transformation'),
+    [transformations]
+  )
+  const gtmTemplates = useMemo(
+    () => transformations?.filter((t) => t.category === 'gtm_research'),
+    [transformations]
+  )
 
   const handlePlayground = (transformation: Transformation) => {
     setSelectedTransformation(transformation)
@@ -45,10 +56,14 @@ export default function TransformationsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('transformations.workspace')}</p>
-            <TabsList aria-label={t('common.accessibility.transformationViews')} className="w-full max-w-xl">
+            <TabsList aria-label={t('common.accessibility.transformationViews')} className="w-full max-w-2xl">
               <TabsTrigger value="transformations" className="flex items-center gap-2">
                 <Wand2 className="h-4 w-4" />
                 {t('transformations.title')}
+              </TabsTrigger>
+              <TabsTrigger value="gtm-research" className="flex items-center gap-2">
+                <Telescope className="h-4 w-4" />
+                GTM Research
               </TabsTrigger>
               <TabsTrigger value="playground" className="flex items-center gap-2">
                 <Play className="h-4 w-4" />
@@ -60,7 +75,15 @@ export default function TransformationsPage() {
           <TabsContent value="transformations" className="space-y-6">
             <DefaultPromptEditor />
             <TransformationsList 
-              transformations={transformations} 
+              transformations={regularTransformations} 
+              isLoading={isLoading}
+              onPlayground={handlePlayground}
+            />
+          </TabsContent>
+
+          <TabsContent value="gtm-research" className="space-y-6">
+            <GtmResearchTemplates
+              templates={gtmTemplates}
               isLoading={isLoading}
               onPlayground={handlePlayground}
             />
@@ -78,3 +101,4 @@ export default function TransformationsPage() {
     </AppShell>
   )
 }
+

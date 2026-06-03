@@ -45,6 +45,8 @@ class EpisodeProfile(ObjectModel):
         "outline_llm",
         "transcript_llm",
         "language",
+        "tts_engine",
+        "voice_mapping",
     }
 
     name: str = Field(..., description="Unique profile name")
@@ -74,6 +76,16 @@ class EpisodeProfile(ObjectModel):
     )
     language: Optional[str] = Field(
         None, description="Podcast language (BCP 47 locale code, e.g. pt-BR, en-US)"
+    )
+
+    # TTS engine override for podcast generation
+    tts_engine: Optional[str] = Field(
+        None,
+        description="TTS engine override: 'kokoro' | 'openai' | None (use speaker profile default)",
+    )
+    voice_mapping: Optional[Dict[str, str]] = Field(
+        None,
+        description="Speaker name → Kokoro voice ID mapping for local TTS",
     )
 
     default_briefing: str = Field(..., description="Default briefing template")
@@ -170,13 +182,19 @@ class SpeakerProfile(ObjectModel):
 
     def _prepare_save_data(self) -> dict:
         data = super()._prepare_save_data()
+        # Profile-level voice_model: convert empty string to None
         if data.get("voice_model"):
             data["voice_model"] = ensure_record_id(data["voice_model"])
+        else:
+            data["voice_model"] = None
         # Handle per-speaker voice_model overrides
         if data.get("speakers"):
             for speaker in data["speakers"]:
                 if speaker.get("voice_model"):
                     speaker["voice_model"] = ensure_record_id(speaker["voice_model"])
+                else:
+                    # Empty string → None (SurrealDB rejects '' for option<record>)
+                    speaker["voice_model"] = None
         return data
 
     async def resolve_tts_config(self) -> Tuple[str, str, dict]:

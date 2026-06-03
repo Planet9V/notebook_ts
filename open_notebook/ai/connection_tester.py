@@ -29,6 +29,7 @@ TEST_MODELS = {
     "openrouter": ("openai/gpt-3.5-turbo", "language"),
     "voyage": ("voyage-3-lite", "embedding"),
     "elevenlabs": ("eleven_multilingual_v2", "text_to_speech"),
+    "deepgram": ("nova-2", "speech_to_text"),
     "ollama": (None, "language"),  # Dynamic - will use first available model
     # Complex providers with additional configuration
     "vertex": ("gemini-2.0-flash", "language"),  # Uses Google Vertex AI
@@ -36,6 +37,7 @@ TEST_MODELS = {
     "openai_compatible": (None, "language"),  # Dynamic - will use first available model
     "dashscope": ("qwen-plus", "language"),
     "minimax": ("MiniMax-M2.5", "language"),
+    "perplexity": ("sonar", "language"),
 }
 
 
@@ -387,7 +389,7 @@ async def test_individual_model(model) -> Tuple[bool, str]:
         if esp_model is None:
             return False, "Could not create model instance"
 
-        if model.type == "language":
+        if model.type in ("language", "reranking"):
             response = await esp_model.achat_complete(
                 messages=[{"role": "user", "content": "Hi!"}]
             )

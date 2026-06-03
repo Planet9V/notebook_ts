@@ -139,3 +139,126 @@ class TestGraphValidation:
         response = client.post("/api/graph/validate", json=payload)
         assert response.status_code == 400
         assert "references non-existent node" in response.json()["detail"]
+
+    def test_zone_containment_and_unencrypted_control_protocol(self, client):
+        """Test that unencrypted control protocols crossing zone boundaries are flagged."""
+        payload = {
+            "nodes": [
+                # Define a zone node
+                {"id": "zone-control", "type": "zone", "purdueLevel": 0, "x": 100, "y": 100, "width": 500, "height": 400, "zone_sal": "High", "zone_type": "Control"},
+                # Device A inside zone (coordinate 150, 150 falls within zone [100, 100] to [600, 500])
+                {"id": "node-plc-a", "type": "plc", "purdueLevel": 1, "x": 150, "y": 150},
+                # Device B outside zone (coordinate 800, 800)
+                {"id": "node-hmi-b", "type": "hmi", "purdueLevel": 3, "x": 800, "y": 800}
+            ],
+            "edges": [
+                # Modbus protocol, unencrypted, crosses boundary
+                {"id": "edge-modbus", "source": "node-plc-a", "target": "node-hmi-b", "protocol": "Modbus", "encrypted": False}
+            ]
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "edge-modbus" in data["violatedEdges"]
+        assert any("Unencrypted Control Protocol Crossing Boundary" in v for v in data["edgeViolations"]["edge-modbus"])
+
+
+    def test_sal_boundary_violation(self, client):
+        """Test that unencrypted connections crossing SAL boundaries without firewall are flagged."""
+        payload = {
+            "nodes": [
+                {"id": "zone-high", "type": "zone", "purdueLevel": 0, "x": 100, "y": 100, "width": 300, "height": 300, "zone_sal": "High", "zone_type": "Control"},
+                {"id": "zone-low", "type": "zone", "purdueLevel": 0, "x": 500, "y": 100, "width": 300, "height": 300, "zone_sal": "Low", "zone_type": "Corporate"},
+                {"id": "node-a", "type": "workstation", "purdueLevel": 3, "x": 150, "y": 150},
+                {"id": "node-b", "type": "workstation", "purdueLevel": 3, "x": 550, "y": 150}
+            ],
+            "edges": [
+                {"id": "edge-sal-cross", "source": "node-a", "target": "node-b", "protocol": "HTTP", "encrypted": False}
+            ]
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "edge-sal-cross" in data["violatedEdges"]
+        assert any("SAL Boundary Violation" in v for v in data["edgeViolations"]["edge-sal-cross"])
+
+
+    def test_controller_in_corporate_zone_mismatch(self, client):
+        """Test that placing a controller in a Corporate Zone is flagged as a mismatch."""
+        payload = {
+            "nodes": [
+                {"id": "zone-corp", "type": "zone", "purdueLevel": 0, "x": 100, "y": 100, "width": 300, "height": 300, "zone_sal": "Low", "zone_type": "Corporate"},
+                {"id": "node-plc-misplaced", "type": "plc", "purdueLevel": 1, "x": 150, "y": 150}
+            ],
+            "edges": []
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "node-plc-misplaced" in data["violatedNodes"]
+        assert any("Purdue Zone Violation" in v for v in data["nodeViolations"]["node-plc-misplaced"])
+
+
+    def test_ip_conflict_validation(self, client):
+        """Test that duplicate IP addresses across devices trigger IP conflict violations."""
+        payload = {
+            "nodes": [
+                {"id": "node-plc-1", "type": "plc", "purdueLevel": 1, "ip_address": "192.168.1.10"},
+                {"id": "node-plc-2", "type": "plc", "purdueLevel": 1, "ip_address": "192.168.1.10"}
+            ],
+            "edges": []
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "node-plc-1" in data["violatedNodes"]
+        assert "node-plc-2" in data["violatedNodes"]
+        assert "node-plc-1" in data["nodeViolations"]
+        assert "IP Address conflict detected" in data["nodeViolations"]["node-plc-1"][0]
+
+    def test_missing_parameters_warning(self, client):
+        """Test that PLCs missing critical production parameters trigger warning messages."""
+        payload = {
+            "nodes": [
+                {"id": "node-plc-incomplete", "type": "plc", "purdueLevel": 1}
+            ],
+            "edges": []
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "node-plc-incomplete" in data["nodeViolations"]
+        assert "Missing production parameters" in data["nodeViolations"]["node-plc-incomplete"][0]
+
+    def test_subnet_boundary_crossing_validation(self, client):
+        """Test that direct connections crossing subnet boundaries without a firewall are flagged."""
+        payload = {
+            "nodes": [
+                {"id": "node-plc-a", "type": "plc", "purdueLevel": 1, "ip_address": "192.168.1.10", "subnet_mask": "255.255.255.0"},
+                {"id": "node-plc-b", "type": "plc", "purdueLevel": 1, "ip_address": "192.168.2.10", "subnet_mask": "255.255.255.0"}
+            ],
+            "edges": [
+                {"id": "edge-subnet-cross", "source": "node-plc-a", "target": "node-plc-b"}
+            ]
+        }
+
+        response = client.post("/api/graph/validate", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "node-plc-a" in data["violatedNodes"]
+        assert "node-plc-b" in data["violatedNodes"]
+        assert "edge-subnet-cross" in data["violatedEdges"]
+        assert "edge-subnet-cross" in data["edgeViolations"]
+        assert "subnet boundaries detected" in data["edgeViolations"]["edge-subnet-cross"][0]
+

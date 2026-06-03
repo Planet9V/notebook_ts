@@ -1,5 +1,7 @@
 import os
+
 from test_bulletproof_parser import extract_insert_columns_and_values
+
 
 def main():
     cset_dir = "/Users/jimmcknney/cset_clone"

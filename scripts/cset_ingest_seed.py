@@ -1,7 +1,8 @@
+import asyncio
 import os
 import re
-import asyncio
 import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +11,7 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from open_notebook.database.repository import repo_query
+
 
 async def main():
     sql_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cset_seeds", "cset_questions.sql")

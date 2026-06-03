@@ -18,6 +18,8 @@ class PodcastGenerationRequest(BaseModel):
     content: Optional[str] = None
     notebook_id: Optional[str] = None
     briefing_suffix: Optional[str] = None
+    tts_engine: str = "default"  # "default" | "kokoro" | "openai"
+    voice_mapping: Optional[Dict[str, str]] = None  # speaker_name → voice_id
 
 
 class PodcastGenerationResponse(BaseModel):
@@ -41,6 +43,8 @@ class PodcastService:
         notebook_id: Optional[str] = None,
         content: Optional[str] = None,
         briefing_suffix: Optional[str] = None,
+        tts_engine: str = "default",
+        voice_mapping: Optional[Dict[str, str]] = None,
     ) -> str:
         """Submit a podcast generation job for background processing"""
         try:
@@ -58,12 +62,29 @@ class PodcastService:
             if not content and notebook_id:
                 try:
                     notebook = await Notebook.get(notebook_id)
-                    # Get notebook context (this may need to be adjusted based on actual Notebook implementation)
-                    content = (
-                        await notebook.get_context()
-                        if hasattr(notebook, "get_context")
-                        else str(notebook)
-                    )
+                    # Build context from notebook's sources and notes
+                    parts = [f"Notebook: {notebook.name}"]
+                    if notebook.description:
+                        parts.append(f"Description: {notebook.description}")
+
+                    try:
+                        sources = await notebook.get_sources()
+                        for src in sources[:10]:
+                            title = src.title or "Untitled"
+                            parts.append(f"Source: {title}")
+                    except Exception as src_err:
+                        logger.warning(f"Failed to get notebook sources: {src_err}")
+
+                    try:
+                        notes = await notebook.get_notes()
+                        for note in notes[:10]:
+                            title = note.title or "Untitled"
+                            note_content = (note.content or "")[:500]
+                            parts.append(f"Note: {title}\n{note_content}")
+                    except Exception as note_err:
+                        logger.warning(f"Failed to get notebook notes: {note_err}")
+
+                    content = "\n\n".join(parts)
                 except Exception as e:
                     logger.warning(
                         f"Failed to get notebook content, using notebook_id as content: {e}"
@@ -83,6 +104,8 @@ class PodcastService:
                 "content": str(content),
                 "briefing_suffix": briefing_suffix,
                 "notebook_id": notebook_id,
+                "tts_engine": tts_engine,
+                "voice_mapping": voice_mapping,
             }
 
             # Ensure command modules are imported before submitting

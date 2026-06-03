@@ -6,6 +6,9 @@ import { useSources, useCreateSource } from '@/lib/hooks/use-sources'
 import { useNotes } from '@/lib/hooks/use-notes'
 import { useNotebookChat } from '@/lib/hooks/useNotebookChat'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { useTransformations } from '@/lib/hooks/use-transformations'
+import { useResearchItems, useCreateResearchItem, useExecuteResearch } from '@/lib/hooks/use-research-items'
+import { useProjects } from '@/lib/hooks/use-projects'
 import {
   Sheet,
   SheetContent,
@@ -46,8 +49,14 @@ import {
   Plus,
   AlertCircle,
   Globe,
+  Telescope,
+  FolderKanban,
+  Play,
+  Loader2,
 } from 'lucide-react'
 import Link from 'next/link'
+import { ENGINE_LABELS } from '@/lib/constants/research-stages'
+import { toast } from 'sonner'
 
 interface DealDrawerProps {
   notebookId: string | null
@@ -65,6 +74,30 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   // Fetch connected sources and notes for RAG chat context and listing
   const { data: sources = [], isLoading: sourcesLoading } = useSources(notebookId || undefined)
   const { data: notes = [], isLoading: notesLoading } = useNotes(notebookId || '')
+
+  // GTM Research: fetch templates and linked items
+  const { data: allTransformations = [] } = useTransformations()
+  const gtmTemplates = useMemo(
+    () => allTransformations.filter((t) => t.category === 'gtm_research'),
+    [allTransformations]
+  )
+  const { data: researchItems = [] } = useResearchItems()
+  const { data: projects = [] } = useProjects()
+  const createResearch = useCreateResearchItem()
+  const executeResearch = useExecuteResearch()
+
+  // Items linked to this notebook
+  const linkedResearch = useMemo(
+    () => researchItems.filter((r) => r.notebook_id === notebookId && notebookId),
+    [researchItems, notebookId]
+  )
+  const linkedProjects = useMemo(
+    () => projects.filter((p) => p.notebook_id === notebookId && notebookId),
+    [projects, notebookId]
+  )
+
+  // Quick Research state
+  const [runningTemplateId, setRunningTemplateId] = useState<string | null>(null)
 
   // Update notebook mutation
   const updateNotebook = useUpdateNotebook()
@@ -161,11 +194,13 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
         data: { [field]: value },
       })
       setSaveStatus((prev) => ({ ...prev, [field]: 'saved' }))
+      toast.success(t('pipeline.toast.fieldSaved', 'Field updated successfully'))
       setTimeout(() => {
         setSaveStatus((prev) => ({ ...prev, [field]: 'idle' }))
       }, 2000)
     } catch {
       setSaveStatus((prev) => ({ ...prev, [field]: 'idle' }))
+      toast.error('Failed to save')
     }
   }
 
@@ -193,9 +228,11 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
       setNewContactEmail('')
       setContactSaveStatus('saved')
       setTimeout(() => setContactSaveStatus('idle'), 2000)
+      toast.success(t('pipeline.toast.contactAdded', 'Contact added successfully'))
     } catch (err) {
       console.error(err)
       setContactSaveStatus('idle')
+      toast.error(t('pipeline.toast.contactAddFailed', 'Failed to add contact'))
     }
   }
 
@@ -209,8 +246,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
         id: notebookId,
         data: { contacts: updatedContacts },
       })
+      toast.success(t('pipeline.toast.contactRemoved', 'Contact removed'))
     } catch (err) {
       console.error(err)
+      toast.error('Failed to remove contact')
     }
   }
 
@@ -228,8 +267,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
           suggested_contacts: updatedSuggested,
         },
       })
+      toast.success(t('pipeline.toast.suggestedContactAdded', 'Contact added to dossier'))
     } catch (err) {
       console.error(err)
+      toast.error('Failed to add contact')
     }
   }
 
@@ -257,8 +298,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
       })
 
       setManualScrapeText('')
+      toast.success('Source added')
     } catch (err) {
       console.error(err)
+      toast.error('Failed to parse source')
     } finally {
       setSubmittingManualPaste(false)
     }
@@ -273,8 +316,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
         id: notebookId,
         data: { stage: newStage },
       })
+      toast.success(t('pipeline.toast.stageUpdated', 'Pipeline stage updated'))
     } catch (err) {
       console.error(err)
+      toast.error('Failed to update stage')
     }
   }
 
@@ -322,7 +367,7 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                       {stageOptions.find((opt) => opt.value === notebook.stage)?.label || 'Lead'}
                     </Badge>
                   </div>
-                  <SheetTitle className="text-xl font-bold tracking-tight text-foreground truncate">
+                  <SheetTitle className="text-xl font-bold tracking-tight text-foreground truncate" title={notebook.name}>
                     {notebook.name}
                   </SheetTitle>
                 </div>
@@ -339,7 +384,7 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
             </SheetHeader>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-              <TabsList className="bg-muted/40 p-1 border border-sidebar-border rounded-lg grid grid-cols-3 max-w-md mx-6 mb-2">
+              <TabsList className="bg-muted/40 p-1 border border-sidebar-border rounded-lg grid grid-cols-4 max-w-lg mx-6 mb-2">
                 <TabsTrigger value="details" className="text-xs py-1.5 rounded-md font-medium data-[state=active]:bg-sidebar-accent">
                   <Layers className="h-3.5 w-3.5 mr-1.5" />
                   {t('pipeline.tab.details', 'Details')}
@@ -347,6 +392,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                 <TabsTrigger value="chat" className="text-xs py-1.5 rounded-md font-medium data-[state=active]:bg-sidebar-accent">
                   <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary animate-pulse" />
                   {t('pipeline.tab.ragChat', 'Prospect AI')}
+                </TabsTrigger>
+                <TabsTrigger value="quick-research" className="text-xs py-1.5 rounded-md font-medium data-[state=active]:bg-sidebar-accent">
+                  <Telescope className="h-3.5 w-3.5 mr-1.5 text-sky-500" />
+                  GTM Research
                 </TabsTrigger>
                 <TabsTrigger value="sources" className="text-xs py-1.5 rounded-md font-medium data-[state=active]:bg-sidebar-accent">
                   <FileText className="h-3.5 w-3.5 mr-1.5" />
@@ -535,13 +584,13 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                             className="flex items-center justify-between p-2.5 rounded-lg border border-sidebar-border bg-background/60 dark:bg-background/40 hover:bg-sidebar-accent/50 transition-colors"
                           >
                             <div className="overflow-hidden min-w-0 pr-2">
-                              <p className="text-xs font-semibold text-foreground truncate">{contact.name}</p>
+                              <p className="text-xs font-semibold text-foreground truncate" title={contact.name}>{contact.name}</p>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">{contact.role || 'Stakeholder'}</span>
+                                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]" title={contact.role || 'Stakeholder'}>{contact.role || 'Stakeholder'}</span>
                                 {contact.email && (
                                   <>
                                     <span className="text-[8px] text-muted-foreground/30">•</span>
-                                    <span className="text-[9px] text-muted-foreground/75 font-mono truncate">{contact.email}</span>
+                                    <span className="text-[9px] text-muted-foreground/75 font-mono truncate" title={contact.email}>{contact.email}</span>
                                   </>
                                 )}
                               </div>
@@ -633,6 +682,51 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                     </Button>
                   </div>
 
+                  {/* Cross-Links: Projects & Research */}
+                  <div className="space-y-3 p-4 border border-sidebar-border rounded-xl bg-background/30 backdrop-blur-sm">
+                    <div className="flex items-center gap-2">
+                      <FolderKanban className="h-4 w-4 text-emerald-500" />
+                      <h4 className="text-sm font-bold text-foreground">Linked Projects</h4>
+                      <Badge variant="outline" className="text-xs ml-auto">{linkedProjects.length}</Badge>
+                    </div>
+                    {linkedProjects.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {linkedProjects.map((p) => (
+                          <Link key={p.id} href="/projects">
+                            <div className="flex items-center justify-between p-2 rounded-lg border border-sidebar-border/50 hover:bg-sidebar-accent/50 transition-colors text-xs">
+                              <span className="font-medium text-foreground">{p.name}</span>
+                              <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No linked projects</p>
+                    )}
+
+                    <Separator className="opacity-30" />
+
+                    <div className="flex items-center gap-2">
+                      <Telescope className="h-4 w-4 text-sky-500" />
+                      <h4 className="text-sm font-bold text-foreground">Linked Research</h4>
+                      <Badge variant="outline" className="text-xs ml-auto">{linkedResearch.length}</Badge>
+                    </div>
+                    {linkedResearch.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {linkedResearch.map((r) => (
+                          <Link key={r.id} href="/research">
+                            <div className="flex items-center justify-between p-2 rounded-lg border border-sidebar-border/50 hover:bg-sidebar-accent/50 transition-colors text-xs">
+                              <span className="font-medium text-foreground">{r.name}</span>
+                              <Badge variant="outline" className="text-[10px]">{r.stage}</Badge>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No linked research items</p>
+                    )}
+                  </div>
+
                   {/* SOW Drafting CTA Card */}
                   <Card className="bg-gradient-to-r from-primary/10 via-violet-500/5 to-background border-sidebar-border shadow-md overflow-hidden relative group">
                     <div className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -683,6 +777,128 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                       notebookContextStats={contextStats}
                       notebookId={notebookId || ''}
                     />
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Tab: Quick Research (GTM Templates) */}
+              <TabsContent value="quick-research" className="flex-1 overflow-y-auto px-6 pb-6 focus-visible:outline-none">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Telescope className="h-5 w-5 text-sky-500" />
+                    <h3 className="text-sm font-bold text-foreground">Quick GTM Research</h3>
+                    <span className="text-xs text-muted-foreground">— Run templates with prospect context</span>
+                  </div>
+
+                  {gtmTemplates.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed border-sidebar-border rounded-xl">
+                      <Telescope className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">No GTM Research templates configured.</p>
+                      <Link href="/transformations">
+                        <Button variant="outline" size="sm" className="mt-3">
+                          <Plus className="h-3 w-3 mr-1" />
+                          Create Templates
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {gtmTemplates.map((template) => {
+                        const isRunning = runningTemplateId === template.id
+                        const engineLabel = ENGINE_LABELS[template.search_engine as keyof typeof ENGINE_LABELS] || template.search_engine || 'Any'
+                        return (
+                          <div
+                            key={template.id}
+                            className={`p-4 border rounded-xl transition-all bg-background/40 backdrop-blur-md ${
+                              template.color_tag === 'sky' ? 'border-sky-500/30 hover:border-sky-500/60' :
+                              template.color_tag === 'amber' ? 'border-amber-500/30 hover:border-amber-500/60' :
+                              template.color_tag === 'violet' ? 'border-violet-500/30 hover:border-violet-500/60' :
+                              template.color_tag === 'emerald' ? 'border-emerald-500/30 hover:border-emerald-500/60' :
+                              'border-sidebar-border hover:border-sky-500/50'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-foreground">{template.title || template.name}</h4>
+                                <p className="text-xs text-muted-foreground mt-0.5">{template.description}</p>
+                              </div>
+                              <Badge variant="outline" className="text-[10px] shrink-0 ml-2">{engineLabel}</Badge>
+                            </div>
+                            <div className="bg-background/60 rounded-lg p-2 mb-3 border border-sidebar-border/30">
+                              <p className="text-xs text-muted-foreground font-mono line-clamp-3">{template.prompt}</p>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex gap-2">
+                                <Badge variant="outline" className={`text-[10px] border-${template.color_tag || 'sky'}-500/50 text-${template.color_tag || 'sky'}-500`}>
+                                  {template.target_context || 'general'}
+                                </Badge>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs gap-1"
+                                disabled={isRunning}
+                                onClick={async () => {
+                                  setRunningTemplateId(template.id)
+                                  try {
+                                    // Create a research item from this template with prospect context
+                                    const query = template.prompt
+                                      .replace('{company}', clientName || notebook?.name || '')
+                                      .replace('{industry}', notebook?.description || '')
+                                      .replace('{contacts}', (notebook?.contacts || []).map((c: Record<string, string>) => `${c.name} (${c.role})`).join(', '))
+                                    const item = await createResearch.mutateAsync({
+                                      name: `${template.title || template.name} — ${clientName || notebook?.name}`,
+                                      query,
+                                      engine: template.search_engine || 'perplexity',
+                                      notebook_id: notebookId,
+                                      transformation_id: template.id,
+                                      is_recurring: false,
+                                    })
+                                    // Auto-execute
+                                    if (item?.id) {
+                                      await executeResearch.mutateAsync(item.id)
+                                    }
+                                    toast.success('Research started')
+                                  } catch {
+                                    toast.error('Failed to run research')
+                                  } finally {
+                                    setRunningTemplateId(null)
+                                  }
+                                }}
+                              >
+                                {isRunning ? (
+                                  <><Loader2 className="h-3 w-3 animate-spin" /> Running...</>
+                                ) : (
+                                  <><Play className="h-3 w-3" /> Run Research</>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Past Research Results */}
+                  {linkedResearch.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-3">
+                        <Telescope className="h-3.5 w-3.5" />
+                        Past Research Results ({linkedResearch.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {linkedResearch.map((r) => (
+                          <div key={r.id} className="p-3 border border-sidebar-border rounded-lg bg-background/40">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-foreground">{r.name}</span>
+                              <Badge variant="outline" className="text-[10px]">{r.stage}</Badge>
+                            </div>
+                            {r.results_summary && (
+                              <p className="text-xs text-muted-foreground line-clamp-3">{r.results_summary}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </TabsContent>

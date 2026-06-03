@@ -17,6 +17,7 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useNotebookDeletePreview, useDeleteNotebook } from '@/lib/hooks/use-notebooks'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface NotebookDeleteDialogProps {
   open: boolean
@@ -53,13 +54,18 @@ export function NotebookDeleteDialog({
   const deleteNotebook = useDeleteNotebook()
 
   const handleConfirm = async () => {
-    await deleteNotebook.mutateAsync({
-      id: notebookId,
-      deleteExclusiveSources: sourceAction === 'delete',
-    })
-    onOpenChange(false)
-    if (redirectAfterDelete) {
-      router.push('/notebooks')
+    try {
+      await deleteNotebook.mutateAsync({
+        id: notebookId,
+        deleteExclusiveSources: sourceAction === 'delete',
+      })
+      toast.success('Notebook deleted')
+      onOpenChange(false)
+      if (redirectAfterDelete) {
+        router.push('/notebooks')
+      }
+    } catch {
+      toast.error('Failed to delete notebook')
     }
   }
 

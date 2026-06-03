@@ -1,7 +1,8 @@
+import os
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from loguru import logger
 from pydantic import BaseModel
@@ -55,6 +56,8 @@ class PodcastGenerationInput(CommandInput):
     content: str
     briefing_suffix: Optional[str] = None
     notebook_id: Optional[str] = None
+    tts_engine: str = "default"  # "default" | "kokoro" | "openai"
+    voice_mapping: Optional[Dict[str, str]] = None  # speaker_name → voice_id
 
 
 class PodcastGenerationOutput(CommandOutput):
@@ -207,6 +210,51 @@ async def generate_podcast_command(
                         logger.warning(
                             f"Failed to resolve per-speaker TTS for '{speaker.get('name')}': {e}"
                         )
+
+        # 5b. Apply TTS engine override (Kokoro / OpenAI)
+        if input_data.tts_engine == "kokoro":
+            kokoro_url = os.getenv("KOKORO_TTS_URL", "http://kokoro-tts:8880")
+            logger.info(f"Overriding TTS to Kokoro at {kokoro_url}")
+            voice_mapping = input_data.voice_mapping or {}
+            # Override the active speaker profile's TTS config
+            sp_name_active = speaker_profile.name
+            if sp_name_active in speaker_profiles_dict:
+                sp_dict = speaker_profiles_dict[sp_name_active]
+                # Set profile-level TTS to OpenAI provider with Kokoro base_url
+                sp_dict["tts_provider"] = "openai"
+                sp_dict["tts_model"] = "kokoro"
+                sp_dict["tts_config"] = {
+                    "base_url": f"{kokoro_url}/v1",
+                    "api_key": "not-needed",  # Kokoro doesn't require auth
+                }
+                # Apply voice_mapping to individual speakers
+                for speaker in sp_dict.get("speakers", []):
+                    speaker_name = speaker.get("name", "")
+                    if speaker_name in voice_mapping:
+                        speaker["voice_id"] = voice_mapping[speaker_name]
+                    speaker["tts_provider"] = "openai"
+                    speaker["tts_model"] = "kokoro"
+                    speaker["tts_config"] = {
+                        "base_url": f"{kokoro_url}/v1",
+                        "api_key": "not-needed",
+                    }
+        elif input_data.tts_engine == "openai":
+            logger.info("Overriding TTS to OpenAI")
+            openai_key = os.getenv("OPENAI_API_KEY", "")
+            voice_mapping = input_data.voice_mapping or {}
+            sp_name_active = speaker_profile.name
+            if sp_name_active in speaker_profiles_dict:
+                sp_dict = speaker_profiles_dict[sp_name_active]
+                sp_dict["tts_provider"] = "openai"
+                sp_dict["tts_model"] = "tts-1"
+                sp_dict["tts_config"] = {"api_key": openai_key} if openai_key else {}
+                for speaker in sp_dict.get("speakers", []):
+                    speaker_name = speaker.get("name", "")
+                    if speaker_name in voice_mapping:
+                        speaker["voice_id"] = voice_mapping[speaker_name]
+                    speaker["tts_provider"] = "openai"
+                    speaker["tts_model"] = "tts-1"
+                    speaker["tts_config"] = {"api_key": openai_key} if openai_key else {}
 
         # 6. Generate briefing
         briefing = episode_profile.default_briefing

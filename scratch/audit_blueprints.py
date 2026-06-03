@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 
 def audit():
     blueprint_dir = "/Users/jimmcknney/notebook_tetrel/data/blueprints"

@@ -810,6 +810,26 @@ export function B2BDraftingWorkspace({
     }
   }
 
+  // Refetch CSET compliance quiz questions when user navigates to the quiz tab
+  useEffect(() => {
+    if (activeTab === 'quiz' && currentSessionId) {
+      const refetchQuestions = async () => {
+        try {
+          setIsQuizLoading(true)
+          const questionsRes = await apiClient.get(`/sessions/${currentSessionId}/questions`)
+          setQuizQuestions(questionsRes.data)
+          const reportRes = await apiClient.get(`/sessions/${currentSessionId}/report`)
+          setQuizReport(reportRes.data)
+        } catch (err) {
+          console.error('Failed to refetch CSET quiz questions on tab change:', err)
+        } finally {
+          setIsQuizLoading(false)
+        }
+      }
+      refetchQuestions()
+    }
+  }, [activeTab, currentSessionId])
+
   const handlePatchAnswer = async (questionId: string, answer: string, comments: string = '', evidenceUrl: string = '') => {
     if (!currentSessionId) return
     if (isSessionLocked) return

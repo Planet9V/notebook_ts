@@ -4,10 +4,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.generate_cset_library import (
-    run_global_cset_parser,
+    CSET_MATURITY_MODELS,
     CSET_SETS,
-    CSET_MATURITY_MODELS
+    run_global_cset_parser,
 )
+
 
 def main():
     print("Initiating full SQL parsing...")

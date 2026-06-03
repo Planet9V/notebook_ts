@@ -12,7 +12,10 @@ import { I18nProvider } from "@/components/providers/I18nProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Tetrel Notebook",
+  title: {
+    default: "Tetrel Notebook",
+    template: "%s | Tetrel",
+  },
   description: "Privacy-focused research and knowledge management, secured from the hardware up.",
   icons: {
     icon: [

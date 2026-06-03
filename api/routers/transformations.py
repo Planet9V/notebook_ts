@@ -20,25 +20,32 @@ from open_notebook.graphs.transformation import graph as transformation_graph
 router = APIRouter()
 
 
+def _to_response(transformation: Transformation) -> TransformationResponse:
+    """Build a TransformationResponse from a domain object."""
+    return TransformationResponse(
+        id=transformation.id or "",
+        name=transformation.name,
+        title=transformation.title,
+        description=transformation.description,
+        prompt=transformation.prompt,
+        apply_default=transformation.apply_default,
+        category=transformation.category,
+        search_engine=transformation.search_engine,
+        search_model_id=transformation.search_model_id,
+        color_tag=transformation.color_tag,
+        target_context=transformation.target_context,
+        created=str(transformation.created),
+        updated=str(transformation.updated),
+    )
+
+
 @router.get("/transformations", response_model=List[TransformationResponse])
 async def get_transformations():
     """Get all transformations."""
     try:
         transformations = await Transformation.get_all(order_by="name asc")
 
-        return [
-            TransformationResponse(
-                id=transformation.id or "",
-                name=transformation.name,
-                title=transformation.title,
-                description=transformation.description,
-                prompt=transformation.prompt,
-                apply_default=transformation.apply_default,
-                created=str(transformation.created),
-                updated=str(transformation.updated),
-            )
-            for transformation in transformations
-        ]
+        return [_to_response(t) for t in transformations]
     except Exception as e:
         logger.error(f"Error fetching transformations: {str(e)}")
         raise HTTPException(
@@ -56,19 +63,15 @@ async def create_transformation(transformation_data: TransformationCreate):
             description=transformation_data.description,
             prompt=transformation_data.prompt,
             apply_default=transformation_data.apply_default,
+            category=transformation_data.category,
+            search_engine=transformation_data.search_engine,
+            search_model_id=transformation_data.search_model_id,
+            color_tag=transformation_data.color_tag,
+            target_context=transformation_data.target_context,
         )
         await new_transformation.save()
 
-        return TransformationResponse(
-            id=new_transformation.id or "",
-            name=new_transformation.name,
-            title=new_transformation.title,
-            description=new_transformation.description,
-            prompt=new_transformation.prompt,
-            apply_default=new_transformation.apply_default,
-            created=str(new_transformation.created),
-            updated=str(new_transformation.updated),
-        )
+        return _to_response(new_transformation)
     except InvalidInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -166,16 +169,7 @@ async def get_transformation(transformation_id: str):
         if not transformation:
             raise HTTPException(status_code=404, detail="Transformation not found")
 
-        return TransformationResponse(
-            id=transformation.id or "",
-            name=transformation.name,
-            title=transformation.title,
-            description=transformation.description,
-            prompt=transformation.prompt,
-            apply_default=transformation.apply_default,
-            created=str(transformation.created),
-            updated=str(transformation.updated),
-        )
+        return _to_response(transformation)
     except HTTPException:
         raise
     except Exception as e:
@@ -208,19 +202,20 @@ async def update_transformation(
             transformation.prompt = transformation_update.prompt
         if transformation_update.apply_default is not None:
             transformation.apply_default = transformation_update.apply_default
+        if transformation_update.category is not None:
+            transformation.category = transformation_update.category
+        if transformation_update.search_engine is not None:
+            transformation.search_engine = transformation_update.search_engine
+        if transformation_update.search_model_id is not None:
+            transformation.search_model_id = transformation_update.search_model_id
+        if transformation_update.color_tag is not None:
+            transformation.color_tag = transformation_update.color_tag
+        if transformation_update.target_context is not None:
+            transformation.target_context = transformation_update.target_context
 
         await transformation.save()
 
-        return TransformationResponse(
-            id=transformation.id or "",
-            name=transformation.name,
-            title=transformation.title,
-            description=transformation.description,
-            prompt=transformation.prompt,
-            apply_default=transformation.apply_default,
-            created=str(transformation.created),
-            updated=str(transformation.updated),
-        )
+        return _to_response(transformation)
     except HTTPException:
         raise
     except InvalidInputError as e:

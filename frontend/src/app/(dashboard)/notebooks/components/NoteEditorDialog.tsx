@@ -13,6 +13,7 @@ import { MarkdownEditor } from '@/components/ui/markdown-editor'
 import { InlineEdit } from '@/components/common/InlineEdit'
 import { cn } from "@/lib/utils";
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { toast } from 'sonner'
 
 const createNoteSchema = z.object({
   title: z.string().optional(),
@@ -82,33 +83,39 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
   }, [open])
 
   const onSubmit = async (data: CreateNoteFormData) => {
-    if (note) {
-      await updateNote.mutateAsync({
-        id: noteIdWithPrefix,
-        data: {
+    try {
+      if (note) {
+        await updateNote.mutateAsync({
+          id: noteIdWithPrefix,
+          data: {
+            title: data.title || undefined,
+            content: data.content,
+          },
+        })
+        // Only invalidate notebook-specific queries if we have a notebookId
+        if (notebookId) {
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(notebookId) })
+        }
+        toast.success('Note saved')
+      } else {
+        // Creating a note requires a notebookId
+        if (!notebookId) {
+          console.error('Cannot create note without notebook_id')
+          return
+        }
+        await createNote.mutateAsync({
           title: data.title || undefined,
           content: data.content,
-        },
-      })
-      // Only invalidate notebook-specific queries if we have a notebookId
-      if (notebookId) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(notebookId) })
+          note_type: 'human',
+          notebook_id: notebookId,
+        })
+        toast.success('Note created')
       }
-    } else {
-      // Creating a note requires a notebookId
-      if (!notebookId) {
-        console.error('Cannot create note without notebook_id')
-        return
-      }
-      await createNote.mutateAsync({
-        title: data.title || undefined,
-        content: data.content,
-        note_type: 'human',
-        notebook_id: notebookId,
-      })
+      reset()
+      onOpenChange(false)
+    } catch {
+      toast.error('Failed to save note')
     }
-    reset()
-    onOpenChange(false)
   }
 
   const handleClose = () => {

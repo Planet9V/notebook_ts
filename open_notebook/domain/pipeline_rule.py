@@ -1,5 +1,7 @@
 from typing import ClassVar, Optional
+
 from open_notebook.domain.base import ObjectModel
+
 
 class PipelineRule(ObjectModel):
     table_name: ClassVar[str] = "pipeline_rule"
@@ -8,4 +10,5 @@ class PipelineRule(ObjectModel):
     prompt: str
     query_template: Optional[str] = ""
     model_override: Optional[str] = None
+    search_engine: Optional[str] = "default"
     is_active: bool = True

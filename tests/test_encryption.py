@@ -3,8 +3,10 @@ Tests for open_notebook.utils.encryption key validation and lifecycle.
 """
 
 import os
+
 import pytest
 from cryptography.fernet import Fernet
+
 import open_notebook.utils.encryption as enc
 
 
