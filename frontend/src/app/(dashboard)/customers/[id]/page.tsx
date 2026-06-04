@@ -30,6 +30,49 @@ import {
 } from './data'
 import { ProfileTab, ComplianceTab, EducationTab, ActivityTab } from './components'
 
+const FRONTEND_TO_DB_MAP: Record<string, string> = {
+  'CFATS_RBPS': 'Cfats',
+  'CISA_CPG': 'CPG',
+  'NIST_800_82': 'SP800_82_V3',
+  'NIST_800_53': 'C800_53_R5_V2',
+  'NIST_CSF': 'NCSF_V2',
+  'CIS_CONTROLS': 'CSC_V8',
+  'CNSSI_1253': 'Cnssi_1253',
+  'AWWA_G430': 'AWWA',
+  'TSA_RAIL': 'TSA2018',
+  'TSA_PIPELINE': 'TSA2018',
+  'COBIT_2019': 'COBIT_2019',
+  'SOC_2': 'SOC_2',
+  'IEC_62443_3_3': 'ISA_62443',
+  'IEC_62443_4_2': 'ISA_62443',
+  'CMMC_L1': 'CMMC',
+  'CMMC_L2': 'CMMC',
+  'CMMC_L3': 'CMMC',
+  'NIS2': 'Universal',
+  'CRA': 'Universal',
+}
+
+const DB_TO_FRONTEND_MAP: Record<string, string> = {
+  'Cfats': 'CFATS_RBPS',
+  'CPG': 'CISA_CPG',
+  'SP800_82_V3': 'NIST_800_82',
+  'SP800_82_V2': 'NIST_800_82',
+  'C800_53_R5_V2': 'NIST_800_53',
+  'C800_53_R4_71': 'NIST_800_53',
+  'NCSF_V2': 'NIST_CSF',
+  'NCSF_V1': 'NIST_CSF',
+  'CSC_V8': 'CIS_CONTROLS',
+  'Cnssi_1253': 'CNSSI_1253',
+  'AWWA': 'AWWA_G430',
+  'TSA2018': 'TSA_RAIL',
+  'Tsa': 'TSA_PIPELINE',
+  'COBIT_2019': 'COBIT_2019',
+  'SOC_2': 'SOC_2',
+  'ISA_62443': 'IEC_62443_3_3',
+  'CMMC': 'CMMC_L1',
+  'Universal': 'NIS2',
+}
+
 export default function CustomerDossierPage() {
   const params = useParams()
   const rawId = params.id as string
@@ -78,14 +121,14 @@ export default function CustomerDossierPage() {
       setEditFrameworks(cust.assigned_frameworks || [])
 
       // 2. Fetch all notebooks and filter by customer_id
-      const nbsResponse = await apiClient.get<Notebook[]>('/api/notebooks')
+      const nbsResponse = await apiClient.get<Notebook[]>('/notebooks')
       const associatedNbs = (nbsResponse.data || []).filter(
         (nb) => nb.customer_id === customerId || nb.customer_id === rawId
       )
       setNotebooks(associatedNbs)
 
       // 3. Fetch active compliance assessments
-      const assessResponse = await apiClient.get<any[]>(`/api/assessments?customer_id=${customerId}`)
+      const assessResponse = await apiClient.get<any[]>(`/assessments?customer_id=${customerId}`)
       setAssessments(assessResponse.data || [])
     } catch (e) {
       console.error('Error fetching dossier data:', e)
@@ -101,11 +144,11 @@ export default function CustomerDossierPage() {
   // Fetch sessions for active assessment
   const loadSessions = async (assessId: string) => {
     try {
-      const response = await apiClient.get<any[]>(`/api/assessments/${assessId}/sessions`)
+      const response = await apiClient.get<any[]>(`/assessments/${assessId}/sessions`)
       setSessions(response.data || [])
       
       // Fetch trends as well
-      const trendResponse = await apiClient.get<any[]>(`/api/assessments/${assessId}/trends`)
+      const trendResponse = await apiClient.get<any[]>(`/assessments/${assessId}/trends`)
       setTrends(trendResponse.data || [])
     } catch (e) {
       console.error('Error loading sessions:', e)
@@ -139,14 +182,15 @@ export default function CustomerDossierPage() {
       
       // Create compliance links automatically for each new assigned framework
       for (const fw of editFrameworks) {
-        await apiClient.post('/api/assessments', {
+        const dbFwId = FRONTEND_TO_DB_MAP[fw] || fw
+        await apiClient.post('/assessments', {
           customer_id: customerId,
-          framework_id: fw
+          framework_id: dbFwId
         })
       }
       
       // Reload everything
-      const assessResponse = await apiClient.get<any[]>(`/api/assessments?customer_id=${customerId}`)
+      const assessResponse = await apiClient.get<any[]>(`/assessments?customer_id=${customerId}`)
       setAssessments(assessResponse.data || [])
     } catch (e) {
       console.error('Error saving profile settings:', e)
@@ -160,7 +204,7 @@ export default function CustomerDossierPage() {
     if (!activeAssessment || !newSessionName.trim()) return
     setIsLoading(true)
     try {
-      const response = await apiClient.post(`/api/assessments/${activeAssessment.id}/sessions`, {
+      const response = await apiClient.post(`/assessments/${activeAssessment.id}/sessions`, {
         session_name: newSessionName,
         carry_forward_prior: carryForward
       })
@@ -181,7 +225,7 @@ export default function CustomerDossierPage() {
     setActiveSession(session)
     setSavingAnswer(true)
     try {
-      const response = await apiClient.get<any[]>(`/api/sessions/${session.id}/questions`)
+      const response = await apiClient.get<any[]>(`/sessions/${session.id}/questions`)
       const qList = response.data || []
       setSessionQuestions(qList)
       
@@ -203,7 +247,7 @@ export default function CustomerDossierPage() {
     setSavingAnswer(true)
     
     const activeQ = sessionQuestions[currentQuestionIndex]
-    const cleanQId = activeQ.question_id.split(':', 1)[-1]
+    const cleanQId = activeQ.question_id.split(':').pop() || activeQ.question_id
     
     // Optimistic UI state update
     const updatedQs = [...sessionQuestions]
@@ -216,7 +260,7 @@ export default function CustomerDossierPage() {
     setSessionQuestions(updatedQs)
 
     try {
-      await apiClient.patch(`/api/sessions/${activeSession.id}/answers/${cleanQId}`, {
+      await apiClient.patch(`/sessions/${activeSession.id}/answers/${cleanQId}`, {
         answer: val,
         comments,
         evidence_url: evidence
@@ -233,7 +277,7 @@ export default function CustomerDossierPage() {
     setActiveSession(session)
     setIsLoading(true)
     try {
-      const response = await apiClient.get(`/api/sessions/${session.id}/report`)
+      const response = await apiClient.get(`/sessions/${session.id}/report`)
       setReportData(response.data)
       setReportMode(true)
       setWizardMode(false)
@@ -249,7 +293,7 @@ export default function CustomerDossierPage() {
     if (!activeSession) return
     setIsLoading(true)
     try {
-      await apiClient.post(`/api/sessions/${activeSession.id}/complete`)
+      await apiClient.post(`/sessions/${activeSession.id}/complete`)
       if (activeAssessment) {
         await loadSessions(activeAssessment.id)
       }
@@ -329,14 +373,15 @@ export default function CustomerDossierPage() {
     // Overlay existing assessments
     for (const assess of assessments) {
       const rawId = assess.framework_id?.replace('regulation:', '') || ''
-      if (frameworkMap.has(rawId)) {
-        frameworkMap.get(rawId)!.assessment = assess
+      const mappedFrontendId = DB_TO_FRONTEND_MAP[rawId] || rawId
+      if (frameworkMap.has(mappedFrontendId)) {
+        frameworkMap.get(mappedFrontendId)!.assessment = assess
       } else {
         // Assessment exists but not in assigned_frameworks or sectors (legacy or manual)
-        const fwDef = COMPLIANCE_FRAMEWORKS.find(f => f.id === rawId)
-        frameworkMap.set(rawId, {
-          frameworkId: rawId,
-          frameworkName: fwDef?.name || rawId,
+        const fwDef = COMPLIANCE_FRAMEWORKS.find(f => f.id === mappedFrontendId)
+        frameworkMap.set(mappedFrontendId, {
+          frameworkId: mappedFrontendId,
+          frameworkName: fwDef?.name || mappedFrontendId,
           assessment: assess,
           source: 'assigned',
         })
@@ -350,15 +395,78 @@ export default function CustomerDossierPage() {
   const handleCreateAssessment = async (frameworkId: string) => {
     setIsLoading(true)
     try {
-      await apiClient.post('/api/assessments', {
+      const dbFwId = FRONTEND_TO_DB_MAP[frameworkId] || frameworkId
+      await apiClient.post('/assessments', {
         customer_id: customerId,
-        framework_id: frameworkId,
+        framework_id: dbFwId,
       })
       // Reload assessments
-      const assessResponse = await apiClient.get<any[]>(`/api/assessments?customer_id=${customerId}`)
+      const assessResponse = await apiClient.get<any[]>(`/assessments?customer_id=${customerId}`)
       setAssessments(assessResponse.data || [])
     } catch (e) {
       console.error('Error creating assessment:', e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Directly launches the wizard for an existing assessment (opens active session or auto-creates one)
+  const handleLaunchWizardDirectly = async (frameworkId: string, frameworkName: string, assessmentId: string) => {
+    setIsLoading(true)
+    try {
+      const response = await apiClient.get<any[]>(`/assessments/${assessmentId}/sessions`)
+      const sessionsList = response.data || []
+      
+      let activeSess = sessionsList.find(s => s.status === 'IN_PROGRESS')
+      
+      if (!activeSess) {
+        const defaultName = `${frameworkName} Audit - ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+        const createResponse = await apiClient.post(`/assessments/${assessmentId}/sessions`, {
+          session_name: defaultName,
+          carry_forward_prior: true
+        })
+        activeSess = createResponse.data
+      }
+      
+      if (activeSess) {
+        const matchingAssess = assessments.find(a => a.id === assessmentId) || null
+        setActiveAssessment(matchingAssess)
+        await loadSessions(assessmentId)
+        await launchWizard(activeSess)
+      }
+    } catch (e) {
+      console.error('Error launching wizard directly:', e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Initializes assessment and automatically starts/launches first wizard session in one click
+  const handleInitializeAndLaunchWizard = async (frameworkId: string, frameworkName: string) => {
+    setIsLoading(true)
+    try {
+      const dbFwId = FRONTEND_TO_DB_MAP[frameworkId] || frameworkId
+      const createAssessResp = await apiClient.post('/assessments', {
+        customer_id: customerId,
+        framework_id: dbFwId,
+      })
+      const newAssess = createAssessResp.data
+      
+      const assessResponse = await apiClient.get<any[]>(`/assessments?customer_id=${customerId}`)
+      setAssessments(assessResponse.data || [])
+      
+      const defaultName = `${frameworkName} Audit - ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+      const createSessionResp = await apiClient.post(`/assessments/${newAssess.id}/sessions`, {
+        session_name: defaultName,
+        carry_forward_prior: true
+      })
+      const activeSess = createSessionResp.data
+      
+      setActiveAssessment(newAssess)
+      await loadSessions(newAssess.id)
+      await launchWizard(activeSess)
+    } catch (e) {
+      console.error('Error initializing and launching wizard:', e)
     } finally {
       setIsLoading(false)
     }
@@ -601,6 +709,8 @@ export default function CustomerDossierPage() {
                 launchReport={launchReport}
                 handleSaveAnswer={handleSaveAnswer}
                 handleLockSession={handleLockSession}
+                handleLaunchWizardDirectly={handleLaunchWizardDirectly}
+                handleInitializeAndLaunchWizard={handleInitializeAndLaunchWizard}
               />
             )}
 
