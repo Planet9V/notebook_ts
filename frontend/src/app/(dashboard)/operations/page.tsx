@@ -168,7 +168,7 @@ export default function OperationsHubPage() {
               count={researchItems.length}
               countLabel="research items"
               recentItems={recentResearch}
-              href="/research"
+              href="/pipeline?tab=research"
               accentColor="sky"
               isLoading={researchLoading}
             />
@@ -178,7 +178,7 @@ export default function OperationsHubPage() {
               count={projects.length}
               countLabel="projects"
               recentItems={recentProjects}
-              href="/projects"
+              href="/pipeline?tab=projects"
               accentColor="emerald"
               isLoading={projectsLoading}
             />

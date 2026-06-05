@@ -215,7 +215,7 @@ export default function VoiceSettingsPage() {
 
             {/* Configuration Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <LiveKitConfigCard config={config} onRefresh={refresh} />
+              <LiveKitConfigCard config={config} settings={settings} onRefresh={refresh} />
               <TTSConfigCard config={config} settings={settings} onRefresh={refresh} />
             </div>
 

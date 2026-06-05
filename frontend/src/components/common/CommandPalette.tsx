@@ -146,7 +146,7 @@ export function CommandPalette() {
   const [customers, setCustomers] = useState<{id: string, name: string}[]>([])
   useEffect(() => {
     if (open) {
-      apiClient.get('/api/customers').then(res => {
+      apiClient.get('/customers').then(res => {
         setCustomers((res.data || []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })))
       }).catch(() => {})
     }

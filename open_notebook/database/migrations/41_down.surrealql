@@ -1,0 +1,4 @@
+-- Rollback Migration 41: Remove contacts and suggested_contacts subfields on notebook
+
+REMOVE FIELD IF EXISTS contacts[*] ON TABLE notebook;
+REMOVE FIELD IF EXISTS suggested_contacts[*] ON TABLE notebook;

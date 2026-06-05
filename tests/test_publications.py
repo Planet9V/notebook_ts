@@ -38,9 +38,9 @@ def test_publications_settings_crud():
 
 def test_publications_connection_test():
     """Test connection validation endpoint."""
-    # Test connection with incomplete/mock data (should run sandbox fallback)
+    # Test connection with sandbox host
     payload = {
-        "smtp_host": "smtp.gmail.com",
+        "smtp_host": "sandbox",
         "smtp_port": 587,
         "smtp_username": "test@gmail.com",
         "smtp_password": "password",
@@ -49,6 +49,29 @@ def test_publications_connection_test():
     res = client.post("/api/publications/settings/test", json=payload)
     assert res.status_code == 200
     assert "status" in res.json()
+
+def test_publications_connection_test_real_mocked():
+    """Test connection validation endpoint with mocked smtplib connection."""
+    from unittest.mock import patch, MagicMock
+    
+    payload = {
+        "smtp_host": "smtp.company.com",
+        "smtp_port": 587,
+        "smtp_username": "realuser",
+        "smtp_password": "realpassword",
+        "use_tls": True
+    }
+    
+    mock_server = MagicMock()
+    with patch("smtplib.SMTP", return_value=mock_server) as mock_smtp:
+        res = client.post("/api/publications/settings/test", json=payload)
+        assert res.status_code == 200
+        assert res.json()["status"] == "success"
+        mock_smtp.assert_called_once_with("smtp.company.com", 587, timeout=10)
+        mock_server.starttls.assert_called_once()
+        mock_server.login.assert_called_once_with("realuser", "realpassword")
+        mock_server.noop.assert_called_once()
+        mock_server.quit.assert_called_once()
 
 def test_publications_schedule_crud():
     """Test scheduling social media posts and campaigns."""

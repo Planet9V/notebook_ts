@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -14,18 +14,20 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Radio, Eye, EyeOff, Zap, ExternalLink, Server, Globe, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import { voiceApi } from '@/lib/api/voice'
-import type { VoiceConfig } from '@/lib/api/voice'
+import type { VoiceConfig, VoiceSettings } from '@/lib/api/voice'
 import { useServiceHealthTest } from '../hooks/use-voice-testing'
 
 interface LiveKitConfigCardProps {
   config: VoiceConfig | null
+  settings: VoiceSettings | null
   onRefresh: () => void
 }
 
 type DeploymentMode = 'local' | 'remote'
 
-export function LiveKitConfigCard({ config, onRefresh }: LiveKitConfigCardProps) {
+export function LiveKitConfigCard({ config, settings, onRefresh }: LiveKitConfigCardProps) {
   const [mode, setMode] = useState<DeploymentMode>('local')
   const [showSecret, setShowSecret] = useState(false)
 
@@ -38,6 +40,27 @@ export function LiveKitConfigCard({ config, onRefresh }: LiveKitConfigCardProps)
   const [remoteApiSecret, setRemoteApiSecret] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Hydrate from database settings on load
+  useEffect(() => {
+    if (!settings) return
+    if (settings.livekit_mode) setMode(settings.livekit_mode as DeploymentMode)
+    if (settings.livekit_remote_ws_url) setRemoteUrl(settings.livekit_remote_ws_url)
+  }, [settings])
+
+  const handleModeChange = useCallback(async (targetMode: DeploymentMode) => {
+    setMode(targetMode)
+    try {
+      await voiceApi.updateSettings({
+        livekit_mode: targetMode,
+      })
+      toast.success(`LiveKit mode set to ${targetMode === 'local' ? 'Local Docker' : 'Remote'}`)
+      onRefresh()
+    } catch (error) {
+      console.error('Failed to update LiveKit mode:', error)
+      toast.error('Failed to save deployment mode')
+    }
+  }, [onRefresh])
+
   const livekitService = config?.services.find((s) => s.name === 'LiveKit SFU')
   const isHealthy = livekitService?.status === 'healthy'
 
@@ -49,9 +72,11 @@ export function LiveKitConfigCard({ config, onRefresh }: LiveKitConfigCardProps)
         livekit_remote_ws_url: remoteUrl,
         livekit_remote_api_key: remoteApiKey,
       } as Partial<import('@/lib/api/voice').VoiceSettings> & { livekit_remote_api_key: string })
+      toast.success('Remote LiveKit settings saved')
       onRefresh()
     } catch (error) {
       console.error('Failed to save remote LiveKit config:', error)
+      toast.error('Failed to save remote configuration')
     } finally {
       setSaving(false)
     }
@@ -97,7 +122,7 @@ export function LiveKitConfigCard({ config, onRefresh }: LiveKitConfigCardProps)
             <button
               role="radio"
               aria-checked={mode === 'local'}
-              onClick={() => setMode('local')}
+              onClick={() => handleModeChange('local')}
               className={cn(
                 'flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all',
                 mode === 'local'
@@ -114,7 +139,7 @@ export function LiveKitConfigCard({ config, onRefresh }: LiveKitConfigCardProps)
             <button
               role="radio"
               aria-checked={mode === 'remote'}
-              onClick={() => setMode('remote')}
+              onClick={() => handleModeChange('remote')}
               className={cn(
                 'flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all',
                 mode === 'remote'

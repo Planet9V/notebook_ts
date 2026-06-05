@@ -11,6 +11,7 @@ import { useResearchItems, useCreateResearchItem, useExecuteResearch } from '@/l
 import { useProjects } from '@/lib/hooks/use-projects'
 import { useUsers } from '@/lib/hooks/use-users'
 import { useCustomers } from '@/lib/hooks/use-customers'
+import { useContacts, useCreateContact, useDeleteContact } from '@/lib/hooks/use-contacts'
 import {
   Sheet,
   SheetContent,
@@ -109,6 +110,10 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   // Update notebook mutation
   const updateNotebook = useUpdateNotebook()
 
+  // Contact mutations for first-class table syncing
+  const createContact = useCreateContact()
+  const deleteContact = useDeleteContact()
+
   // State values for instant-edit inputs
   const [clientName, setClientName] = useState('')
   const [estimatedValue, setEstimatedValue] = useState('')
@@ -133,6 +138,23 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   const [newContactRole, setNewContactRole] = useState('')
   const [newContactEmail, setNewContactEmail] = useState('')
   const [contactSaveStatus, setContactSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+
+  // Fetch first-class contacts for matching
+  const currentCustIdForQuery = customerId || notebook?.customer_id || undefined
+  const { data: dbContacts = [] } = useContacts(currentCustIdForQuery)
+
+  const enrichedContacts = useMemo(() => {
+    if (!notebook?.contacts) return []
+    return (notebook.contacts as any[]).map((c: any) => {
+      const dbMatch = dbContacts.find(dbc => dbc.id === c.id || (dbc.email && dbc.email.trim().toLowerCase() === c.email.trim().toLowerCase()))
+      return {
+        ...c,
+        customer_name: dbMatch?.customer_name || c.customer_name || '',
+        location_name: dbMatch?.location_name || c.location_name || '',
+        location_names: dbMatch?.location_names || (dbMatch?.location_name ? [dbMatch.location_name] : []),
+      }
+    })
+  }, [notebook?.contacts, dbContacts])
 
   // Manual scraper paste states
   const [manualScrapeText, setManualScrapeText] = useState('')
@@ -257,7 +279,33 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
     if (!notebookId || !notebook) return
     if (!newContactName.trim()) return
 
+    const nameParts = newContactName.trim().split(/\s+/)
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || '-'
+    const currentCustId = customerId || notebook.customer_id || null
+
+    let dbContactId: string | undefined = undefined
+    try {
+      setContactSaveStatus('saving')
+      const createdDbContact = await createContact.mutateAsync({
+        first_name: firstName,
+        last_name: lastName,
+        email: newContactEmail.trim(),
+        title: newContactRole.trim(),
+        customer_id: currentCustId || undefined,
+        status: 'active',
+        source: 'manual',
+      })
+      dbContactId = createdDbContact.id
+    } catch (err) {
+      console.error('Failed to create first-class contact:', err)
+      setContactSaveStatus('idle')
+      toast.error('Failed to save contact to directory')
+      return
+    }
+
     const newContact = {
+      id: dbContactId,
       name: newContactName.trim(),
       role: newContactRole.trim(),
       email: newContactEmail.trim(),
@@ -266,7 +314,6 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
     const updatedContacts = [...(notebook.contacts || []), newContact]
 
     try {
-      setContactSaveStatus('saving')
       await updateNotebook.mutateAsync({
         id: notebookId,
         data: { contacts: updatedContacts },
@@ -287,6 +334,16 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   const handleRemoveContact = async (indexToRemove: number) => {
     if (!notebookId || !notebook) return
 
+    const contactToRemove = (notebook.contacts || [])[indexToRemove]
+    if (contactToRemove && contactToRemove.id) {
+      try {
+        await deleteContact.mutateAsync(contactToRemove.id)
+      } catch (err) {
+        console.error('Failed to delete first-class contact:', err)
+        toast.error('Failed to delete contact from directory, but removing from deal')
+      }
+    }
+
     const updatedContacts = (notebook.contacts || []).filter((_, idx) => idx !== indexToRemove)
 
     try {
@@ -304,7 +361,38 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
   const handleAddSuggestedContact = async (suggested: Record<string, string>, indexToRemove: number) => {
     if (!notebookId || !notebook) return
 
-    const updatedContacts = [...(notebook.contacts || []), suggested]
+    const suggestedName = suggested.name || ''
+    const nameParts = suggestedName.trim().split(/\s+/)
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || '-'
+    const currentCustId = customerId || notebook.customer_id || null
+
+    let dbContactId: string | undefined = undefined
+    try {
+      const createdDbContact = await createContact.mutateAsync({
+        first_name: firstName,
+        last_name: lastName,
+        email: (suggested.email || '').trim(),
+        title: (suggested.role || '').trim(),
+        customer_id: currentCustId || undefined,
+        status: 'active',
+        source: 'scraped',
+      })
+      dbContactId = createdDbContact.id
+    } catch (err) {
+      console.error('Failed to create first-class suggested contact:', err)
+      toast.error('Failed to save suggested contact to directory')
+      return
+    }
+
+    const newContact = {
+      id: dbContactId,
+      name: suggestedName,
+      role: suggested.role || '',
+      email: suggested.email || '',
+    }
+
+    const updatedContacts = [...(notebook.contacts || []), newContact]
     const updatedSuggested = (notebook.suggested_contacts || []).filter((_, idx) => idx !== indexToRemove)
 
     try {
@@ -710,9 +798,9 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                     </div>
 
                     {/* Existing Contacts List */}
-                    {notebook.contacts && notebook.contacts.length > 0 ? (
+                    {enrichedContacts && enrichedContacts.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-2 border-t border-sidebar-border/30">
-                        {notebook.contacts.map((contact, idx) => (
+                        {enrichedContacts.map((contact, idx) => (
                           <div
                             key={idx}
                             className="flex items-center justify-between p-2.5 rounded-lg border border-sidebar-border bg-background/60 dark:bg-background/40 hover:bg-sidebar-accent/50 transition-colors"
@@ -728,6 +816,18 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                                   </>
                                 )}
                               </div>
+                              {(contact.customer_name || contact.location_name || (contact.location_names && contact.location_names.length > 0)) && (
+                                <div className="text-[9px] text-cyan-400/90 font-mono mt-1 space-y-0.5">
+                                  {contact.customer_name && (
+                                    <p className="truncate"><span className="text-muted-foreground/60">Company:</span> {contact.customer_name}</p>
+                                  )}
+                                  {contact.location_names && contact.location_names.length > 0 ? (
+                                    <p className="truncate"><span className="text-muted-foreground/60">Locations:</span> {contact.location_names.join(', ')}</p>
+                                  ) : contact.location_name ? (
+                                    <p className="truncate"><span className="text-muted-foreground/60">Location:</span> {contact.location_name}</p>
+                                  ) : null}
+                                </div>
+                              )}
                             </div>
                             <Button
                               size="sm"
@@ -826,7 +926,7 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                     {linkedProjects.length > 0 ? (
                       <div className="space-y-1.5">
                         {linkedProjects.map((p) => (
-                          <Link key={p.id} href="/projects">
+                          <Link key={p.id} href="/pipeline?tab=projects">
                             <div className="flex items-center justify-between p-2 rounded-lg border border-sidebar-border/50 hover:bg-sidebar-accent/50 transition-colors text-xs">
                               <span className="font-medium text-foreground">{p.name}</span>
                               <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>
@@ -848,7 +948,7 @@ export function DealDrawer({ notebookId, open, onOpenChange }: DealDrawerProps) 
                     {linkedResearch.length > 0 ? (
                       <div className="space-y-1.5">
                         {linkedResearch.map((r) => (
-                          <Link key={r.id} href="/research">
+                          <Link key={r.id} href="/pipeline?tab=research">
                             <div className="flex items-center justify-between p-2 rounded-lg border border-sidebar-border/50 hover:bg-sidebar-accent/50 transition-colors text-xs">
                               <span className="font-medium text-foreground">{r.name}</span>
                               <Badge variant="outline" className="text-[10px]">{r.stage}</Badge>

@@ -11,15 +11,28 @@ export const RESEARCH_QUERY_KEYS = {
   projects: (id: string) => ['research-items', 'projects', id] as const,
 }
 
-export function useResearchItems(params?: {
-  customer_id?: string
-  project_id?: string
-  stage?: string
-  status?: string
-}) {
+export function useResearchItems(
+  params?: {
+    customer_id?: string
+    project_id?: string
+    stage?: string
+    status?: string
+  },
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: RESEARCH_QUERY_KEYS.list(params as Record<string, string>),
     queryFn: () => researchItemApi.list(params),
+    refetchInterval: (current) => {
+      if (options?.enabled === false) return false
+      const data = current.state.data as any[] | undefined
+      if (!data || data.length === 0) {
+        return false
+      }
+      const hasResearching = data.some((item) => item.stage === 'researching')
+      return hasResearching ? 4000 : false
+    },
+    ...options,
   })
 }
 
@@ -175,5 +188,54 @@ export function useResearchProjects(itemId: string) {
     queryKey: RESEARCH_QUERY_KEYS.projects(itemId),
     queryFn: () => researchItemApi.getProjects(itemId),
     enabled: !!itemId,
+  })
+}
+
+export function useEnhanceResearch() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: ({ id, directions, modelId }: { id: string; directions: string; modelId?: string | null }) =>
+      researchItemApi.enhance(id, directions, modelId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_QUERY_KEYS.all })
+      queryClient.invalidateQueries({ queryKey: RESEARCH_QUERY_KEYS.detail(variables.id) })
+      toast({
+        title: 'Success',
+        description: 'Research findings rewritten and enhanced',
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Error enhancing research findings',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useApproveResearch() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: (id: string) => researchItemApi.approve(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_QUERY_KEYS.all })
+      queryClient.invalidateQueries({ queryKey: RESEARCH_QUERY_KEYS.detail(id) })
+      toast({
+        title: 'Approved',
+        description: 'Research approved and saved as a Notebook Note',
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Error approving research',
+        variant: 'destructive',
+      })
+    },
   })
 }

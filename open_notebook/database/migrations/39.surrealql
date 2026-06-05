@@ -1,0 +1,10 @@
+-- Migration 39: Update existing credentials modalities to align with new capabilities
+UPDATE credential SET modalities = ['language', 'embedding', 'image_generation', 'text_to_speech', 'speech_to_text'] WHERE provider = 'openai';
+UPDATE credential SET modalities = ['language', 'embedding', 'image_generation', 'audio', 'text_to_speech', 'speech_to_text'] WHERE provider = 'google';
+UPDATE credential SET modalities = ['language', 'embedding', 'reranking', 'image_generation', 'audio', 'video'] WHERE provider = 'openrouter';
+UPDATE credential SET modalities = ['language', 'embedding', 'reranking'] WHERE provider = 'ollama';
+UPDATE credential SET modalities = ['text_to_speech', 'speech_to_text'] WHERE provider = 'elevenlabs';
+UPDATE credential SET modalities = ['text_to_speech', 'speech_to_text'] WHERE provider = 'deepgram';
+UPDATE credential SET modalities = ['language', 'embedding', 'text_to_speech'] WHERE provider = 'vertex';
+UPDATE credential SET modalities = ['language', 'embedding', 'text_to_speech', 'speech_to_text'] WHERE provider = 'azure';
+UPDATE credential SET modalities = ['language', 'embedding', 'text_to_speech', 'speech_to_text'] WHERE provider = 'openai_compatible';

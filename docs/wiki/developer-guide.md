@@ -1,157 +1,122 @@
-# Developer Guide
+---
+title: "Developer Guide & Workspace Setup"
+description: "Step-by-step developer workspace setup, dependency installation, and local testing guidelines for Tetrel Security."
+---
 
-## Prerequisites
+# Developer Setup Guide
 
-- **Docker Desktop** (with Docker Compose v2)
-- **Node.js** ≥ 18 (for frontend development)
-- **Python** 3.12 (for backend development)
+This guide walks you through setting up your local development workspace, compiling resources, running automated test suites, and extending the application layout.
 
-## First-Time Setup
+---
 
-### 1. Clone and Configure
+## 🏗️ Workspace Boot Sequence
 
+The workspace utilizes Docker Compose to run external services while running the FastAPI backend and Next.js frontend on the host machine.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Developer
+    participant Docker as Docker Compose
+    participant DB as SurrealDB (Port 8000)
+    participant API as FastAPI Backend (Port 5055)
+    participant App as Next.js UI (Port 8502)
+
+    Developer->>Docker: docker compose up -d
+    Docker->>DB: Start database container
+    Developer->>API: uvicorn api.main:app --reload
+    API->>DB: Check migrations (v38)
+    Developer->>App: npm run dev
+    App->>API: Query /config API
+```
+
+---
+
+## 🛠️ Step-by-Step Installation
+
+### 1. Configure the Environment
+Copy the default environment variables template and set a custom security encryption key:
 ```bash
-git clone <repo-url>
-cd notebook_tetrel
 cp .env.example .env
-# Edit .env — set OPEN_NOTEBOOK_ENCRYPTION_KEY to a secure random string
+# Open .env and set:
+# OPEN_NOTEBOOK_ENCRYPTION_KEY="use-a-strong-32-byte-key"
 ```
 
-### 2. Start Services
-
+### 2. Start Infrastructure Containers
+Start SurrealDB, LiveKit SFU, Kokoro, and Whisper:
 ```bash
-# Start all Docker services (database, voice AI)
 docker compose up -d
-
-# Verify services are running
-docker ps --format '{{.Names}}\t{{.Status}}'
-# Expected: surrealdb (healthy), livekit-server, kokoro-tts, whisper-stt
+# Check health of containers
+docker compose ps
 ```
 
-### 3. Backend Setup
-
+### 3. Backend Setup & Pytest Execution
+Create a virtual environment, install dependencies in editable mode, and run the test suite:
 ```bash
-# Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
 pip install -e ".[dev]"
 
-# Run backend tests
-.venv/bin/pytest tests/ -v
-# Expected: 331 tests passing
+# Execute backend test suite
+pytest tests/ -v
 ```
 
-### 4. Frontend Setup
-
+### 4. Frontend Setup & Build
+Navigate to the frontend folder, install npm modules, run checks, and start the hot-reload Dev server:
 ```bash
 cd frontend
 npm install
+
+# Run TypeScript compile validation
+npm run type-check # Runs: tsc --noEmit
+
+# Start development server
 npm run dev
-# Frontend available at http://localhost:8502
+# Frontend is served at http://localhost:8502
 ```
 
-## Development Workflow
+---
 
-### Karpathy Rules (CLAUDE.md)
+## 🧩 Extending the Application
 
-All development MUST follow these principles from [CLAUDE.md](file:///Users/jimmcknney/notebook_tetrel/CLAUDE.md):
+### 1. Adding a Backend Handler Route
+* Backend route files are placed in [api/routers/](file:///Users/jimmcknney/notebook_tetrel/api/routers/).
+* Every handler registers its endpoints on an `APIRouter` instance:
+  ```python
+  from fastapi import APIRouter
+  router = APIRouter()
+  ```
+* Register the new router inside [main.py](file:///Users/jimmcknney/notebook_tetrel/api/main.py#L346-L379):
+  ```python
+  from api.routers import my_feature
+  app.include_router(my_feature.router, prefix="/api", tags=["my-feature"])
+  ```
 
-1. **Think Before Coding** — State assumptions, find root cause before writing code
-2. **Simplicity First** — Simple > clever. Reuse proven patterns
-3. **Surgical Changes** — Touch minimum files. Small, verifiable diffs
-4. **Goal-Driven Execution** — Define success criteria, loop until verified
+### 2. Adding a Frontend Page Route
+* Frontend page layouts are added in the App Router directory: `frontend/src/app/(dashboard)/`.
+* To add a page link to the sidebar, modify the navigation definitions array in [AppSidebar.tsx](file:///Users/jimmcknney/notebook_tetrel/frontend/src/components/layout/AppSidebar.tsx#L60-L107):
+  ```typescript
+  { name: 'My Page', href: '/my-page', icon: FlaskConical }
+  ```
 
-### Test-Driven Development
+---
 
-```bash
-# 1. RED: Write a failing test
-# 2. GREEN: Write minimum code to pass
-# 3. REFACTOR: Clean up, verify all tests still pass
+## 🧪 Testing Guidelines
 
-# Run specific test file
-.venv/bin/pytest tests/test_notebooks_api.py -v
+Tetrel Security follows Test-Driven Development (TDD) principles.
 
-# Run all tests
-.venv/bin/pytest tests/ -v
-
-# Run frontend tests
-cd frontend && npx vitest run
+```mermaid
+graph TD
+    classDef nodeStyle fill:#2d333b,stroke:#6d5dfc,color:#e6edf3;
+    
+    Red["1. RED: Write a failing test"]:::nodeStyle
+    Green["2. GREEN: Write minimum code to pass"]:::nodeStyle
+    Refactor["3. REFACTOR: Clean code, check all tests"]:::nodeStyle
+    
+    Red --> Green
+    Green --> Refactor
+    Refactor --> Red
 ```
 
-### Adding a New Router
-
-1. Create `api/routers/my_feature.py` following the pattern in [auth.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/auth.py)
-2. Add Pydantic models to `api/models.py`
-3. Register in [main.py](file:///Users/jimmcknney/notebook_tetrel/api/main.py#L346-L379):
-   ```python
-   from api.routers import my_feature
-   app.include_router(my_feature.router, prefix="/api", tags=["my-feature"])
-   ```
-4. Write tests in `tests/test_my_feature_api.py`
-5. Run: `.venv/bin/pytest tests/test_my_feature_api.py -v`
-
-### Adding a Frontend Page
-
-1. Create `frontend/src/app/(dashboard)/my-page/page.tsx`
-2. Add navigation link in the sidebar component
-3. Create API client in `frontend/src/lib/api/`
-4. Run TypeScript check: `cd frontend && npx tsc --noEmit`
-
-## Project Structure
-
-### Backend Router Pattern
-
-```python
-# Every router follows this pattern:
-from fastapi import APIRouter, HTTPException
-from open_notebook.database.repository import repo_query
-
-router = APIRouter()
-
-@router.get("/my-endpoint")
-async def my_endpoint():
-    try:
-        result = await repo_query("SELECT * FROM my_table")
-        return result
-    except HTTPException:
-        raise  # IMPORTANT: re-raise HTTP exceptions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-```
-
-### Test Pattern
-
-```python
-from unittest.mock import AsyncMock, patch
-import pytest
-from fastapi.testclient import TestClient
-
-@pytest.fixture
-def client():
-    from api.main import app
-    return TestClient(app)
-
-class TestMyFeatureAPI:
-    @patch("api.routers.my_feature.repo_query", new_callable=AsyncMock)
-    def test_my_endpoint(self, mock_query, client):
-        mock_query.return_value = [{"id": "1", "name": "test"}]
-        response = client.get("/api/my-endpoint")
-        assert response.status_code == 200
-```
-
-## Test Coverage Summary
-
-| Component | Tests | Status |
-|-----------|-------|--------|
-| Auth API | 3 | ✅ |
-| Chat API | 10 | ✅ |
-| Notebooks API | 14 | ✅ |
-| Contacts API | 10 | ✅ |
-| Config API | 4 | ✅ |
-| Customers API | 40 | ✅ |
-| Assessments API | 30 | ✅ |
-| Voice AI | 20 | ✅ |
-| Domain Logic | 50+ | ✅ |
-| **TOTAL** | **331** | ✅ |
+* **Backend Mocking:** Tests use Python's mock patch utilities to isolate DB queries `(tests/test_activities_api.py:12)`.
+* **Database Fixtures:** Pytest fixtures handle temp data setup and teardown before each suite `(tests/conftest.py:20)`.

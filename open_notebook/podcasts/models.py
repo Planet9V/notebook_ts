@@ -14,9 +14,25 @@ async def _resolve_model_config(model_id: str) -> Tuple[str, str, dict]:
     Used by resolve_outline_config, resolve_transcript_config, resolve_tts_config,
     and per-speaker TTS overrides.
     """
+    import os
     from open_notebook.ai.models import Model
 
     model = await Model.get(model_id)
+
+    # Auto-translate local Kokoro provider to OpenAI-compatible configuration
+    if model.provider == "kokoro":
+        kokoro_url = os.getenv("KOKORO_TTS_URL")
+        if not kokoro_url:
+            if os.path.exists("/.dockerenv"):
+                kokoro_url = "http://kokoro-tts:8880"
+            else:
+                kokoro_url = "http://localhost:8880"
+        config = {
+            "base_url": f"{kokoro_url}/v1",
+            "api_key": "not-needed"
+        }
+        return ("openai", model.name, config)
+
     config: dict = {}
     if model.credential:
         credential = await model.get_credential_obj()

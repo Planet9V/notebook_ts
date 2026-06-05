@@ -76,16 +76,17 @@ PROVIDER_ENV_CONFIG: Dict[str, dict] = {
 }
 
 PROVIDER_MODALITIES: Dict[str, List[str]] = {
-    "openai": ["language", "embedding", "speech_to_text", "text_to_speech"],
+    "openai": ["language", "embedding", "image_generation", "text_to_speech", "speech_to_text"],
     "anthropic": ["language"],
-    "google": ["language", "embedding"],
+    "google": ["language", "embedding", "image_generation", "audio", "text_to_speech", "speech_to_text"],
     "groq": ["language", "speech_to_text"],
     "mistral": ["language", "embedding"],
     "deepseek": ["language"],
     "xai": ["language"],
-    "openrouter": ["language"],
+    "openrouter": ["language", "embedding", "reranking", "image_generation", "audio", "video"],
     "voyage": ["embedding"],
-    "elevenlabs": ["text_to_speech"],
+    "elevenlabs": ["text_to_speech", "speech_to_text"],
+    "deepgram": ["text_to_speech", "speech_to_text"],
     "perplexity": ["language"],
     "tavily": ["language"],
     "valyu": ["language"],
@@ -100,10 +101,10 @@ PROVIDER_MODALITIES: Dict[str, List[str]] = {
     "huggingface": ["language", "embedding"],
     "mapbox": ["language"],
     "brave": ["language"],
-    "ollama": ["language", "embedding"],
-    "vertex": ["language", "embedding"],
-    "azure": ["language", "embedding", "speech_to_text", "text_to_speech"],
-    "openai_compatible": ["language", "embedding", "speech_to_text", "text_to_speech"],
+    "ollama": ["language", "embedding", "reranking"],
+    "vertex": ["language", "embedding", "text_to_speech"],
+    "azure": ["language", "embedding", "text_to_speech", "speech_to_text"],
+    "openai_compatible": ["language", "embedding", "text_to_speech", "speech_to_text"],
     "dashscope": ["language"],
     "minimax": ["language"],
 }
@@ -783,19 +784,29 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
 
     if provider == "ollama":
         ollama_url = base_url or "http://localhost:11434"
+        discovered_models = []
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"{ollama_url}/api/tags", timeout=10.0)
                 response.raise_for_status()
                 data = response.json()
-                return [
+                discovered_models = [
                     {"name": m.get("name", ""), "provider": "ollama"}
                     for m in data.get("models", [])
                     if m.get("name")
                 ]
         except Exception as e:
             logger.warning(f"Failed to discover Ollama models: {e}")
-            return []
+
+        # Ensure local Qwen3 reranker is always present in the list
+        existing_names = {m["name"] for m in discovered_models}
+        if "dengcao/Qwen3-Reranker-4B:Q4_K_M" not in existing_names:
+            discovered_models.append({
+                "name": "dengcao/Qwen3-Reranker-4B:Q4_K_M",
+                "provider": "ollama",
+                "description": "Qwen3 Reranker 4B (Local)"
+            })
+        return discovered_models
 
     if provider == "openai_compatible":
         if not base_url:
@@ -876,12 +887,34 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
             logger.warning(f"Failed to discover Google models: {e}")
             return []
 
-    # Standard OpenAI-style API discovery
     discovery_url = url_map.get(provider)
     if not discovery_url or not api_key:
+        if provider == "openrouter":
+            required_openrouter_models = [
+                "qwen/qwen3-embedding-8b",
+                "openai/text-embedding-3-small",
+                "openai/text-embedding-3-large",
+                "google/lyria-3-clip-preview",
+                "google/lyria-3-pro-preview",
+                "black-forest-labs/flux.2-max",
+                "recraft/recraft-v4-vector",
+                "x-ai/grok-imagine-image-quality",
+                "x-ai/grok-imagine-video",
+                "minimax/hailuo-2.3",
+                "alibaba/wan-2.6",
+            ]
+            return [
+                {
+                    "name": name,
+                    "provider": "openrouter",
+                    "description": name.split("/")[-1].replace("-", " ").title()
+                }
+                for name in required_openrouter_models
+            ]
         return []
 
     try:
+        discovered = []
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 discovery_url,
@@ -891,7 +924,7 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
             response.raise_for_status()
             data = response.json()
 
-            return [
+            discovered = [
                 {
                     "name": m.get("id", ""),
                     "provider": provider,
@@ -900,8 +933,59 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
                 for m in data.get("data", [])
                 if m.get("id")
             ]
+
+        # Ensure required OpenRouter models are always present
+        if provider == "openrouter":
+            required_openrouter_models = [
+                # Embedding
+                "qwen/qwen3-embedding-8b",
+                "openai/text-embedding-3-small",
+                "openai/text-embedding-3-large",
+                # Audio
+                "google/lyria-3-clip-preview",
+                "google/lyria-3-pro-preview",
+                # Image
+                "black-forest-labs/flux.2-max",
+                "recraft/recraft-v4-vector",
+                "x-ai/grok-imagine-image-quality",
+                # Video
+                "x-ai/grok-imagine-video",
+                "minimax/hailuo-2.3",
+                "alibaba/wan-2.6",
+            ]
+            existing_names = {m["name"] for m in discovered}
+            for name in required_openrouter_models:
+                if name not in existing_names:
+                    discovered.append({
+                        "name": name,
+                        "provider": "openrouter",
+                        "description": name.split("/")[-1].replace("-", " ").title()
+                    })
+        return discovered
     except Exception as e:
         logger.warning(f"Failed to discover {provider} models: {e}")
+        if provider == "openrouter":
+            required_openrouter_models = [
+                "qwen/qwen3-embedding-8b",
+                "openai/text-embedding-3-small",
+                "openai/text-embedding-3-large",
+                "google/lyria-3-clip-preview",
+                "google/lyria-3-pro-preview",
+                "black-forest-labs/flux.2-max",
+                "recraft/recraft-v4-vector",
+                "x-ai/grok-imagine-image-quality",
+                "x-ai/grok-imagine-video",
+                "minimax/hailuo-2.3",
+                "alibaba/wan-2.6",
+            ]
+            return [
+                {
+                    "name": name,
+                    "provider": "openrouter",
+                    "description": name.split("/")[-1].replace("-", " ").title()
+                }
+                for name in required_openrouter_models
+            ]
         return []
 
 
@@ -919,7 +1003,7 @@ async def register_models(credential_id: str, models_data: list) -> dict:
     cred = await Credential.get(credential_id)
 
     from open_notebook.ai.models import Model
-    from open_notebook.database.repository import repo_query
+    from open_notebook.database.repository import ensure_record_id, repo_query
 
     # Batch fetch existing models for this provider
     existing_models = await repo_query(
@@ -935,6 +1019,15 @@ async def register_models(credential_id: str, models_data: list) -> dict:
     for model_data in models_data:
         key = (model_data.name.lower(), model_data.model_type.lower())
         if key in existing_keys:
+            await repo_query(
+                "UPDATE model SET credential = $cred_id WHERE string::lowercase(provider) = $provider AND string::lowercase(name) = $name AND string::lowercase(type) = $type",
+                {
+                    "cred_id": ensure_record_id(cred.id),
+                    "provider": (model_data.provider or cred.provider).lower(),
+                    "name": model_data.name.lower(),
+                    "type": model_data.model_type.lower(),
+                }
+            )
             existing += 1
             continue
 

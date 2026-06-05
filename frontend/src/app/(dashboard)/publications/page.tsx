@@ -27,6 +27,7 @@ export default function PublicationsPage() {
   const [selectedChannel, setSelectedChannel] = useState<string>('all')
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [publishing, setPublishing] = useState(false)
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -53,6 +54,26 @@ export default function PublicationsPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePublishDue = async () => {
+    try {
+      setPublishing(true)
+      const res = await publicationsApi.publishDue()
+      toast({
+        title: 'Publish Execution Triggered',
+        description: res.message || 'Queued publications processed successfully.',
+      })
+      await fetchData()
+    } catch (err: any) {
+      toast({
+        title: 'Failed to publish due posts',
+        description: err.response?.data?.detail || err.message || 'Error occurred connecting to API',
+        variant: 'destructive',
+      })
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -240,6 +261,10 @@ export default function PublicationsPage() {
             <div className="flex items-center gap-2.5">
               <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="h-9 px-3">
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePublishDue} disabled={loading || publishing} className="h-9 px-4 flex items-center gap-1.5">
+                <Send className={`h-4 w-4 ${publishing ? 'animate-pulse' : ''}`} />
+                {publishing ? 'Publishing...' : 'Publish Now'}
               </Button>
               <Button onClick={() => handleAddPostClick(new Date())} className="h-9 px-4 flex items-center gap-1.5 shadow-lg shadow-primary/20">
                 <Plus className="h-4 w-4" />

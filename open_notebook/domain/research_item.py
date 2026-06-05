@@ -7,7 +7,7 @@ configurable search engines and GTM Research templates.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 from loguru import logger
 from pydantic import Field, field_validator
@@ -15,7 +15,6 @@ from pydantic import Field, field_validator
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.base import ObjectModel
 from open_notebook.exceptions import DatabaseOperationError, InvalidInputError
-
 
 INTERVAL_DELTAS = {
     "hourly": timedelta(hours=1),
@@ -45,7 +44,11 @@ class ResearchItem(ObjectModel):
         "model_id",
         "interval",
         "results_summary",
+        "results_content",
         "formatting_instructions",
+        "is_deep_research",
+        "deep_research_state",
+        "deep_research_events",
     }
 
     # Required fields
@@ -81,7 +84,13 @@ class ResearchItem(ObjectModel):
 
     # Results
     results_summary: Optional[str] = ""  # last research output summary
+    results_content: Optional[str] = ""  # full markdown research findings content
     save_as_source: Optional[bool] = True  # save results to notebook
+
+    # Deep Research fields
+    is_deep_research: Optional[bool] = False
+    deep_research_state: Optional[str] = ""
+    deep_research_events: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
 
     # Metadata
     tags: Optional[List[str]] = Field(default_factory=list)
@@ -129,7 +138,7 @@ class ResearchItem(ObjectModel):
         self.last_error = error[:500]
         if self.is_recurring and self.interval:
             self.next_run = self.compute_next_run()
-            self.stage = "queued"
+        self.stage = "queued"
         await self.save()
 
     @classmethod

@@ -12,6 +12,10 @@ export interface Contact {
   linkedin_url: string
   customer_id: string | null
   customer_name: string | null
+  location_id: string | null
+  location_name: string | null
+  location_ids: string[]
+  location_names?: string[]
   status: string
   tags: string[]
   notes: string
@@ -33,6 +37,8 @@ export interface ContactCreate {
   seniority?: string
   linkedin_url?: string
   customer_id?: string | null
+  location_id?: string | null
+  location_ids?: string[]
   status?: string
   tags?: string[]
   notes?: string

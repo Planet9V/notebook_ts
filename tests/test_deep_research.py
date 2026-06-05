@@ -1,5 +1,6 @@
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -31,14 +32,14 @@ class TestDeepResearchAPI:
         async def mock_iter_lines():
             # SSE chunks simulating Perplexity API output
             chunks = [
-                b'data: {"citations": ["https://example.com/source1", "https://example.com/source2"], "choices": [{"delta": {"content": "Reasoning about "}}]}',
-                b'data: {"choices": [{"delta": {"content": "security regulations."}}]}',
-                b'data: [DONE]'
+                'data: {"citations": ["https://example.com/source1", "https://example.com/source2"], "choices": [{"delta": {"content": "Reasoning about "}}]}',
+                'data: {"choices": [{"delta": {"content": "security regulations."}}]}',
+                'data: [DONE]'
             ]
             for chunk in chunks:
                 yield chunk
 
-        mock_response.iter_lines = mock_iter_lines
+        mock_response.aiter_lines = mock_iter_lines
         
         # Async context manager mock for stream
         class MockStreamContext:
@@ -180,3 +181,162 @@ class TestDeepResearchAPI:
         error_events = [e for e in events if e["type"] == "error"]
         assert len(error_events) >= 1
         assert "Unsupported" in error_events[0]["message"]
+
+
+class TestResearchItemDeepResearch:
+    """Integration tests for ResearchItem Deep Research workflow and multi-engine inter-weaving."""
+
+    @pytest.mark.asyncio
+    @patch("open_notebook.ai.provision.provision_langchain_model")
+    @patch("open_notebook.domain.scheduled_search_worker._run_search")
+    async def test_run_deep_research_workflow_success(self, mock_run_search, mock_provision_llm):
+        """Test that a deep research workflow completes successfully through all 5 stages."""
+        from api.routers.research_items import background_run_research
+        from open_notebook.domain.research_item import ResearchItem
+
+        # Create a new ResearchItem in SurrealDB
+        ri = ResearchItem(
+            name="NIST CSF Deep Research Integration Test",
+            query="What are the NIST CSF requirements?",
+            is_deep_research=True,
+            engines=["perplexity", "tavily"],
+            save_as_source=True,
+        )
+        await ri.save()
+        assert ri.id is not None
+
+        # Setup mock Langchain model responses
+        mock_llm = AsyncMock()
+        mock_clarification = MagicMock(content="Clarification: Defining NIST CSF goals.")
+        mock_plan = MagicMock(content="Plan: 1. Fetch NIST details, 2. Synthesize.")
+        mock_queries = MagicMock(content="NIST CSF requirements\nNIST CSF security controls")
+        mock_synthesis = MagicMock(content="Synthesis: NIST CSF has core components.")
+        mock_report = MagicMock(content="# NIST CSF Report\n\nNIST CSF provides guidelines [Source 1].\n\n## Bibliography\n- [Source 1]: http://example.com/source1")
+        
+        mock_llm.ainvoke.side_effect = [
+            mock_clarification,
+            mock_plan,
+            mock_queries,
+            mock_synthesis,
+            mock_report
+        ]
+        mock_provision_llm.return_value = mock_llm
+
+        # Setup mock search responses
+        mock_run_search.return_value = [
+            {"title": "Source 1", "url": "http://example.com/source1", "content": "NIST CSF requirements are guidelines."}
+        ]
+
+        try:
+            # Execute background research runner
+            await background_run_research(ri.id)
+
+            # Retrieve from database and verify state transitions and event logging
+            updated_ri = await ResearchItem.get(ri.id)
+            assert updated_ri.stage == "review_enhance"
+            assert "NIST CSF Report" in updated_ri.results_content
+            assert "[Source 1]" in updated_ri.results_content
+
+            events = updated_ri.deep_research_events
+            assert len(events) >= 5
+            
+            stages = [e["stage"] for e in events]
+            assert "clarifying" in stages
+            assert "planning" in stages
+            assert "gathering" in stages
+            assert "synthesizing" in stages
+            assert "reporting" in stages
+            assert "completed" in stages
+
+            # Verify bibliography in the content
+            assert "http://example.com/source1" in updated_ri.results_content
+        finally:
+            await ri.delete()
+
+    @pytest.mark.asyncio
+    @patch("open_notebook.ai.provision.provision_langchain_model")
+    @patch("open_notebook.domain.scheduled_search_worker._run_search")
+    async def test_run_deep_research_workflow_engine_failure_resilience(self, mock_run_search, mock_provision_llm):
+        """Test that if one search engine fails, the gathering step continues and completes successfully."""
+        from api.routers.research_items import background_run_research
+        from open_notebook.domain.research_item import ResearchItem
+
+        ri = ResearchItem(
+            name="Resilience Test",
+            query="NIST CSF standards",
+            is_deep_research=True,
+            engines=["perplexity", "tavily"],
+        )
+        await ri.save()
+
+        # Mock LLM
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.side_effect = [
+            MagicMock(content="Clarification of NIST CSF standards"),
+            MagicMock(content="Research Plan"),
+            MagicMock(content="NIST CSF queries"),
+            MagicMock(content="Synthesis of results"),
+            MagicMock(content="# Final Report with citation [Source 1]\n\n## Sources\n- [Source 1]: http://perplexity.com")
+        ]
+        mock_provision_llm.return_value = mock_llm
+
+        # Mock search results: perplexity succeeds, tavily raises exception
+        async def side_effect_search(engine, query):
+            if engine == "perplexity":
+                return [{"title": "Perplexity result", "url": "http://perplexity.com", "content": "NIST CSF controls"}]
+            else:
+                raise Exception("Tavily search failed connection error")
+
+        mock_run_search.side_effect = side_effect_search
+
+        try:
+            await background_run_research(ri.id)
+
+            updated_ri = await ResearchItem.get(ri.id)
+            assert updated_ri.stage == "review_enhance"
+            assert "Final Report with citation" in updated_ri.results_content
+            
+            # Events should log success of gathering stage
+            events = updated_ri.deep_research_events
+            stages = [e["stage"] for e in events]
+            assert "gathering" in stages
+            assert "completed" in stages
+        finally:
+            await ri.delete()
+
+    @pytest.mark.asyncio
+    @patch("api.routers.research_items.run_deep_research_workflow")
+    async def test_run_deep_research_workflow_timeout(self, mock_workflow):
+        """Test that a timeout in the deep research workflow is handled, stage is reset, and error is saved."""
+        import asyncio
+
+        from api.routers.research_items import background_run_research
+        from open_notebook.domain.research_item import ResearchItem
+
+        ri = ResearchItem(
+            name="Timeout Test",
+            query="What is the speed of light?",
+            is_deep_research=True,
+            engines=["perplexity"],
+        )
+        await ri.save()
+
+        # Force timeout
+        mock_workflow.side_effect = asyncio.TimeoutError()
+
+        try:
+            await background_run_research(ri.id)
+
+            updated_ri = await ResearchItem.get(ri.id)
+            # stage should be queued when mark_failure is called
+            assert updated_ri.stage == "queued"
+            assert updated_ri.last_error is not None
+            assert "timed out" in updated_ri.last_error.lower()
+
+            # Verify event log contains timeout event
+            events = updated_ri.deep_research_events
+            assert len(events) > 0
+            assert any("timed out" in e["message"].lower() for e in events)
+        finally:
+            await ri.delete()
+

@@ -1,0 +1,2 @@
+-- Migration 38 Down: Remove default text_to_speech models
+DELETE FROM model WHERE id IN [model:kokoro, model:openai_tts, model:elevenlabs_tts, model:deepgram_tts];

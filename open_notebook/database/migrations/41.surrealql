@@ -1,0 +1,14 @@
+-- Migration 41: Define contacts and suggested_contacts subfields for notebook table
+-- This prevents SurrealDB (which is SCHEMAFULL) from stripping/clearing contacts
+-- and suggested_contacts arrays when nested objects are saved.
+
+DEFINE FIELD IF NOT EXISTS contacts[*] ON TABLE notebook TYPE object;
+DEFINE FIELD IF NOT EXISTS contacts[*].id ON TABLE notebook TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS contacts[*].name ON TABLE notebook TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS contacts[*].role ON TABLE notebook TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS contacts[*].email ON TABLE notebook TYPE option<string>;
+
+DEFINE FIELD IF NOT EXISTS suggested_contacts[*] ON TABLE notebook TYPE object;
+DEFINE FIELD IF NOT EXISTS suggested_contacts[*].name ON TABLE notebook TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS suggested_contacts[*].role ON TABLE notebook TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS suggested_contacts[*].email ON TABLE notebook TYPE option<string>;

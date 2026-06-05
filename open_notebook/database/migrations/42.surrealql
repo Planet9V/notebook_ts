@@ -1,0 +1,10 @@
+-- Migration 42: Replace contact.location_id with contact.location_ids array
+DEFINE FIELD IF NOT EXISTS location_ids ON TABLE contact TYPE option<array<string>> DEFAULT [];
+
+-- Copy existing single location_id into the new location_ids array
+UPDATE contact SET location_ids = [location_id] WHERE location_id != NONE AND location_id != NULL;
+UPDATE contact SET location_ids = [] WHERE location_ids = NONE OR location_ids = NULL;
+
+-- Remove old field and index
+REMOVE INDEX idx_contact_location ON TABLE contact;
+REMOVE FIELD location_id ON TABLE contact;

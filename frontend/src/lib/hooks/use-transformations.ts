@@ -16,10 +16,11 @@ export const TRANSFORMATION_QUERY_KEYS = {
   defaultPrompt: ['transformations', 'default-prompt'] as const,
 }
 
-export function useTransformations() {
+export function useTransformations(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: TRANSFORMATION_QUERY_KEYS.transformations,
     queryFn: () => transformationsApi.list(),
+    ...options,
   })
 }
 

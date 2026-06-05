@@ -154,7 +154,7 @@ async def _run_search(engine: str, query: str) -> List[Dict[str, Any]]:
                 answer = ""
                 for choice in data.get("choices", []):
                     answer += choice.get("message", {}).get("content", "")
-                results = [{"title": "Perplexity Research", "url": url, "content": answer[:200]} for url in (citations or [""])]
+                results = [{"title": "Perplexity Research", "url": url, "content": answer} for url in (citations or [""])]
 
     elif engine == "newsapi":
         api_key = await get_api_key("newsapi") or os.environ.get("NEWSAPI_KEY")

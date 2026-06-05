@@ -129,6 +129,22 @@ export default function ContactDirectoryPage() {
       },
     },
     {
+      accessorKey: 'location_name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Location / Facility" />
+      ),
+      cell: ({ row }) => {
+        const name = row.original.location_name
+        return name ? (
+          <span className="text-xs text-slate-300 font-medium">{name}</span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground/50 italic">
+            Unlinked
+          </span>
+        )
+      },
+    },
+    {
       accessorKey: 'email',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Email" />

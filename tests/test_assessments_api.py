@@ -219,3 +219,56 @@ class TestAssessmentsAPI:
         assert len(data["prioritized_recommendations"]) == 1
         assert data["prioritized_recommendations"][0]["question_id"] == "question:Q2"
         assert data["prioritized_recommendations"][0]["priority"] == "Medium"
+
+    @patch("api.routers.assessments.repo_query")
+    def test_get_customer_compliance_rollup(self, mock_repo_query, client):
+        """Test GET /api/customers/{customer_id}/compliance-rollup returns aggregated stats across facilities."""
+        mock_repo_query.side_effect = [
+            [{"id": "customer:cust_acme"}],  # customer existence check
+            [{"id": "location:loc_1", "facility_name": "Refinery Alpha", "facility_type": "Refinery"}],  # locations list
+            [{"id": "regulation:NCSF_V2", "name": "NIST CSF"}],  # regulations lookup
+            [
+                {
+                    "id": "assessment:assess_1",
+                    "customer_id": "customer:cust_acme",
+                    "framework_id": "regulation:NCSF_V2",
+                    "location_id": "location:loc_1"
+                }
+            ],  # assessments check
+            [
+                {
+                    "id": "assessment_session:sess_1",
+                    "assessment_id": "assessment:assess_1",
+                    "session_name": "Milestone Q1",
+                    "status": "COMPLETED",
+                    "compliance_snapshot": {
+                        "compliance_score": 85.0,
+                        "total_questions": 10,
+                        "yes_count": 8,
+                        "alt_count": 0,
+                        "na_count": 1
+                    }
+                }
+            ],  # sessions check
+            [{"count": 10}]  # questions count check
+        ]
+
+        response = client.get("/api/customers/cust_acme/compliance-rollup")
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["customer_id"] == "customer:cust_acme"
+        assert len(data["frameworks"]) == 1
+        
+        fw = data["frameworks"][0]
+        assert fw["framework_id"] == "NIST_CSF"  # Mapped via DB_TO_FRONTEND_MAP from NCSF_V2
+        assert fw["framework_name"] == "NIST CSF"
+        assert fw["average_compliance_score"] == 85.0
+        assert fw["total_facilities_assessed"] == 1
+        
+        assert len(fw["facilities"]) == 1
+        fac = fw["facilities"][0]
+        assert fac["location_id"] == "location:loc_1"
+        assert fac["facility_name"] == "Refinery Alpha (Refinery)"
+        assert fac["status"] == "COMPLETED"
+        assert fac["compliance_score"] == 85.0

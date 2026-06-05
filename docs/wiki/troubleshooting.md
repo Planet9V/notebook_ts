@@ -1,123 +1,105 @@
-# Troubleshooting
+---
+title: "Troubleshooting & Debugging Guide"
+description: "Resolving port conflicts, SurrealDB connection failures, Voice AI timeouts, and container execution errors."
+---
 
-## Docker Services
+# Troubleshooting & Debugging Guide
 
-### SurrealDB won't start
+This guide describes known error states and provides step-by-step resolution pathways.
+
+---
+
+## 🚦 Common Problems & Diagnostics Flow
+
+Use this flow to isolate container issues:
+
+```mermaid
+graph TD
+    classDef nodeStyle fill:#2d333b,stroke:#6d5dfc,color:#e6edf3;
+    
+    Issue["System Issue Detected"]:::nodeStyle
+    CheckPorts{"Are Ports 8502, 5055, 8000 Free?"}:::nodeStyle
+    CheckDB{"Can API connect to surrealdb:8000?"}:::nodeStyle
+    CheckVoice{"Are Voice Services Healthy?"}:::nodeStyle
+    
+    PortFix["Free port (lsof -i :8502)"]:::nodeStyle
+    DBFix["Check docker compose up surrealdb"]:::nodeStyle
+    VoiceFix["Check WHISPER__MODEL env config"]:::nodeStyle
+    Ok["System Healthy"]:::nodeStyle
+    
+    Issue --> CheckPorts
+    CheckPorts -->|No| PortFix
+    CheckPorts -->|Yes| CheckDB
+    CheckDB -->|No| DBFix
+    CheckDB -->|Yes| CheckVoice
+    CheckVoice -->|No| VoiceFix
+    CheckVoice -->|Yes| Ok
+```
+
+---
+
+## 🚫 Specific Error Resolution Pathways
+
+### 1. Port Conflicts (Address Already In Use)
+If Docker or Python host servers fail to bind sockets:
+* **SurrealDB (Port 8000):** Conflict with existing SurrealDB or local webservers `(docker-compose.yml:7)`.
+* **FastAPI Backend (Port 5055):** Conflict with local development processes `(docker-compose.yml:28)`.
+* **Next.js Frontend (Port 8502):** Conflict with parallel Node servers `(docker-compose.yml:27)`.
+
+**Resolution Command:**
 ```bash
-# Check logs
-docker logs surrealdb 2>&1 | tail -20
-
-# Common fix: port conflict
-lsof -i :8000  # Check if port 8000 is in use
-docker compose down && docker compose up -d surrealdb
+# Locate PID blocking port 8502
+lsof -i :8502
+# Terminate blocking process
+kill -9 <PID>
 ```
 
-### Voice services (LiveKit/Kokoro/Whisper) not responding
-```bash
-# Check all voice container health
-curl http://localhost:7880  # LiveKit
-curl http://localhost:8880/v1/audio/voices  # Kokoro TTS
-curl http://localhost:8000/v1/models  # Whisper STT
+---
 
-# Restart voice stack
-docker compose restart livekit-server kokoro-tts whisper-stt
+## 🔌 Database Connection Failure
 
-# Check logs
-docker logs kokoro-tts --tail 50
-docker logs whisper-stt --tail 50
+If FastAPI starts but logs `connection refused` or `database offline` errors:
+* **Root Cause:** The database address environment parameter `SURREAL_URL` `(docker-compose.yml:35)` is incorrect or the DB is initializing slowly.
+* **Troubleshooting Command:**
+  ```bash
+  # Check SurrealDB health status
+  docker compose ps surrealdb
+  
+  # Connect to database shell to verify schemas
+  docker compose exec surrealdb /surreal sql --endpoint http://localhost:8000 --ns open_notebook --db open_notebook
+  ```
+
+---
+
+## 🎙️ Voice Service Timeouts (Kokoro & Whisper)
+
+If Voice Lab pages return `504 Gateway Timeout` or generation fails:
+* **Kokoro TTS Offline:** Kokoro TTS container fails to download model weights or CPU execution times out `(docker-compose.yml:71)`.
+* **Whisper Model Mismatch:** Whisper STT fails to load the specified faster-whisper model `(docker-compose.yml:86)`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as Browser UI
+    participant Gateway as open_notebook API
+    participant Engine as kokoro-tts / whisper-stt
+    
+    Client->>Gateway: POST /api/voice/tts/synthesize
+    Note over Gateway,Engine: Check connection config
+    Gateway->>Engine: Forward request
+    alt Connection Offline
+        Engine--xGateway: Connection Refused / Timeout
+        Gateway-->>Client: HTTP 500 Service Unavailable
+    else Connection Ok
+        Engine-->>Gateway: Return raw audio buffer
+        Gateway-->>Client: HTTP 200 Audio WAV Blob
+    end
 ```
 
-### Container health check via API
-```bash
-curl http://localhost:5055/api/containers/status | python3 -m json.tool
-curl http://localhost:5055/api/voice/health | python3 -m json.tool
-```
-
-## Backend
-
-### Tests failing with import errors
-```bash
-# Ensure virtual environment is active
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-### Tests failing with 404 errors
-All routes are mounted at `/api` prefix. In tests, use:
-```python
-response = client.get("/api/notebooks")  # ✅ Correct
-response = client.get("/notebooks")       # ❌ Wrong — will get 404
-```
-
-### Database connection errors
-```bash
-# Check SurrealDB is reachable
-curl http://localhost:8000/health
-
-# Verify env vars
-grep SURREAL .env
-
-# Check config endpoint
-curl http://localhost:5055/api/config | python3 -m json.tool
-```
-
-### OpenRouter API errors
-```bash
-# Verify API key
-curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
-  https://openrouter.ai/api/v1/models | head -20
-
-# Common issues:
-# - Rate limiting (429): Wait and retry
-# - Invalid key (401): Re-set in Settings → API Keys
-# - Model not found: Check model ID spelling
-```
-
-## Frontend
-
-### TypeScript errors
-```bash
-cd frontend
-npx tsc --noEmit 2>&1 | head -50
-```
-
-### Build fails
-```bash
-cd frontend
-rm -rf .next node_modules
-npm install
-npm run build
-```
-
-### API calls returning 500
-Check the backend logs:
-```bash
-docker logs open_notebook --tail 50
-# Or if running locally:
-tail -50 /tmp/open_notebook.log
-```
-
-## Voice Playground
-
-### Microphone not working
-1. Check browser permissions: Chrome → Settings → Privacy → Microphone
-2. Must use HTTPS in production (WebRTC requires secure context)
-3. Check `navigator.mediaDevices.getUserMedia` in console
-
-### TTS not playing audio
-```bash
-# Test TTS directly
-curl -X POST http://localhost:8880/v1/audio/speech \
-  -H "Content-Type: application/json" \
-  -d '{"input": "Hello", "voice": "af_heart", "speed": 1.0}' \
-  --output test.wav
-# Play: afplay test.wav (macOS)
-```
-
-### STT not transcribing
-```bash
-# Test STT directly with a WAV file
-curl -X POST http://localhost:8000/v1/audio/transcriptions \
-  -F "file=@test.wav" \
-  -F "model=Systran/faster-whisper-base.en"
-```
+**Resolution Action:**
+1. Check configured Whisper model environment variables `(docker-compose.yml:42)`.
+2. Inspect supervisor logs for Voice API checks: `(api/routers/voice.py:989)`.
+3. Restart audio service containers:
+   ```bash
+   docker compose restart kokoro-tts whisper-stt
+   ```

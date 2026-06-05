@@ -46,7 +46,7 @@ interface DealCardProps {
   nb: NotebookResponse
   index: number
   onClick: () => void
-  t: any
+  t: ReturnType<typeof useTranslation>['t']
 }
 
 function DealCard({ nb, index, onClick, t }: DealCardProps) {
@@ -280,9 +280,10 @@ export function KanbanBoard({ notebooks, onCardClick, pipelineType = 'sales' }: 
         id: draggableId,
         data: { stage: destColId },
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to update stage on server, reverting board state.', error)
-      const errorMsg = error.response?.data?.detail || 'Failed to move deal — reverted'
+      const err = error as { response?: { data?: { detail?: string } } }
+      const errorMsg = err.response?.data?.detail || 'Failed to move deal — reverted'
       toast.error(errorMsg)
       // Rollback to original sync state by re-triggering from prop notebooks
       const rollback: Record<string, NotebookResponse[]> = Object.fromEntries(
@@ -422,6 +423,7 @@ export function KanbanBoard({ notebooks, onCardClick, pipelineType = 'sales' }: 
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         defaultStage={selectedStageForNewNotebook}
+        defaultPipelineType={pipelineType}
       />
 
       {/* Slide-over Deal Details & RAG Chat Drawer */}

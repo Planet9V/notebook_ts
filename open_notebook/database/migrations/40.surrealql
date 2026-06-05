@@ -1,0 +1,29 @@
+-- Migration 40: Create location table and link contact to location
+-- Location is a first-class entity for CIF hierarchy, representing a facility.
+-- customer_id links location to its parent customer.
+
+DEFINE TABLE IF NOT EXISTS location SCHEMAFULL;
+
+-- Fields
+DEFINE FIELD IF NOT EXISTS customer_id ON TABLE location TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS organization_name ON TABLE location TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS facility_name ON TABLE location TYPE string;
+DEFINE FIELD IF NOT EXISTS facility_type ON TABLE location TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS sectors ON TABLE location TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS address ON TABLE location TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS country ON TABLE location TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS zip_code ON TABLE location TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS latitude ON TABLE location TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS longitude ON TABLE location TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS description ON TABLE location TYPE option<string>;
+
+-- Timestamps
+DEFINE FIELD IF NOT EXISTS created ON TABLE location TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated ON TABLE location TYPE option<datetime> DEFAULT time::now();
+
+-- Indexes
+DEFINE INDEX IF NOT EXISTS idx_location_customer ON TABLE location FIELDS customer_id;
+
+-- Link Contact to Location
+DEFINE FIELD IF NOT EXISTS location_id ON TABLE contact TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS idx_contact_location ON TABLE contact FIELDS location_id;

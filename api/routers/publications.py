@@ -106,19 +106,54 @@ async def update_settings(payload: EmailSettingsUpdate):
 
 @router.post("/settings/test")
 async def test_smtp_connection(payload: EmailSettingsUpdate):
-    """Trigger a test email/SMTP connection. Runs in sandbox mode."""
+    """Trigger a test email/SMTP connection. Runs in sandbox mode or tests real SMTP."""
     try:
-        logger.info(
-            f"Sandbox SMTP pre-flight test: {payload.smtp_host}:{payload.smtp_port} for user {payload.smtp_username}"
+        smtp_host = payload.smtp_host
+        smtp_port = payload.smtp_port
+        smtp_username = payload.smtp_username
+        smtp_password = payload.smtp_password
+        use_tls = payload.use_tls if payload.use_tls is not None else True
+
+        is_sandbox = (
+            not smtp_host
+            or smtp_host.strip() == ""
+            or "sandbox" in smtp_host.lower()
+            or "dummy" in smtp_host.lower()
+            or "mock" in smtp_host.lower()
         )
+
+        if is_sandbox:
+            logger.info(
+                f"Sandbox SMTP pre-flight test: {smtp_host}:{smtp_port} for user {smtp_username}"
+            )
+            return {
+                "status": "success",
+                "message": "SMTP pre-flight test completed successfully (Sandbox Mode)",
+            }
+        
+        import smtplib
+        logger.info(f"Testing real SMTP connection to {smtp_host}:{smtp_port}")
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port or 587, timeout=10)
+            if use_tls:
+                server.starttls()
+        
+        if smtp_username and smtp_password:
+            server.login(smtp_username, smtp_password)
+        
+        server.noop()
+        server.quit()
+        logger.success(f"Successfully connected to SMTP server at {smtp_host}:{smtp_port}")
         return {
             "status": "success",
-            "message": "SMTP pre-flight test completed successfully (Sandbox Mode)",
+            "message": f"Successfully connected to SMTP server at {smtp_host}:{smtp_port}",
         }
     except Exception as e:
         logger.error(f"Error running connection test: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Error running connection test: {str(e)}"
+            status_code=400, detail=f"SMTP connection test failed: {str(e)}"
         )
 
 
@@ -400,4 +435,19 @@ async def trigger_metrics_tracking():
         raise HTTPException(
             status_code=500, detail=f"Failed to run metrics tracker: {str(e)}"
         )
+
+
+@router.post("/publish-due")
+async def trigger_due_publications():
+    """Trigger publishing of due scheduled posts manually."""
+    try:
+        from open_notebook.tasks.publication_worker import publish_due_posts
+        await publish_due_posts()
+        return {"status": "success", "message": "Triggered publishing of due posts successfully."}
+    except Exception as e:
+        logger.error(f"Failed to publish due posts: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to publish due posts: {str(e)}"
+        )
+
 

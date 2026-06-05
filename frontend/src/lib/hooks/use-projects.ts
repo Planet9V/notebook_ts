@@ -10,14 +10,18 @@ export const PROJECT_QUERY_KEYS = {
   research: (id: string) => ['projects', 'research', id] as const,
 }
 
-export function useProjects(params?: {
-  customer_id?: string
-  stage?: string
-  status?: string
-}) {
+export function useProjects(
+  params?: {
+    customer_id?: string
+    stage?: string
+    status?: string
+  },
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: PROJECT_QUERY_KEYS.list(params as Record<string, string>),
     queryFn: () => projectApi.list(params),
+    ...options,
   })
 }
 

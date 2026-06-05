@@ -68,7 +68,7 @@ export const PROVIDER_MODALITIES: Record<string, ModelType[]> = {
   mistral: ['language', 'embedding'],
   deepseek: ['language'],
   xai: ['language'],
-  openrouter: ['language', 'embedding', 'reranking', 'image_generation', 'audio'],
+  openrouter: ['language', 'embedding', 'reranking', 'image_generation', 'audio', 'video'],
   perplexity: ['language'],
   valyu: [],
   tavily: [],

@@ -82,4 +82,17 @@ export const researchItemApi = {
     const response = await apiClient.get(`/research-items/${itemId}/projects`)
     return response.data
   },
+
+  enhance: async (id: string, directions: string, model_id?: string | null): Promise<ResearchItem> => {
+    const response = await apiClient.post<ResearchItem>(`/research-items/${id}/enhance`, {
+      directions,
+      model_id,
+    })
+    return response.data
+  },
+
+  approve: async (id: string): Promise<ResearchItem> => {
+    const response = await apiClient.post<ResearchItem>(`/research-items/${id}/approve`)
+    return response.data
+  },
 }

@@ -327,13 +327,19 @@ async def test_model(model_id: str):
         raise HTTPException(status_code=404, detail="Model not found")
 
     try:
-        success, message = await test_individual_model(model)
-        return ModelTestResponse(success=success, message=message)
+        res = await test_individual_model(model)
+        if isinstance(res, tuple) and len(res) == 3:
+            success, message, details = res
+        else:
+            success, message = res
+            details = None
+        return ModelTestResponse(success=success, message=message, details=details)
     except Exception as e:
         logger.error(f"Error testing model {model_id}: {traceback.format_exc()}")
         return ModelTestResponse(
             success=False,
-            message=str(e)[:200],
+            message="An unexpected error occurred during testing",
+            details=traceback.format_exc()
         )
 
 

@@ -1,21 +1,14 @@
 import asyncio
-import os
-import sys
 from dotenv import load_dotenv
-
 load_dotenv()
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from open_notebook.database.repository import repo_query
 
 async def main():
-    try:
-        notebooks = await repo_query("SELECT id, name, description, archived FROM notebook")
-        print("Notebooks:")
-        for nb in notebooks:
-            print(nb)
-    except Exception as e:
-        print("Error:", e)
+    res = await repo_query("SELECT id, name FROM notebook")
+    print("Notebooks in database:")
+    for nb in res:
+        print(f"ID: {nb.get('id')} | Name: {nb.get('name')}")
 
 if __name__ == "__main__":
     asyncio.run(main())

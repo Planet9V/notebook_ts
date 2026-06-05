@@ -142,3 +142,9 @@ specs/
 .harness/
 
 .mcp.json
+
+# Temporary files & agent folders
+.agents/
+test.mp3
+debug_bento.html
+debug_bento.png

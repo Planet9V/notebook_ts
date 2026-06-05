@@ -248,5 +248,70 @@ class TestPodcastServiceContext:
         mock_notebook.get_notes.assert_called_once()
 
 
+class TestCustomVoiceUpload:
+    """Tests for custom voice recording and uploading endpoint."""
+
+    @patch("api.routers.voice._get_provider_api_key")
+    def test_upload_custom_voice_local(self, mock_get_api_key, client, tmp_path):
+        """Uploading a custom voice with local provider (kokoro) should save to data/custom_voices and return custom_ ID."""
+        mock_get_api_key.return_value = None
+        
+        # Override DATA_FOLDER to tmp_path for isolated testing
+        with patch("open_notebook.config.DATA_FOLDER", str(tmp_path)):
+            audio_data = b"RIFF" + b"\x00" * 50
+            response = client.post(
+                "/api/voice/upload-custom",
+                data={"speaker_name": "Host Alice", "provider": "kokoro"},
+                files={"file": ("recording.wav", io.BytesIO(audio_data), "audio/wav")},
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["voice_id"].startswith("custom_")
+            assert "custom_voice_path" in data
+            
+            # Verify file exists
+            import os
+            assert os.path.exists(data["custom_voice_path"])
+            with open(data["custom_voice_path"], "rb") as f:
+                assert f.read() == audio_data
+
+    @patch("api.routers.voice._get_provider_api_key")
+    @patch("api.routers.voice.httpx.AsyncClient")
+    def test_upload_custom_voice_elevenlabs(self, mock_async_client, mock_get_api_key, client, tmp_path):
+        """Uploading a custom voice with ElevenLabs should invoke instant voice cloning API."""
+        mock_get_api_key.return_value = "fake_elevenlabs_key"
+        
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"voice_id": "cloned_12345"}
+        
+        mock_client_instance = AsyncMock()
+        mock_client_instance.post = AsyncMock(return_value=mock_response)
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        mock_client_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_async_client.return_value = mock_client_instance
+        
+        with patch("open_notebook.config.DATA_FOLDER", str(tmp_path)):
+            audio_data = b"RIFF" + b"\x00" * 50
+            response = client.post(
+                "/api/voice/upload-custom",
+                data={"speaker_name": "Host Bob", "provider": "elevenlabs"},
+                files={"file": ("recording.wav", io.BytesIO(audio_data), "audio/wav")},
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["voice_id"] == "cloned_12345"
+            assert "cloned in ElevenLabs" in data["message"]
+            
+            # Verify ElevenLabs API call was made
+            mock_client_instance.post.assert_called_once()
+            call_url = mock_client_instance.post.call_args[0][0]
+            assert "api.elevenlabs.io" in call_url
+            call_headers = mock_client_instance.post.call_args[1]["headers"]
+            assert call_headers["xi-api-key"] == "fake_elevenlabs_key"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

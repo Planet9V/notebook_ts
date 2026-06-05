@@ -1,6 +1,5 @@
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
-
 from esperanto import (
     AIFactory,
     EmbeddingModel,
@@ -165,6 +164,9 @@ class ModelManager:
             "speech_to_text",
             "text_to_speech",
             "reranking",
+            "image_generation",
+            "audio",
+            "video",
         ]:
             raise ConfigurationError(f"Invalid model type: {model.type}")
 
@@ -195,8 +197,23 @@ class ModelManager:
         # Merge any additional kwargs (e.g. temperature)
         config.update(kwargs)
 
-        # Normalize provider name: DB stores underscores but Esperanto expects hyphens
-        provider = model.provider.replace("_", "-")
+        # Auto-translate local Kokoro provider to OpenAI-compatible configuration
+        if model.provider == "kokoro":
+            import os
+            kokoro_url = os.getenv("KOKORO_TTS_URL")
+            if not kokoro_url:
+                if os.path.exists("/.dockerenv"):
+                    kokoro_url = "http://kokoro-tts:8880"
+                else:
+                    kokoro_url = "http://localhost:8880"
+            config.update({
+                "base_url": f"{kokoro_url}/v1",
+                "api_key": "not-needed"
+            })
+            provider = "openai"
+        else:
+            # Normalize provider name: DB stores underscores but Esperanto expects hyphens
+            provider = model.provider.replace("_", "-")
 
         # Create model based on type (Esperanto will cache the instance)
         if model.type == "language":
@@ -223,9 +240,8 @@ class ModelManager:
                 provider=provider,
                 config=config,
             )
-        elif model.type == "reranking":
-            # Reranking models are loaded as language models for LLM-based reranking.
-            # The search pipeline sends a scoring prompt and parses the JSON response.
+        elif model.type in ("reranking", "image_generation", "audio", "video"):
+            # Reranking and generation models are loaded as language models for LLM-based completion/testing.
             return AIFactory.create_language(
                 model_name=model.name,
                 provider=provider,

@@ -19,6 +19,8 @@ import {
 
 interface ActivityTabProps {
   customerId: string
+  isMiniView?: boolean
+  searchTerm?: string
 }
 
 // Map activity_type to icon + color
@@ -37,6 +39,30 @@ const ACTIVITY_TYPE_MAP: Record<string, { icon: React.ElementType; color: string
   email_sent: { icon: FileText, color: 'text-pink-400', label: 'Email Sent' },
   meeting_logged: { icon: Clock, color: 'text-yellow-400', label: 'Meeting Logged' },
   custom: { icon: ActivityIcon, color: 'text-slate-400', label: 'Custom Event' },
+}
+
+const sanitizeTerm = (term: string) => {
+  return term.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&').trim()
+}
+
+const highlightText = (text: string, query: string) => {
+  if (!query || !query.trim()) return <>{text}</>
+  const sanitized = sanitizeTerm(query)
+  const regex = new RegExp(`(${sanitized})`, 'gi')
+  const parts = text.split(regex)
+  return (
+    <>
+      {parts.map((part, index) =>
+        regex.test(part) ? (
+          <mark key={index} className="bg-cyan-500/30 text-cyan-200 font-semibold px-0.5 rounded border-b border-cyan-400">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  )
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -92,112 +118,129 @@ function ActivitySkeleton() {
   )
 }
 
-export function ActivityTab({ customerId }: ActivityTabProps) {
+export function ActivityTab({ customerId, isMiniView = false, searchTerm = '' }: ActivityTabProps) {
   const { data: activities, isLoading } = useActivities(customerId)
   const activityCount = activities?.length ?? 0
 
   // Group activities by date
   const grouped = React.useMemo(() => {
     if (!activities) return new Map<string, Activity[]>()
+    const displayActivities = isMiniView ? activities.slice(0, 5) : activities
     const map = new Map<string, Activity[]>()
-    for (const activity of activities) {
+    for (const activity of displayActivities) {
       const dateKey = formatDate(activity.created)
       const existing = map.get(dateKey) || []
       existing.push(activity)
       map.set(dateKey, existing)
     }
     return map
-  }, [activities])
+  }, [activities, isMiniView])
+
+  const innerContent = (
+    <>
+      {isLoading ? (
+        <ActivitySkeleton />
+      ) : activityCount === 0 ? (
+        <div className="flex flex-col items-center py-12 text-center space-y-3">
+          <div className="p-3 rounded-full bg-slate-800/60 border border-white/5">
+            <Clock className="h-8 w-8 text-muted-foreground/30" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-bold font-mono tracking-wider uppercase text-muted-foreground">
+              {highlightText("No activity recorded yet", searchTerm)}
+            </p>
+            <p className="text-[10px] text-muted-foreground/75 max-w-[280px] leading-relaxed font-sans">
+              {highlightText("Activity events will appear here as notebooks are created, notes are added, pipeline stages change, and more.", searchTerm)}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Array.from(grouped.entries()).map(([dateLabel, dayActivities]) => (
+            <div key={dateLabel}>
+              {/* Date separator */}
+              {!isMiniView && (
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px flex-1 bg-white/5" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-2">
+                    {highlightText(dateLabel, searchTerm)}
+                  </span>
+                  <div className="h-px flex-1 bg-white/5" />
+                </div>
+              )}
+
+              {/* Timeline entries */}
+              <div className="relative">
+                {/* Vertical line */}
+                <div className="absolute left-[15px] top-2 bottom-2 w-px bg-white/5" />
+
+                {dayActivities.map((activity, index) => {
+                  const config = ACTIVITY_TYPE_MAP[activity.activity_type] || ACTIVITY_TYPE_MAP.custom
+                  const Icon = config.icon
+
+                  return (
+                    <div 
+                      key={activity.id} 
+                      className="flex gap-4 relative group animate-in fade-in slide-in-from-bottom duration-300"
+                      style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'both' }}
+                    >
+                      {/* Icon dot */}
+                      <div className="flex-shrink-0 z-10">
+                        <div className={`h-8 w-8 rounded-full border border-white/10 bg-slate-950/80 flex items-center justify-center group-hover:border-cyan-500/30 transition-colors`}>
+                          <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 pb-5">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <Badge variant="outline" className={`text-[8px] font-mono font-bold uppercase tracking-wider px-1.5 py-0 border-white/10 ${config.color}`}>
+                            {highlightText(config.label, searchTerm)}
+                          </Badge>
+                          <span className="text-[9px] text-muted-foreground/50">
+                            {formatRelativeTime(activity.created)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          {highlightText(activity.description, searchTerm)}
+                        </p>
+                        {activity.actor && activity.actor !== 'system' && !isMiniView && (
+                          <p className="text-[9px] text-muted-foreground/40 mt-0.5">
+                            by {highlightText(activity.actor, searchTerm)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+
+  if (isMiniView) {
+    return <div className="font-mono text-xs">{innerContent}</div>
+  }
 
   return (
     <div className="space-y-6 font-mono text-xs">
-      <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
+      <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md animate-in fade-in slide-in-from-bottom duration-300">
         <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
           <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <ActivityIcon className="h-3.5 w-3.5" />
-            Activity Timeline
+            {highlightText("Activity Timeline", searchTerm)}
             {activityCount > 0 && (
               <Badge variant="outline" className="text-[8px] border-cyan-500/20 bg-cyan-500/5 text-cyan-400 font-bold ml-1">
-                {activityCount} events
+                {highlightText(`${activityCount} events`, searchTerm)}
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-5">
-          {isLoading ? (
-            <ActivitySkeleton />
-          ) : activityCount === 0 ? (
-            <div className="flex flex-col items-center py-12 text-center space-y-3">
-              <div className="p-3 rounded-full bg-slate-800/60 border border-white/5">
-                <Clock className="h-8 w-8 text-muted-foreground/30" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold font-mono tracking-wider uppercase text-muted-foreground">
-                  No activity recorded yet
-                </p>
-                <p className="text-[10px] text-muted-foreground/75 max-w-[280px] leading-relaxed">
-                  Activity events will appear here as notebooks are created, notes are added, pipeline stages change, and more.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {Array.from(grouped.entries()).map(([dateLabel, dayActivities]) => (
-                <div key={dateLabel}>
-                  {/* Date separator */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-px flex-1 bg-white/5" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-2">
-                      {dateLabel}
-                    </span>
-                    <div className="h-px flex-1 bg-white/5" />
-                  </div>
-
-                  {/* Timeline entries */}
-                  <div className="relative">
-                    {/* Vertical line */}
-                    <div className="absolute left-[15px] top-2 bottom-2 w-px bg-white/5" />
-
-                    {dayActivities.map((activity, index) => {
-                      const config = ACTIVITY_TYPE_MAP[activity.activity_type] || ACTIVITY_TYPE_MAP.custom
-                      const Icon = config.icon
-
-                      return (
-                        <div key={activity.id} className="flex gap-4 relative group">
-                          {/* Icon dot */}
-                          <div className="flex-shrink-0 z-10">
-                            <div className={`h-8 w-8 rounded-full border border-white/10 bg-slate-950/80 flex items-center justify-center group-hover:border-cyan-500/30 transition-colors`}>
-                              <Icon className={`h-3.5 w-3.5 ${config.color}`} />
-                            </div>
-                          </div>
-
-                          {/* Content */}
-                          <div className={`flex-1 pb-5 ${index < dayActivities.length - 1 ? '' : ''}`}>
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <Badge variant="outline" className={`text-[8px] font-mono font-bold uppercase tracking-wider px-1.5 py-0 border-white/10 ${config.color}`}>
-                                {config.label}
-                              </Badge>
-                              <span className="text-[9px] text-muted-foreground/50">
-                                {formatRelativeTime(activity.created)}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-300 leading-relaxed">
-                              {activity.description}
-                            </p>
-                            {activity.actor && activity.actor !== 'system' && (
-                              <p className="text-[9px] text-muted-foreground/40 mt-0.5">
-                                by {activity.actor}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {innerContent}
         </CardContent>
       </Card>
     </div>

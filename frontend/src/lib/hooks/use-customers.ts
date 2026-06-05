@@ -10,10 +10,11 @@ export const CUSTOMER_QUERY_KEYS = {
   detail: (id: string) => ['customers', id] as const,
 }
 
-export function useCustomers() {
+export function useCustomers(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: CUSTOMER_QUERY_KEYS.all,
     queryFn: () => customersApi.list(),
+    ...options,
   })
 }
 

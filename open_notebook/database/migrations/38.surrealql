@@ -1,0 +1,31 @@
+-- Migration 38: Seed default text_to_speech models for Kokoro, OpenAI, ElevenLabs, and Deepgram
+INSERT INTO model [
+    {
+        id: "kokoro",
+        name: "kokoro",
+        provider: "kokoro",
+        type: "text_to_speech",
+        description: "Kokoro Local TTS"
+    },
+    {
+        id: "openai_tts",
+        name: "tts-1",
+        provider: "openai",
+        type: "text_to_speech",
+        description: "OpenAI Text-to-Speech"
+    },
+    {
+        id: "elevenlabs_tts",
+        name: "eleven_v3",
+        provider: "elevenlabs",
+        type: "text_to_speech",
+        description: "ElevenLabs TTS"
+    },
+    {
+        id: "deepgram_tts",
+        name: "aura-2-thalia-en",
+        provider: "deepgram",
+        type: "text_to_speech",
+        description: "Deepgram Aura TTS"
+    }
+] ON DUPLICATE KEY UPDATE name = name;

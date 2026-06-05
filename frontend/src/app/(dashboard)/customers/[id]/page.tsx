@@ -18,8 +18,10 @@ import {
 import apiClient from '@/lib/api/client'
 import { CSETNetworkCanvas } from '../../notebooks/components/CSETNetworkCanvas'
 import { ContactsPanel } from '@/components/contacts/ContactsPanel'
+import { LocationsPanel } from '@/components/locations/LocationsPanel'
 import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useBreadcrumbLabel } from '@/lib/hooks/use-breadcrumb-label'
+import { useLocations } from '@/lib/hooks/use-locations'
 import {
   Customer,
   Notebook,
@@ -79,9 +81,19 @@ export default function CustomerDossierPage() {
   const customerId = `customer:${rawId}`
 
   const [customer, setCustomer] = useState<Customer | null>(null)
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('none')
+  const { data: locations = [] } = useLocations(customerId)
   const [notebooks, setNotebooks] = useState<Notebook[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [activeTab, setActiveTab] = useState<'profile' | 'contacts' | 'projects' | 'threats' | 'compliance' | 'education' | 'activity'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'contacts' | 'locations' | 'projects' | 'threats' | 'compliance' | 'education' | 'activity'>('profile')
+  const [highlightedContactId, setHighlightedContactId] = useState<string | null>(null)
+
+  const handleNavigateToContacts = (contactId?: string) => {
+    if (contactId) {
+      setHighlightedContactId(contactId)
+    }
+    setActiveTab('contacts')
+  }
 
   // Set human-readable breadcrumb label
   useBreadcrumbLabel(customer?.name)
@@ -137,6 +149,23 @@ export default function CustomerDossierPage() {
     }
   }
 
+  const [rollupData, setRollupData] = useState<any | null>(null)
+
+  const fetchRollupData = async () => {
+    try {
+      const response = await apiClient.get(`/customers/${customerId}/compliance-rollup`)
+      setRollupData(response.data)
+    } catch (e) {
+      console.error('Error fetching compliance rollup data:', e)
+    }
+  }
+
+  useEffect(() => {
+    if (customerId) {
+      fetchRollupData()
+    }
+  }, [customerId, assessments])
+
   useEffect(() => {
     fetchDossierData()
   }, [rawId])
@@ -163,6 +192,19 @@ export default function CustomerDossierPage() {
       setTrends([])
     }
   }, [activeAssessment])
+
+  // Reset active assessment if it does not match the selected location
+  useEffect(() => {
+    if (activeAssessment) {
+      const match = selectedLocationId === 'none' 
+        ? (!activeAssessment.location_id) 
+        : (activeAssessment.location_id === selectedLocationId)
+      if (!match) {
+        setActiveAssessment(null)
+      }
+    }
+  }, [selectedLocationId, activeAssessment])
+
 
   // ─── Handlers ───────────────────────────────────────────────────
 
@@ -372,6 +414,11 @@ export default function CustomerDossierPage() {
 
     // Overlay existing assessments
     for (const assess of assessments) {
+      const isMatch = selectedLocationId === 'none'
+        ? (!assess.location_id)
+        : (assess.location_id === selectedLocationId)
+      if (!isMatch) continue
+
       const rawId = assess.framework_id?.replace('regulation:', '') || ''
       const mappedFrontendId = DB_TO_FRONTEND_MAP[rawId] || rawId
       if (frameworkMap.has(mappedFrontendId)) {
@@ -389,17 +436,21 @@ export default function CustomerDossierPage() {
     }
 
     return Array.from(frameworkMap.values())
-  }, [customer, assessments])
+  }, [customer, assessments, selectedLocationId])
 
   // Create assessment for a single framework that doesn't have one yet
   const handleCreateAssessment = async (frameworkId: string) => {
     setIsLoading(true)
     try {
       const dbFwId = FRONTEND_TO_DB_MAP[frameworkId] || frameworkId
-      await apiClient.post('/assessments', {
+      const payload: any = {
         customer_id: customerId,
         framework_id: dbFwId,
-      })
+      }
+      if (selectedLocationId && selectedLocationId !== 'none') {
+        payload.location_id = selectedLocationId
+      }
+      await apiClient.post('/assessments', payload)
       // Reload assessments
       const assessResponse = await apiClient.get<any[]>(`/assessments?customer_id=${customerId}`)
       setAssessments(assessResponse.data || [])
@@ -446,10 +497,14 @@ export default function CustomerDossierPage() {
     setIsLoading(true)
     try {
       const dbFwId = FRONTEND_TO_DB_MAP[frameworkId] || frameworkId
-      const createAssessResp = await apiClient.post('/assessments', {
+      const payload: any = {
         customer_id: customerId,
         framework_id: dbFwId,
-      })
+      }
+      if (selectedLocationId && selectedLocationId !== 'none') {
+        payload.location_id = selectedLocationId
+      }
+      const createAssessResp = await apiClient.post('/assessments', payload)
       const newAssess = createAssessResp.data
       
       const assessResponse = await apiClient.get<any[]>(`/assessments?customer_id=${customerId}`)
@@ -507,11 +562,19 @@ export default function CustomerDossierPage() {
       <div className="flex-1 overflow-y-auto bg-background text-foreground">
         <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
           
-          {/* Back Navigation */}
-          <Link href="/customers" className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-widest font-mono select-none w-fit">
-            <ChevronLeft className="h-4 w-4" />
-            [ Return to Customer Ledger ]
-          </Link>
+          {/* Back Navigation & Mode Toggle */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <Link href="/customers" className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-widest font-mono select-none w-fit">
+              <ChevronLeft className="h-4 w-4" />
+              [ Return to Customer Ledger ]
+            </Link>
+            
+            <Link href={`/customers/${rawId}/bento`}>
+              <Button size="sm" variant="outline" className="border-cyan-500/20 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 font-bold text-[9px] uppercase tracking-wider py-1 px-3 h-8 select-none">
+                🧪 Try Bento View
+              </Button>
+            </Link>
+          </div>
 
           {/* Dossier Title Block */}
           <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-white/5 pb-5 gap-4">
@@ -561,7 +624,7 @@ export default function CustomerDossierPage() {
 
           {/* Tab Selection */}
           <div className="flex border-b border-white/5 font-mono text-xs overflow-x-auto select-none gap-2">
-            {(['profile', 'contacts', 'projects', 'threats', 'compliance', 'education', 'activity'] as const).map(tab => (
+            {(['profile', 'contacts', 'locations', 'projects', 'threats', 'compliance', 'education', 'activity'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -577,6 +640,7 @@ export default function CustomerDossierPage() {
               >
                 {tab === 'profile' && 'PROFILE STAKEHOLDERS'}
                 {tab === 'contacts' && 'CONTACTS'}
+                {tab === 'locations' && 'LOCATIONS'}
                 {tab === 'projects' && 'B2B DEAL PIPELINE'}
                 {tab === 'threats' && 'THREAT CANVAS'}
                 {tab === 'compliance' && 'COMPLIANCE WIZARD (CSET)'}
@@ -602,20 +666,34 @@ export default function CustomerDossierPage() {
                 editFrameworks={editFrameworks}
                 setEditFrameworks={setEditFrameworks}
                 handleSaveSettings={handleSaveSettings}
-                onNavigateToContacts={() => setActiveTab('contacts')}
+                onNavigateToContacts={handleNavigateToContacts}
               />
             )}
 
             {/* Contacts Tab */}
             {activeTab === 'contacts' && (
               <div className="font-mono text-xs">
-                <ContactsPanel customerId={customerId} />
+                <ContactsPanel 
+                  customerId={customerId} 
+                  highlightedContactId={highlightedContactId}
+                  onClearHighlight={() => setHighlightedContactId(null)}
+                />
+              </div>
+            )}
+
+            {/* Locations Tab */}
+            {activeTab === 'locations' && (
+              <div className="font-mono text-xs">
+                <LocationsPanel 
+                  customerId={customerId} 
+                  onNavigateToContacts={handleNavigateToContacts}
+                />
               </div>
             )}
 
             {/* Tab 2: Associated Notebooks */}
             {activeTab === 'projects' && (
-              <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden">
+              <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-bottom duration-300">
                 {notebooks.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center space-y-2 font-mono text-xs">
                     <Briefcase className="h-8 w-8 text-muted-foreground/30" />
@@ -637,8 +715,12 @@ export default function CustomerDossierPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {notebooks.map(nb => (
-                          <tr key={nb.id} className="hover:bg-slate-800/20 transition-all group">
+                        {notebooks.map((nb, index) => (
+                          <tr 
+                            key={nb.id} 
+                            className="hover:bg-slate-800/20 transition-all group animate-in fade-in slide-in-from-bottom duration-300"
+                            style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'both' }}
+                          >
                             <td className="p-4">
                               <div className="flex flex-col gap-0.5">
                                 <span className="font-bold text-slate-200 text-xs">{nb.name}</span>
@@ -673,7 +755,7 @@ export default function CustomerDossierPage() {
 
             {/* Tab 3: Threat Canvas */}
             {activeTab === 'threats' && (
-              <div className="h-[680px] w-full rounded-2xl border border-white/5 bg-slate-950/40 backdrop-blur-md overflow-hidden relative flex flex-col">
+              <div className="h-[680px] w-full rounded-2xl border border-white/5 bg-slate-950/40 backdrop-blur-md overflow-hidden relative flex flex-col animate-in fade-in slide-in-from-bottom duration-300">
                 <CSETNetworkCanvas />
               </div>
             )}
@@ -711,6 +793,10 @@ export default function CustomerDossierPage() {
                 handleLockSession={handleLockSession}
                 handleLaunchWizardDirectly={handleLaunchWizardDirectly}
                 handleInitializeAndLaunchWizard={handleInitializeAndLaunchWizard}
+                selectedLocationId={selectedLocationId}
+                setSelectedLocationId={setSelectedLocationId}
+                locations={locations}
+                rollupData={rollupData}
               />
             )}
 

@@ -20,10 +20,14 @@ export interface ResearchItem {
   run_count: number
   last_error: string | null
   results_summary: string
+  results_content?: string
   save_as_source: boolean
   tags: string[]
   created: string
   updated: string
+  is_deep_research?: boolean
+  deep_research_state?: string
+  deep_research_events?: unknown[]
 }
 
 export interface CreateResearchItemRequest {
@@ -42,7 +46,11 @@ export interface CreateResearchItemRequest {
   interval?: string | null
   is_recurring?: boolean
   save_as_source?: boolean
+  results_content?: string
   tags?: string[]
+  is_deep_research?: boolean
+  deep_research_state?: string
+  deep_research_events?: unknown[]
 }
 
 export interface UpdateResearchItemRequest {
@@ -62,8 +70,12 @@ export interface UpdateResearchItemRequest {
   interval?: string | null
   is_recurring?: boolean
   save_as_source?: boolean
-  tags?: string[]
   results_summary?: string
+  results_content?: string
+  tags?: string[]
+  is_deep_research?: boolean
+  deep_research_state?: string
+  deep_research_events?: unknown[]
 }
 
 export interface ResearchExecuteResponse {

@@ -15,12 +15,14 @@ interface VoiceIdPickerProps {
   placeholder?: string
   disabled?: boolean
   clearable?: boolean
+  engine?: string
 }
 
 const ENGINE_LABELS: Record<string, string> = {
   kokoro: 'Kokoro (Local)',
   openai: 'OpenAI TTS',
   elevenlabs: 'ElevenLabs',
+  deepgram: 'Deepgram Aura',
 }
 
 /**
@@ -36,29 +38,46 @@ export function VoiceIdPicker({
   placeholder,
   disabled = false,
   clearable = false,
+  engine,
 }: VoiceIdPickerProps) {
   const { t } = useTranslation()
   const { data: registry, isLoading } = useVoiceRegistry()
   const derivedId = useId()
   const selectId = id || derivedId
-
+ 
   // Map voice entries to ModelOption — id is the RAW voice id (no engine prefix)
   const voiceOptions: ModelOption[] = useMemo(() => {
     if (!registry) return []
     const options: ModelOption[] = []
-    for (const engine of registry.tts_engines) {
-      if (engine.status === 'not_configured') continue
-      for (const voice of engine.voices) {
+    for (const ttsEngine of registry.tts_engines) {
+      if (engine) {
+        if (ttsEngine.engine.toLowerCase() !== engine.toLowerCase()) continue
+      } else {
+        if (ttsEngine.status === 'not_configured') continue
+      }
+      for (const voice of ttsEngine.voices) {
         options.push({
           id: voice.id,  // Raw voice ID: "af_heart", NOT "kokoro:af_heart"
           name: voice.name,
-          provider: ENGINE_LABELS[engine.engine] || engine.engine,
-          description: engine.status === 'healthy' ? '● Online' : '○ Configured',
+          provider: ENGINE_LABELS[ttsEngine.engine] || ttsEngine.engine,
+          description: ttsEngine.status === 'healthy' ? '● Online' : ttsEngine.status === 'configured' ? '○ Configured' : '⚠ Not Configured',
         })
       }
     }
+    
+    if (value && value.startsWith('custom_')) {
+      if (!options.some(o => o.id === value)) {
+        options.push({
+          id: value,
+          name: `Custom Recorded Voice (${value.replace('custom_', '').substring(0, 8)})`,
+          provider: 'Custom (Local)',
+          description: '● Offline/Local',
+        })
+      }
+    }
+    
     return options
-  }, [registry])
+  }, [registry, engine, value])
 
   if (isLoading) {
     return (

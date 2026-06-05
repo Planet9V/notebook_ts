@@ -1315,6 +1315,7 @@ class ContactCreate(BaseModel):
     )
     linkedin_url: Optional[str] = Field("", description="Personal LinkedIn URL")
     customer_id: Optional[str] = Field(None, description="Associated customer ID")
+    location_ids: Optional[List[str]] = Field(default_factory=list, description="Associated location IDs")
     status: Optional[str] = Field("active", description="active, inactive, bounced")
     tags: Optional[List[str]] = Field(default_factory=list, description="Freeform tags")
     notes: Optional[str] = Field("", description="Private notes about contact")
@@ -1334,6 +1335,7 @@ class ContactUpdate(BaseModel):
     seniority: Optional[str] = Field(None, description="Seniority level")
     linkedin_url: Optional[str] = Field(None, description="Personal LinkedIn URL")
     customer_id: Optional[str] = Field(None, description="Associated customer ID")
+    location_ids: Optional[List[str]] = Field(None, description="Associated location IDs")
     status: Optional[str] = Field(None, description="active, inactive, bounced")
     tags: Optional[List[str]] = Field(None, description="Freeform tags")
     notes: Optional[str] = Field(None, description="Private notes about contact")
@@ -1357,12 +1359,61 @@ class ContactResponse(BaseModel):
     linkedin_url: str = ""
     customer_id: Optional[str] = None
     customer_name: Optional[str] = None
+    location_id: Optional[str] = None
+    location_name: Optional[str] = None
+    location_ids: List[str] = Field(default_factory=list)
+    location_names: List[str] = Field(default_factory=list)
     status: str = "active"
     tags: List[str] = Field(default_factory=list)
     notes: str = ""
     last_contacted: Optional[str] = None
     source: str = "manual"
     import_batch_id: Optional[str] = None
+    created: str
+    updated: str
+
+
+# Location models
+class LocationCreate(BaseModel):
+    customer_id: Optional[str] = Field(None, description="Associated customer ID")
+    organization_name: Optional[str] = Field("", description="Organization Name")
+    facility_name: str = Field(..., description="Facility Name")
+    facility_type: Optional[str] = Field("", description="Facility Type")
+    sectors: Optional[List[str]] = Field(default_factory=list, description="Sectors drop down")
+    address: Optional[str] = Field("", description="Address")
+    country: Optional[str] = Field("", description="Country")
+    zip_code: Optional[str] = Field("", description="Zip Code")
+    latitude: Optional[float] = Field(None, ge=-90.0, le=90.0, description="Latitude coordinate")
+    longitude: Optional[float] = Field(None, ge=-180.0, le=180.0, description="Longitude coordinate")
+    description: Optional[str] = Field("", description="Location description")
+
+
+class LocationUpdate(BaseModel):
+    organization_name: Optional[str] = Field(None, description="Organization Name")
+    facility_name: Optional[str] = Field(None, description="Facility Name")
+    facility_type: Optional[str] = Field(None, description="Facility Type")
+    sectors: Optional[List[str]] = Field(None, description="Sectors list")
+    address: Optional[str] = Field(None, description="Address")
+    country: Optional[str] = Field(None, description="Country")
+    zip_code: Optional[str] = Field(None, description="Zip Code")
+    latitude: Optional[float] = Field(None, ge=-90.0, le=90.0, description="Latitude coordinate")
+    longitude: Optional[float] = Field(None, ge=-180.0, le=180.0, description="Longitude coordinate")
+    description: Optional[str] = Field(None, description="Location description")
+
+
+class LocationResponse(BaseModel):
+    id: str
+    customer_id: Optional[str] = None
+    organization_name: str = ""
+    facility_name: str
+    facility_type: str = ""
+    sectors: List[str] = Field(default_factory=list)
+    address: str = ""
+    country: str = ""
+    zip_code: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    description: str = ""
     created: str
     updated: str
 
@@ -1477,6 +1528,7 @@ class QuestionResponse(BaseModel):
 class AssessmentCreate(BaseModel):
     customer_id: str = Field(..., description="Customer ID record link")
     framework_id: str = Field(..., description="Framework ID string")
+    location_id: Optional[str] = Field(None, description="Location ID record link")
 
 
 class AssessmentResponse(BaseModel):
@@ -1484,6 +1536,32 @@ class AssessmentResponse(BaseModel):
     customer_id: str
     framework_id: str
     created_at: str
+    location_id: Optional[str] = None
+
+
+class FacilityRollup(BaseModel):
+    location_id: Optional[str] = None
+    facility_name: str
+    session_id: Optional[str] = None
+    session_name: Optional[str] = None
+    status: str  # "IN_PROGRESS", "COMPLETED", "NOT_STARTED"
+    completion_percentage: float
+    compliance_score: float
+    last_updated: Optional[str] = None
+
+
+class FrameworkRollup(BaseModel):
+    framework_id: str
+    framework_name: str
+    facilities: List[FacilityRollup]
+    average_compliance_score: float
+    average_completion_percentage: float
+    total_facilities_assessed: int
+
+
+class CustomerComplianceRollup(BaseModel):
+    customer_id: str
+    frameworks: List[FrameworkRollup]
 
 
 class AssessmentSessionCreate(BaseModel):
@@ -1723,7 +1801,11 @@ class ResearchItemCreate(BaseModel):
     interval: Optional[str] = Field(None, description="Recurrence interval")
     is_recurring: Optional[bool] = Field(False, description="Is recurring")
     save_as_source: Optional[bool] = Field(True, description="Save results as source")
+    results_content: Optional[str] = Field("", description="Full results markdown content")
     tags: Optional[List[str]] = Field(default_factory=list, description="Tags")
+    is_deep_research: Optional[bool] = Field(False, description="Whether to run deep research emulation workflow")
+    deep_research_state: Optional[str] = Field("", description="Current deep research step/state")
+    deep_research_events: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Deep research execution events log")
 
 
 class ResearchItemUpdate(BaseModel):
@@ -1749,6 +1831,10 @@ class ResearchItemUpdate(BaseModel):
     save_as_source: Optional[bool] = Field(None, description="Save as source")
     tags: Optional[List[str]] = Field(None, description="Tags")
     results_summary: Optional[str] = Field(None, description="Results summary")
+    results_content: Optional[str] = Field(None, description="Full results markdown content")
+    is_deep_research: Optional[bool] = Field(None, description="Whether to run deep research emulation workflow")
+    deep_research_state: Optional[str] = Field(None, description="Current deep research step/state")
+    deep_research_events: Optional[List[Dict[str, Any]]] = Field(None, description="Deep research execution events log")
 
 
 class ResearchItemResponse(BaseModel):
@@ -1775,10 +1861,14 @@ class ResearchItemResponse(BaseModel):
     run_count: Optional[int] = 0
     last_error: Optional[str] = None
     results_summary: Optional[str] = ""
+    results_content: Optional[str] = ""
     save_as_source: Optional[bool] = True
     tags: Optional[List[str]] = []
     created: str
     updated: str
+    is_deep_research: Optional[bool] = False
+    deep_research_state: Optional[str] = ""
+    deep_research_events: Optional[List[Dict[str, Any]]] = []
 
 
 class LinkRequest(BaseModel):

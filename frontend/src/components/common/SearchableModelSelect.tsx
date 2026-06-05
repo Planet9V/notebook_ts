@@ -122,7 +122,7 @@ export function SearchableModelSelect({
 
   return (
     <div className={cn('flex gap-1', className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={true}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -170,7 +170,7 @@ export function SearchableModelSelect({
           <Command
             filter={(value, search) => {
               // Custom filter: search in model name, provider, and description
-              const model = models.find((m) => m.id === value)
+              const model = models.find((m) => m.id.toLowerCase() === value.toLowerCase())
               if (!model) return 0
               const haystack = `${model.name} ${model.provider} ${model.description || ''} ${model.modality || ''}`.toLowerCase()
               const terms = search.toLowerCase().split(/\s+/)

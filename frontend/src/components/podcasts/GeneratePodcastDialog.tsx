@@ -752,10 +752,16 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     if (!selectedEpisodeProfile) return []
     const speakerProfileName = selectedEpisodeProfile.speaker_config
     const speakerProfiles = speakerProfilesQuery.speakerProfiles || []
+    console.log('DEBUG SPEAKER NAMES RESOLUTION:', {
+      speakerProfileName,
+      speakerProfiles: speakerProfiles.map(sp => sp.name),
+      matched: speakerProfiles.find((sp) => sp.name === speakerProfileName)?.name
+    })
     const matched = speakerProfiles.find((sp) => sp.name === speakerProfileName)
     if (!matched) return []
     return matched.speakers.map((s) => s.name)
   }, [selectedEpisodeProfile, speakerProfilesQuery.speakerProfiles])
+
 
   const selectedNotebookSummaries = useMemo(() => {
     return notebooks.map((notebook) => {

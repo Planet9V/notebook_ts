@@ -20,7 +20,7 @@ interface ProfileTabProps {
   editFrameworks: string[]
   setEditFrameworks: (v: string[]) => void
   handleSaveSettings: () => void
-  onNavigateToContacts?: () => void
+  onNavigateToContacts?: (contactId?: string) => void
 }
 
 export function ProfileTab({
@@ -44,7 +44,7 @@ export function ProfileTab({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-mono text-xs">
-      <div className="lg:col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-4 animate-in fade-in slide-in-from-bottom duration-300">
         <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
           <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Corporate Profile</CardTitle>
@@ -226,7 +226,7 @@ export function ProfileTab({
         </Card>
       </div>
       
-      <div className="lg:col-span-1 space-y-4">
+      <div className="lg:col-span-1 space-y-4 animate-in fade-in slide-in-from-bottom duration-300" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
         {/* Unified Stakeholder Contacts — data from contact table, not embedded array */}
         <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
           <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
@@ -260,7 +260,7 @@ export function ProfileTab({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={onNavigateToContacts}
+                    onClick={() => onNavigateToContacts()}
                     className="text-cyan-400 hover:text-cyan-300 font-bold font-mono h-7 text-[10px] uppercase mt-1"
                   >
                     Add contacts →
@@ -273,10 +273,33 @@ export function ProfileTab({
                   <div key={contact.id} className="p-3 border border-white/5 bg-slate-950/40 rounded-lg space-y-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 bottom-0 w-1 bg-cyan-500/20" />
                     <div className="pl-1 space-y-1">
-                      <p className="font-bold text-slate-200">{contact.full_name}</p>
+                      {onNavigateToContacts ? (
+                        <button
+                          onClick={() => onNavigateToContacts(contact.id)}
+                          className="font-bold text-slate-200 hover:text-cyan-400 hover:underline text-left focus:outline-none transition-colors"
+                        >
+                          {contact.full_name}
+                        </button>
+                      ) : (
+                        <p className="font-bold text-slate-200">{contact.full_name}</p>
+                      )}
                       {contact.title && (
                         <p className="text-[10px] text-muted-foreground">{contact.title}</p>
                       )}
+                      
+                      {(contact.customer_name || contact.location_name || (contact.location_names && contact.location_names.length > 0)) && (
+                        <div className="text-[9.5px] text-cyan-400/90 font-mono mt-1 space-y-0.5">
+                          {contact.customer_name && (
+                            <p className="truncate"><span className="text-muted-foreground/60">Company:</span> {contact.customer_name}</p>
+                          )}
+                          {contact.location_names && contact.location_names.length > 0 ? (
+                            <p className="truncate"><span className="text-muted-foreground/60">Locations:</span> {contact.location_names.join(', ')}</p>
+                          ) : contact.location_name ? (
+                            <p className="truncate"><span className="text-muted-foreground/60">Location:</span> {contact.location_name}</p>
+                          ) : null}
+                        </div>
+                      )}
+
                       <Separator className="bg-white/5 my-2" />
                       {contact.email && (
                         <a href={`mailto:${contact.email}`} className="text-[9.5px] text-cyan-400 hover:underline flex items-center gap-1.5 font-mono select-all">
@@ -291,7 +314,7 @@ export function ProfileTab({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={onNavigateToContacts}
+                    onClick={() => onNavigateToContacts()}
                     className="w-full text-cyan-400 hover:text-cyan-300 font-bold font-mono h-7 text-[10px] uppercase border border-white/5 hover:border-cyan-500/20 transition-all"
                   >
                     View all {contactCount} contacts
@@ -302,7 +325,7 @@ export function ProfileTab({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={onNavigateToContacts}
+                    onClick={() => onNavigateToContacts()}
                     className="w-full text-muted-foreground hover:text-cyan-300 font-mono h-6 text-[9px] uppercase"
                   >
                     Manage contacts →

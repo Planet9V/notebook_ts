@@ -2,6 +2,7 @@ export const RESEARCH_STAGES = [
   'queued',
   'researching',
   'analyzing',
+  'review_enhance',
   'completed',
   'archived',
 ] as const
@@ -12,6 +13,7 @@ export const RESEARCH_STAGE_LABELS: Record<ResearchStage, string> = {
   queued: 'Queued',
   researching: 'Researching',
   analyzing: 'Analyzing',
+  review_enhance: 'Review & Enhance',
   completed: 'Completed',
   archived: 'Archived',
 }
@@ -19,7 +21,8 @@ export const RESEARCH_STAGE_LABELS: Record<ResearchStage, string> = {
 export const RESEARCH_STAGE_COLORS: Record<ResearchStage, string> = {
   queued: 'slate',
   researching: 'sky',
-  analyzing: 'amber',
+  analyzing: 'violet',
+  review_enhance: 'amber',
   completed: 'emerald',
   archived: 'zinc',
 }

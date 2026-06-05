@@ -34,6 +34,7 @@ class Contact(ObjectModel):
     seniority: Optional[str] = ""
     linkedin_url: Optional[str] = ""
     customer_id: Optional[str] = None
+    location_ids: Optional[List[str]] = Field(default_factory=list)
     status: Optional[str] = "active"
     tags: Optional[List[str]] = Field(default_factory=list)
     notes: Optional[str] = ""

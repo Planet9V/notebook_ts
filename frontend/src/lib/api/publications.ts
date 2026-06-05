@@ -57,5 +57,10 @@ export const publicationsApi = {
     const response = await apiClient.get<PublicationMetricsHistoryEntry[]>('/publications/metrics/history')
     return response.data
   },
+
+  publishDue: async (): Promise<{ status: string; message: string }> => {
+    const response = await apiClient.post<{ status: string; message: string }>('/publications/publish-due')
+    return response.data
+  },
 }
 

@@ -18,6 +18,35 @@ import {
   ClipboardCheck,
 } from 'lucide-react'
 import { Customer, COMPLIANCE_FRAMEWORKS, SECTOR_FRAMEWORK_MAP, SECTOR_COLORS, SECTOR_GUIDELINES } from '../data'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Location } from '@/lib/types/location'
+
+const DB_TO_FRONTEND_MAP: Record<string, string> = {
+  'Cfats': 'CFATS_RBPS',
+  'CPG': 'CISA_CPG',
+  'SP800_82_V3': 'NIST_800_82',
+  'SP800_82_V2': 'NIST_800_82',
+  'C800_53_R5_V2': 'NIST_800_53',
+  'C800_53_R4_71': 'NIST_800_53',
+  'NCSF_V2': 'NIST_CSF',
+  'NCSF_V1': 'NIST_CSF',
+  'CSC_V8': 'CIS_CONTROLS',
+  'Cnssi_1253': 'CNSSI_1253',
+  'AWWA': 'AWWA_G430',
+  'TSA2018': 'TSA_RAIL',
+  'Tsa': 'TSA_PIPELINE',
+  'COBIT_2019': 'COBIT_2019',
+  'SOC_2': 'SOC_2',
+  'ISA_62443': 'IEC_62443_3_3',
+  'CMMC': 'CMMC_L1',
+  'Universal': 'NIS2',
+}
 
 interface ComplianceTabProps {
   customer: Customer
@@ -48,6 +77,12 @@ interface ComplianceTabProps {
   launchReport: (session: { id: string; session_name?: string; status?: string }) => void
   handleSaveAnswer: (val: 'Y' | 'N' | 'NA' | 'ALT', comments?: string, evidence?: string) => void
   handleLockSession: () => void
+  handleLaunchWizardDirectly: (frameworkId: string, frameworkName: string, assessmentId: string) => void
+  handleInitializeAndLaunchWizard: (frameworkId: string, frameworkName: string) => void
+  selectedLocationId: string
+  setSelectedLocationId: (id: string) => void
+  locations: Location[]
+  rollupData?: any
 }
 
 export function ComplianceTab({
@@ -79,15 +114,156 @@ export function ComplianceTab({
   launchReport,
   handleSaveAnswer,
   handleLockSession,
+  handleLaunchWizardDirectly,
+  handleInitializeAndLaunchWizard,
+  selectedLocationId,
+  setSelectedLocationId,
+  locations,
+  rollupData,
 }: ComplianceTabProps) {
+  const activeLocation = activeAssessment?.location_id
+    ? locations.find((l) => l.id === activeAssessment.location_id)
+    : null
+
   return (
     <>
       {/* Assessment List View */}
       {!wizardMode && !reportMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-mono text-xs">
+        <div className="space-y-4 font-mono text-xs animate-in fade-in slide-in-from-bottom duration-300">
+          {/* Location / Facility Selector */}
+          <div className="p-4 rounded-xl border border-white/5 bg-slate-900/40 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block font-mono">Select Assessment Scope</span>
+              <p className="text-xs text-muted-foreground font-sans">
+                Choose a specific facility or organization-wide level to run compliance audits.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-300 font-mono">Location:</span>
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                <SelectTrigger className="w-[260px] bg-slate-950 border-white/10 text-slate-300 font-mono">
+                  <SelectValue placeholder="Select location..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-slate-300 font-mono">
+                  <SelectItem value="none">Organization-Wide (Customer Level)</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.facility_name} {loc.facility_type ? `(${loc.facility_type})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Active Assessments ledger */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Facility Compliance Rollup (Corporate View) */}
+            {selectedLocationId === 'none' && !activeAssessment && rollupData && rollupData.frameworks && rollupData.frameworks.length > 0 && (
+              <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md animate-in slide-in-from-bottom duration-300">
+                <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <BarChart2 className="h-4 w-4 text-cyan-400" />
+                    Facility Compliance Rollup (Corporate View)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  {rollupData.frameworks.map((fw: any) => (
+                    <div key={fw.framework_id} className="space-y-3 p-3 border border-white/5 bg-slate-950/40 rounded-lg">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <div>
+                          <span className="font-bold text-slate-200 uppercase text-xs font-mono">{fw.framework_name}</span>
+                          <span className="text-[9px] text-muted-foreground block font-mono">
+                            {fw.total_facilities_assessed} facility node(s) assessed
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-cyan-400 font-mono block">
+                            Avg Score: {fw.average_compliance_score.toFixed(1)}%
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-mono">
+                            Completion Rate: {fw.average_completion_percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Nested Facility Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left font-mono text-[10px]">
+                          <thead>
+                            <tr className="border-b border-white/5 text-muted-foreground uppercase text-[8px] tracking-wider">
+                              <th className="py-2">Facility / Node</th>
+                              <th className="py-2">Milestone / Session</th>
+                              <th className="py-2">Status</th>
+                              <th className="py-2 text-right">Completion</th>
+                              <th className="py-2 text-right">Compliance Score</th>
+                              <th className="py-2"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {fw.facilities.map((fac: any) => {
+                              const isCompleted = fac.status === 'COMPLETED'
+                              const isNotStarted = fac.status === 'NOT_STARTED'
+                              return (
+                                <tr key={fac.location_id || 'org'} className="hover:bg-white/5 transition-colors group">
+                                  <td className="py-2 font-bold text-slate-300">
+                                    {fac.facility_name}
+                                  </td>
+                                  <td className="py-2 text-muted-foreground truncate max-w-[120px]" title={fac.session_name || 'N/A'}>
+                                    {fac.session_name || '—'}
+                                  </td>
+                                  <td className="py-2">
+                                    <Badge variant="outline" className={`text-[7px] font-mono font-bold ${
+                                      isCompleted ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400' :
+                                      isNotStarted ? 'border-slate-700 bg-slate-800/40 text-slate-400' :
+                                      'border-amber-500/20 bg-amber-500/5 text-amber-400'
+                                    }`}>
+                                      {fac.status}
+                                    </Badge>
+                                  </td>
+                                  <td className="py-2 text-right text-muted-foreground">
+                                    {fac.completion_percentage.toFixed(0)}%
+                                  </td>
+                                  <td className="py-2 text-right font-bold text-cyan-400">
+                                    {fac.compliance_score.toFixed(1)}%
+                                  </td>
+                                  <td className="py-2 text-right">
+                                    {!isNotStarted && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          setSelectedLocationId(fac.location_id || 'none')
+                                          const assessRecord = assessments.find((a: any) => {
+                                            const rawId = a.framework_id?.replace('regulation:', '') || ''
+                                            const mappedId = DB_TO_FRONTEND_MAP[rawId] || rawId
+                                            const locMatches = !a.location_id ? (!fac.location_id) : (a.location_id === fac.location_id)
+                                            return mappedId === fw.framework_id && locMatches
+                                          })
+                                          if (assessRecord) {
+                                            setActiveAssessment(assessRecord)
+                                          }
+                                        }}
+                                        className="h-5 px-1.5 text-[8px] text-cyan-400 hover:text-cyan-300 font-mono"
+                                      >
+                                        Go to Audit →
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
               <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Audited Regulatory Frameworks</CardTitle>
@@ -111,11 +287,15 @@ export function ComplianceTab({
                   </div>
                 ) : (
                   <div className="divide-y divide-white/5">
-                    {unifiedFrameworks.map(uf => {
+                    {unifiedFrameworks.map((uf, index) => {
                       const hasAssessment = uf.assessment !== null
                       const isSelected = hasAssessment && activeAssessment?.id === uf.assessment?.id
                       return (
-                        <div key={uf.frameworkId} className={`tetrel-border-beam p-4 hover:bg-slate-900/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${isSelected ? 'tetrel-border-beam-active bg-cyan-500/5 border-l-2 border-cyan-500' : ''}`}>
+                        <div 
+                          key={uf.frameworkId} 
+                          className={`tetrel-border-beam p-4 hover:bg-slate-900/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom duration-300 ${isSelected ? 'tetrel-border-beam-active bg-cyan-500/5 border-l-2 border-cyan-500' : ''}`}
+                          style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
+                        >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-slate-200 text-sm uppercase tracking-tight">{uf.frameworkName}</p>
@@ -150,20 +330,29 @@ export function ComplianceTab({
                           </div>
                           <div className="flex items-center gap-2">
                             {hasAssessment ? (
-                              <Button 
-                                size="sm"
-                                onClick={() => {
-                                  setActiveAssessment(uf.assessment)
-                                  setNewSessionName(`${uf.frameworkName} Audit Q${Math.floor(new Date().getMonth() / 3) + 1} 2026`)
-                                }}
-                                className="h-7 px-3 bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800 text-[10px]"
-                              >
-                                Manage Milestones
-                              </Button>
+                              <>
+                                <Button 
+                                  size="sm"
+                                  onClick={() => handleLaunchWizardDirectly(uf.frameworkId, uf.frameworkName, uf.assessment.id)}
+                                  className="h-7 px-3 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-[10px] gap-1"
+                                >
+                                  Compliance Wizard
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  onClick={() => {
+                                    setActiveAssessment(uf.assessment)
+                                    setNewSessionName(`${uf.frameworkName} Audit Q${Math.floor(new Date().getMonth() / 3) + 1} 2026`)
+                                  }}
+                                  className="h-7 px-3 bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800 text-[10px]"
+                                >
+                                  Milestones Ledger
+                                </Button>
+                              </>
                             ) : (
                               <Button 
                                 size="sm"
-                                onClick={() => handleCreateAssessment(uf.frameworkId)}
+                                onClick={() => handleInitializeAndLaunchWizard(uf.frameworkId, uf.frameworkName)}
                                 className="h-7 px-3 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-[10px] gap-1"
                               >
                                 <Plus className="h-3 w-3" />
@@ -346,6 +535,79 @@ export function ComplianceTab({
               </Card>
             )}
 
+            {/* Corporate Overview Summary */}
+            {selectedLocationId === 'none' && !activeAssessment && rollupData && (
+              <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md animate-in slide-in-from-right duration-300">
+                <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-cyan-400" />
+                    Corporate Rollup Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4 font-mono text-[11px]">
+                  {(() => {
+                    // Aggregate stats across all frameworks and facilities
+                    let totalAAssessments = 0
+                    let totalCompleted = 0
+                    let totalInProgress = 0
+                    let sumScores = 0.0
+                    let scoresCount = 0
+
+                    if (rollupData.frameworks) {
+                      for (const fw of rollupData.frameworks) {
+                        for (const fac of fw.facilities) {
+                          totalAAssessments++
+                          if (fac.status === 'COMPLETED') totalCompleted++
+                          else if (fac.status === 'IN_PROGRESS') totalInProgress++
+                          
+                          if (fac.status !== 'NOT_STARTED') {
+                            sumScores += fac.compliance_score
+                            scoresCount++
+                          }
+                        }
+                      }
+                    }
+
+                    const averageCompliance = scoresCount > 0 ? sumScores / scoresCount : 0.0
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 border border-white/5 bg-slate-950/40 rounded-lg text-center space-y-1">
+                            <span className="text-[8px] text-muted-foreground uppercase block font-sans">Avg Compliance</span>
+                            <span className="text-lg font-bold text-cyan-400">{averageCompliance.toFixed(1)}%</span>
+                          </div>
+                          <div className="p-3 border border-white/5 bg-slate-950/40 rounded-lg text-center space-y-1">
+                            <span className="text-[8px] text-muted-foreground uppercase block font-sans">Audited Nodes</span>
+                            <span className="text-lg font-bold text-slate-200">{totalAAssessments}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-white/5">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-muted-foreground font-sans">Milestones Closed:</span>
+                            <span className="text-emerald-400 font-bold">{totalCompleted}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-muted-foreground font-sans">Milestones In-Progress:</span>
+                            <span className="text-amber-400 font-bold">{totalInProgress}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-muted-foreground font-sans">Pending Audits:</span>
+                            <span className="text-slate-400 font-bold">{totalAAssessments - totalCompleted - totalInProgress}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 border border-cyan-500/10 bg-cyan-950/5 rounded-lg text-[10px] text-cyan-300/80 leading-relaxed font-sans">
+                          All facility nodes inherit their primary regulatory frameworks from organization profile settings. Individual audits must be conducted per facility node to track isolated compliance postures.
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Sector & Frameworks Context */}
             <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
               <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20">
@@ -464,16 +726,28 @@ export function ComplianceTab({
             </Card>
           </div>
         </div>
+      </div>
       )}
 
       {/* TAB: CSET-Style Question Auditing Wizard (WIZARD MODE) */}
       {wizardMode && activeSession && (
-        <div className="font-mono text-xs space-y-4 animate-in fade-in duration-300">
+        <div className="font-mono text-xs space-y-4 animate-in fade-in slide-in-from-bottom duration-300">
           
           {/* Wizard Title Bar */}
           <div className="p-4 bg-slate-900 border border-white/5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">Active CSET Auditing Wizard</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">Active CSET Auditing Wizard</span>
+                {activeLocation ? (
+                  <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/5 text-cyan-400 text-[8px] font-mono font-bold px-1.5 py-0 uppercase">
+                    Facility: {activeLocation.facility_name}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-slate-700 bg-slate-800/40 text-slate-400 text-[8px] font-mono font-bold px-1.5 py-0 uppercase">
+                    Organization-Wide
+                  </Badge>
+                )}
+              </div>
               <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                 {activeSession.session_name}
                 <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-[8.5px]">
@@ -654,12 +928,23 @@ export function ComplianceTab({
 
       {/* TAB: CSET-Style Report Card & Gap Analysis (REPORT MODE) */}
       {reportMode && reportData && activeSession && (
-        <div className="font-mono text-xs space-y-6 animate-in fade-in duration-300">
+        <div className="font-mono text-xs space-y-6 animate-in fade-in slide-in-from-bottom duration-300">
           
           {/* Report Header Bar */}
           <div className="p-4 bg-slate-900 border border-white/5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">authoritative assessment report card</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">authoritative assessment report card</span>
+                {activeLocation ? (
+                  <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/5 text-cyan-400 text-[8px] font-mono font-bold px-1.5 py-0 uppercase">
+                    Facility: {activeLocation.facility_name}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-slate-700 bg-slate-800/40 text-slate-400 text-[8px] font-mono font-bold px-1.5 py-0 uppercase">
+                    Organization-Wide
+                  </Badge>
+                )}
+              </div>
               <h2 className="text-sm font-bold text-slate-100">
                 {reportData.session_name} Gap Analysis
               </h2>

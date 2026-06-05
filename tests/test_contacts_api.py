@@ -28,6 +28,8 @@ MOCK_CONTACT_DATA = {
     "seniority": "Director",
     "linkedin_url": "https://linkedin.com/in/janedoe",
     "customer_id": "customer:cust1",
+    "location_ids": [],
+    "location_names": [],
     "status": "active",
     "tags": ["security", "executive"],
     "notes": "Key decision maker",
@@ -162,3 +164,87 @@ class TestContactsCRUD:
         response = client.delete("/api/contacts/contact:nonexistent")
 
         assert response.status_code == 404
+
+
+class TestContactsMultiLocationValidation:
+    """Test contacts multi-location assignment and validation."""
+
+    @patch("api.routers.contacts.repo_create", new_callable=AsyncMock)
+    @patch("api.routers.contacts.repo_query", new_callable=AsyncMock)
+    def test_create_contact_with_locations_success(self, mock_query, mock_create, client):
+        """POST /api/contacts creates a contact and verifies valid location assignments."""
+        mock_query.side_effect = [
+            [{"id": "location:loc1", "customer_id": "customer:cust1"}],
+            [{"name": "Acme Corp"}],
+            [{"id": "location:loc1", "facility_name": "Headquarters"}]
+        ]
+        
+        mock_contact = dict(MOCK_CONTACT_DATA)
+        mock_contact["location_ids"] = ["location:loc1"]
+        mock_contact["location_names"] = ["Headquarters"]
+        mock_create.return_value = [mock_contact]
+
+        response = client.post("/api/contacts", json={
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "customer_id": "customer:cust1",
+            "location_ids": ["location:loc1"]
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["location_ids"] == ["location:loc1"]
+        assert data["location_names"] == ["Headquarters"]
+
+    @patch("api.routers.contacts.repo_query", new_callable=AsyncMock)
+    def test_create_contact_locations_without_customer(self, mock_query, client):
+        """POST /api/contacts returns 400 when locations are linked but no customer is set."""
+        response = client.post("/api/contacts", json={
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "customer_id": None,
+            "location_ids": ["location:loc1"]
+        })
+
+        assert response.status_code == 400
+        assert "without a parent organization" in response.json()["detail"]
+
+    @patch("api.routers.contacts.repo_query", new_callable=AsyncMock)
+    def test_create_contact_location_customer_mismatch(self, mock_query, client):
+        """POST /api/contacts returns 400 when locations belong to a different customer."""
+        mock_query.return_value = [{"id": "location:loc1", "customer_id": "customer:other"}]
+
+        response = client.post("/api/contacts", json={
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "customer_id": "customer:cust1",
+            "location_ids": ["location:loc1"]
+        })
+
+        assert response.status_code == 400
+        assert "does not belong to customer" in response.json()["detail"]
+
+    @patch("api.routers.contacts.repo_update", new_callable=AsyncMock)
+    @patch("api.routers.contacts.repo_query", new_callable=AsyncMock)
+    def test_update_contact_with_locations_success(self, mock_query, mock_update, client):
+        """PUT /api/contacts/{id} updates locations successfully."""
+        mock_query.side_effect = [
+            [MOCK_CONTACT_DATA],
+            [{"id": "location:loc1", "customer_id": "customer:cust1"}],
+            [{"name": "Acme Corp"}],
+            [{"id": "location:loc1", "facility_name": "Headquarters"}]
+        ]
+        
+        updated = dict(MOCK_CONTACT_DATA)
+        updated["location_ids"] = ["location:loc1"]
+        updated["location_names"] = ["Headquarters"]
+        mock_update.return_value = [updated]
+
+        response = client.put("/api/contacts/contact:ct1", json={
+            "location_ids": ["location:loc1"]
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["location_ids"] == ["location:loc1"]
+        assert data["location_names"] == ["Headquarters"]

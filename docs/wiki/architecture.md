@@ -1,239 +1,193 @@
-# Architecture
+---
+title: "System Architecture, Stack & Specifications"
+description: "Exhaustive documentation of the technology stack, multi-stage Docker builds, supervisord orchestration, hardware specifications, site maps, and administration."
+---
 
-## System Overview
+# System Architecture, Stack & Specifications
 
-Tetrel Notebook is a privacy-focused research & knowledge management platform with integrated Voice AI, compliance auditing, and CRM capabilities.
+This document covers the **System Architecture, Technology Stack, Hardware Specifications, Site Maps, and Administration Controls** of the Tetrel Security (Open Notebook) platform.
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        Browser["Browser (Next.js 15)"]
-    end
-    
-    subgraph "Application Layer (Docker)"
-        App["open_notebook<br/>FastAPI + Next.js<br/>Ports: 5055, 8502"]
-        
-        subgraph "Voice AI Services"
-            LiveKit["LiveKit SFU<br/>Port: 7880"]
-            Kokoro["Kokoro TTS<br/>Port: 8880"]
-            Whisper["Faster Whisper STT<br/>Port: 8000"]
-        end
-    end
-    
-    subgraph "Data Layer"
-        SurrealDB["SurrealDB<br/>Port: 8000<br/>Graph + Document DB"]
-    end
-    
-    subgraph "External APIs"
-        OpenRouter["OpenRouter<br/>Multi-LLM Gateway"]
-        HuggingFace["Hugging Face<br/>Embedding Models"]
-    end
-    
-    Browser --> App
-    App --> SurrealDB
-    App --> LiveKit
-    App --> Kokoro
-    App --> Whisper
-    App --> OpenRouter
-    App --> HuggingFace
-```
+---
 
-## Docker Compose Services
+## 🗺️ Architectural Map of Content (MOC)
 
-Defined in [docker-compose.yml](file:///Users/jimmcknney/notebook_tetrel/docker-compose.yml):
+* **[Technology Stack Breakdown](#-technology-stack-breakdown):** Core frameworks, databases, and AI providers.
+* **[Hardware & System Specifications](#-hardware--system-specifications):** Minimum and recommended CPU/GPU resource allocations.
+* **[Docker Builder & Runtime Pipeline](#-docker-builder--runtime-pipeline):** Block diagrams of the multi-stage compilation flow.
+* **[Website Sitemap & Route Topology](#-website-sitemap--route-topology):** Next.js layout structure and route catalog.
+* **[Process Management & Administration](#-process-management--administration):** supervisor orchestration, database backups, and health checks.
 
-| Service | Image | Port | Purpose |
-|---------|-------|------|---------|
-| `surrealdb` | `surrealdb/surrealdb:v2.2.1` | 8000 | Graph/document database |
-| `open_notebook` | Built from Dockerfile | 5055, 8502 | Backend API + Frontend |
-| `livekit-server` | `livekit/livekit-server` (pinned SHA) | 7880 | WebRTC SFU for voice |
-| `kokoro-tts` | `ghcr.io/remsky/kokoro-fastapi-cpu` (pinned SHA) | 8880 | Text-to-Speech |
-| `whisper-stt` | `fedirz/faster-whisper-server` (pinned SHA) | 8000 | Speech-to-Text |
+---
 
-## Backend Architecture
+## 🧬 Technology Stack Breakdown
+
+Open Notebook is built as a self-hosted, privacy-first alternative to cloud notebook tools. It employs a decoupled three-tier architecture:
 
 ```mermaid
-graph LR
-    subgraph "FastAPI Application"
-        Main["main.py<br/>App Entry"]
-        Auth["auth.py<br/>Middleware"]
-        
-        subgraph "Routers (37 files)"
-            R1["notebooks.py"]
-            R2["chat.py"]
-            R3["voice.py"]
-            R4["customers.py"]
-            R5["assessments.py"]
-            R6["search.py"]
-            R7["... 31 more"]
-        end
-        
-        subgraph "Domain Layer"
-            D1["Notebook"]
-            D2["Source"]
-            D3["ChatSession"]
-            D4["Customer"]
-        end
-        
-        subgraph "Data Layer"
-            Repo["repository.py<br/>repo_query/create/update/delete"]
-            DB["SurrealDB Client"]
-        end
+graph TD
+    classDef nodeStyle fill:#2d333b,stroke:#6d5dfc,color:#e6edf3;
+    classDef extStyle fill:#1b1f24,stroke:#30363d,color:#8b949e;
+
+    Browser["Next.js Browser UI<br/>(Port 8502)"]:::nodeStyle
+    FastAPI["FastAPI API Backend<br/>(Port 5055)"]:::nodeStyle
+    Surreal["SurrealDB Database<br/>(Port 8000)"]:::nodeStyle
+    
+    subgraph AudioEngine ["Voice Services Swarm"]
+        LiveKit["LiveKit SFU (Port 7880)"]:::nodeStyle
+        Kokoro["Kokoro TTS (Port 8880)"]:::nodeStyle
+        Whisper["Whisper STT (Port 8000)"]:::nodeStyle
     end
-    
-    Main --> Auth
-    Auth --> R1 & R2 & R3 & R4 & R5 & R6 & R7
-    R1 & R2 --> D1 & D2 & D3
-    R4 & R5 --> D4
-    D1 & D2 & D3 & D4 --> Repo
-    Repo --> DB
+    style AudioEngine fill:#161b22,stroke:#30363d;
+
+    OpenRouter["OpenRouter Gateway"]:::extStyle
+    HuggingFace["Hugging Face Models"]:::extStyle
+
+    Browser -->|HTTP / WebSockets| FastAPI
+    Browser -->|WebRTC Media Streams| LiveKit
+    FastAPI -->|SurrealQL| Surreal
+    FastAPI -->|REST Connections| Kokoro & Whisper
+    FastAPI -->|LLM Completion Queries| OpenRouter
+    FastAPI -->|Embedding Vectors| HuggingFace
 ```
 
-### Router Registration
+### 1. Presentation Layer (`frontend/`)
+*   **Next.js 16 (React 19):** Harnesses React Server Components (RSC) and App Router directories `(frontend/src/app/layout.tsx:1)`.
+*   **Zustand:** Provides client-side state buffers.
+*   **TanStack Query (React Query):** Standardizes caching and HTTP data mutations.
+*   **Tailwind CSS & Shadcn/ui:** Component framework for responsive design.
 
-All routers are registered in [main.py](file:///Users/jimmcknney/notebook_tetrel/api/main.py#L346-L379) with the `/api` prefix:
+### 2. Service Logic Layer (`api/` & `open_notebook/`)
+*   **FastAPI 0.104+:** Serves REST controllers and handles client routing `(api/main.py:1)`.
+*   **LangGraph:** Evaluates multi-agent conversation graph machines `(open_notebook/graphs/chat.py:15)`.
+*   **Esperanto:** Library abstracting multi-provider model connectors.
+*   **Surreal-Commands:** Asynchronous job engine for heavy processing queues (e.g. podcast compilation).
 
-| Router | Prefix | Description |
-|--------|--------|-------------|
-| `auth` | `/api/auth` | Authentication status |
-| `config` | `/api/config` | Version, DB health |
-| `notebooks` | `/api/notebooks` | Notebook CRUD + graph validation |
-| `chat` | `/api/chat` | Chat sessions + LLM execution |
-| `voice` | `/api/voice` | LiveKit tokens, TTS, STT, health |
-| `voice_rag` | `/api/voice` | Voice RAG chat pipeline |
-| `voice_sessions` | `/api/voice` | Voice session persistence |
-| `customers` | `/api/customers` | CRM customer management |
-| `contacts` | `/api/contacts` | Contact management |
-| `assessments` | `/api/assessments` | CSET compliance assessments |
-| `sources` | `/api/sources` | Document source management |
-| `notes` | `/api/notes` | Note CRUD |
-| `search` | `/api/search` | Full-text + semantic search |
-| `podcasts` | `/api/podcasts` | AI podcast generation |
-| `containers` | `/api/containers` | Docker container monitoring |
-| `platform` | `/api/platform` | GPU/system detection |
+### 3. Persistence Layer (`open_notebook/database/`)
+*   **SurrealDB v2.2.1:** Native multi-model database serving document schemas, graph edges, and vector storage.
+*   **SQLite:** Stores LangGraph local thread checkpoint buffers `(open_notebook/graphs/chat.py:88)`.
 
-## Frontend Architecture
+---
+
+## 💻 Hardware & System Specifications
+
+Running the local AI services stack (specifically Whisper STT and Kokoro TTS) requires appropriate system resources.
+
+| Specification | Minimum (CPU-Only Fallback) | Recommended (GPU-Accelerated) |
+| :--- | :--- | :--- |
+| **System RAM** | 8 GB DDR4 (16 GB if compiling) | 32 GB DDR5 |
+| **CPU Cores** | 4-Core Intel Core i5 / AMD Ryzen 5 | 8-Core Intel Core i7 / Apple Silicon M-Series |
+| **GPU vRAM** | N/A (CPU execution fallback) | 8 GB vRAM (Nvidia CUDA Compute Capability >= 7.5) |
+| **Disk Storage** | 20 GB SSD (Database + Model Caches) | 50 GB NVMe SSD |
+| **Host OS** | Linux (Ubuntu 22.04+), macOS (arm64) | Linux (Ubuntu 22.04 LTS / Docker Engine) |
+
+*   **Kokoro CPU limits:** Batch sizes are limited to `TTS_BATCH_SIZE=1` in CPU containers to prevent thread blocking `(docker-compose.yml:34)`.
+*   **GPU Driver Path:** CUDA devices require the installation of the Nvidia Container Toolkit for Docker socket mappings.
+
+---
+
+## 🚢 Docker Builder & Runtime Pipeline
+
+The platform uses a optimized **multi-stage Docker build** inside the [Dockerfile](file:///Users/jimmcknney/notebook_tetrel/Dockerfile) to minimize output footprints and maximize Docker layer caching:
 
 ```mermaid
-graph TB
-    subgraph "Next.js App Router"
-        Layout["RootLayout<br/>layout.tsx"]
-        
-        subgraph "Dashboard Pages (19)"
-            P1["/ (Home)"]
-            P2["/notebooks"]
-            P3["/customers"]
-            P4["/compliance"]
-            P5["/pipeline"]
-            P6["/voice-playground"]
-            P7["/settings"]
-            P8["/search"]
-            P9["... 11 more"]
-        end
-        
-        subgraph "Components (107)"
-            C1["VoiceChatPanel"]
-            C2["CSETNetworkCanvas"]
-            C3["KanbanBoard"]
-            C4["AddSourceDialog"]
-        end
-        
-        subgraph "Lib"
-            API["api/ clients (24)"]
-            Hooks["hooks/ (32)"]
-            Store["zustand stores"]
-        end
+graph TD
+    classDef nodeStyle fill:#2d333b,stroke:#6d5dfc,color:#e6edf3;
+    classDef stageStyle fill:#161b22,stroke:#6d5dfc,stroke-width:1px;
+
+    subgraph Stage1 ["Stage 1: frontend-builder"]
+        CopyNodeDeps["Copy package.json & lock"]:::stageStyle
+        NpmCi["Run npm ci"]:::stageStyle
+        BuildNext["Build Next.js standalone"]:::stageStyle
+        CopyNodeDeps --> NpmCi --> BuildNext
     end
-    
-    Layout --> P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9
-    P1 & P2 --> C1 & C2 & C3 & C4
-    C1 & C2 --> API & Hooks
-    API --> Store
+    style Stage1 fill:#161b22,stroke:#30363d;
+
+    subgraph Stage2 ["Stage 2: backend-builder"]
+        CopyPyDeps["Copy pyproject.toml & lock"]:::stageStyle
+        UvSync["Sync uv packages"]:::stageStyle
+        CacheTik["Pre-cache tiktoken encoding"]:::stageStyle
+        CopyPyDeps --> UvSync --> CacheTik
+    end
+    style Stage2 fill:#161b22,stroke:#30363d;
+
+    subgraph Stage3 ["Stage 3: runtime"]
+        InstallSys["Install runtime pkgs (FFmpeg, NodeJS 20)"]:::stageStyle
+        CopyVenv["Copy .venv from Stage 2"]:::stageStyle
+        CopyNextStandalone["Copy Next.js standalone from Stage 1"]:::stageStyle
+        CopySrc["Copy Python Source Code"]:::stageStyle
+        RunEntry["docker-entrypoint.sh & supervisord"]:::nodeStyle
+        
+        InstallSys --> CopyVenv --> CopyNextStandalone --> CopySrc --> RunEntry
+    end
+    style Stage3 fill:#161b22,stroke:#30363d;
 ```
 
-## Voice Pipeline
+*   **Layer Cache Optimizations:** Dependency files (`package.json`, `pyproject.toml`) are copied and installed first `(Dockerfile:8, 43)`, meaning changes to application code do not trigger slow dependency builds.
+*   **tiktoken Offline Pre-cache:** The compiler pre-downloads tiktoken encoding models during the build stage `(Dockerfile:52)`, allowing containers to boot fully offline.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Browser
-    participant STT as Whisper STT
-    participant LLM as OpenRouter LLM
-    participant TTS as Kokoro TTS
-    
-    User->>Browser: Press & hold mic button
-    Browser->>Browser: MediaRecorder.start()
-    User->>Browser: Release mic button
-    Browser->>Browser: MediaRecorder.stop() → Blob
-    Browser->>STT: POST /voice/stt/transcribe (FormData)
-    STT-->>Browser: { text: "user's speech" }
-    Browser->>LLM: POST /voice/chat/simple { text, use_rag }
-    LLM-->>Browser: { answer: "AI response text" }
-    Browser->>TTS: POST /voice/tts/synthesize { input, voice, speed }
-    TTS-->>Browser: audio/wav blob
-    Browser->>Browser: new Audio(blob).play()
-    Browser->>User: AI speaks response
+---
+
+## 📂 Website Sitemap & Route Topology
+
+The frontend is organized as a Next.js App Router workspace:
+
+```
+frontend/src/app/
+├── (auth)/
+│   └── login/                        # Authentication entry point
+└── (dashboard)/
+    ├── page.tsx                      # Dashboard Home / Overview
+    ├── notebooks/
+    │   ├── page.tsx                  # Notebooks workspace directory
+    │   └── [id]/
+    │       ├── page.tsx              # Notebook detail & RAG source index
+    │       ├── chat/                 # Conversational AI panel
+    │       ├── sources/              # Document management
+    │       └── notes/                # Note editing & creation
+    ├── customers/
+    │   ├── page.tsx                  # CRM Customer directory
+    │   └── [id]/
+    │       ├── page.tsx              # Customer details & pipeline stage
+    │       └── compliance/           # CPG/CSET assessments auditing
+    ├── contacts/
+    │   └── page.tsx                  # CRM Contacts index
+    ├── pipeline/
+    │   └── page.tsx                  # Kanban board deal tracker
+    ├── search/
+    │   └── page.tsx                  # Hybrid & Vector Search workbench
+    ├── voice-playground/
+    │   └── page.tsx                  # Voice Lab playground
+    ├── documentation/
+    │   └── page.tsx                  # Static developer reference manual
+    └── settings/
+        ├── page.tsx                  # General settings
+        ├── containers/               # Docker observatory logs
+        ├── publications/             # SMTP configs & Content Calendar
+        └── voice/                    # Multi-engine audio parameters
 ```
 
-## Database Schema
+---
 
-SurrealDB uses a graph model with record-linked entities:
+## ⚙️ Process Management & Administration
 
-```mermaid
-erDiagram
-    notebook ||--o{ reference : "has sources"
-    notebook ||--o{ artifact : "has notes"
-    notebook ||--o{ chat_session : "has chats"
-    source ||--o{ reference : "linked to"
-    source ||--o{ source_insight : "has insights"
-    customer ||--o{ assessment : "has assessments"
-    customer ||--o{ contact : "has contacts"
-    assessment ||--o{ assessment_session : "has sessions"
-    assessment_session ||--o{ assessment_answer : "has answers"
-    regulation ||--o{ question : "has questions"
-    notebook {
-        string name
-        string description
-        bool archived
-        string stage
-        string customer_id
-        json topology
-    }
-    source {
-        string title
-        string content
-        string source_type
-        json insights
-    }
-    customer {
-        string name
-        string industry
-        string size
-        int employee_count
-    }
-    contact {
-        string first_name
-        string last_name
-        string email
-        string title
-        string customer_id
-    }
-```
+### 1. supervisor Process Control `(supervisord.conf:1)`
+Within the runtime container, **supervisord** manages three sub-processes:
+*   **FastAPI API (`api`):** Backend REST controller `(supervisord.conf:7)`.
+*   **Commands Worker (`worker`):** Asynchronous task runner `(supervisord.conf:19)`.
+*   **Next.js Server (`frontend`):** Standalone server `(supervisord.conf:32)`.
 
-## Environment Variables
+### 2. Database Backup & Administration
+Administration endpoints allow data imports, exports, and schema resets:
+*   **Export Database:** `GET /api/import-export/export` dumps all SurrealQL tables into an output buffer `(api/routers/import_export.py:72)`.
+*   **Import Database:** `POST /api/import-export/import` executes queries on uploaded SurrealQL backup files `(api/routers/import_export.py:145)`.
+*   **Health Diagnostics:** Container CPU/GPU specs are checked via `GET /api/platform/info` `(api/routers/platform.py:12)`.
 
-Key configuration from [.env.example](file:///Users/jimmcknney/notebook_tetrel/.env.example):
+---
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `OPEN_NOTEBOOK_ENCRYPTION_KEY` | ✅ | `change-me-to-a-secret-string` | Credential encryption key |
-| `SURREAL_URL` | ✅ | `ws://surrealdb:8000/rpc` | Database WebSocket URL |
-| `SURREAL_USER` | ✅ | `root` | Database username |
-| `SURREAL_PASSWORD` | ✅ | `root` | Database password |
-| `LIVEKIT_API_KEY` | ❌ | `devkey` | LiveKit API key |
-| `LIVEKIT_API_SECRET` | ❌ | `secret` | LiveKit API secret |
-| `LIVEKIT_URL` | ❌ | `http://livekit-server:7880` | LiveKit server URL |
-| `KOKORO_TTS_URL` | ❌ | `http://kokoro-tts:8880` | TTS service URL |
-| `WHISPER_STT_URL` | ❌ | `http://whisper-stt:8000` | STT service URL |
-| `OPENAI_API_KEY` | ❌ | — | OpenAI API key |
-| `OPENROUTER_API_KEY` | ❌ | — | OpenRouter multi-LLM key |
+## 🔗 Related Documentation Pages
+
+*   **[MOC Master Index Map](index.md)**
+*   **[Principal Architecture Guide](principal-guide.md)**
+*   **[Developer Setup & Test Guide](developer-guide.md)**
+*   **[Operations & Runbook Guide](operations.md)**
+*   **[SurrealDB Schema & Migrations](database-schema.md)**

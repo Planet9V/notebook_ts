@@ -1,29 +1,23 @@
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
-from open_notebook.database.repository import repo_delete
+from open_notebook.database.repository import repo_delete, repo_query
 
 client = TestClient(app)
 
-def test_organizations_crud():
+@pytest.mark.asyncio
+async def test_organizations_crud():
     # Make sure to cleanup if it exists
-    org_id_to_cleanup = None
-    import asyncio
-    from open_notebook.database.repository import repo_query, repo_delete
-    async def prep():
-        res = await repo_query("SELECT id FROM organization WHERE name = 'Test Org 1';")
-        for r in res:
-            await repo_delete(r["id"])
-    asyncio.run(prep())
+    await repo_query("DELETE organization WHERE name = 'Test Org 1';")
     
     try:
         payload = {"name": "Test Org 1", "type": "customer"}
         res = client.post("/api/organizations", json=payload)
+        print("POST RESPONSE:", res.status_code, res.text)
         assert res.status_code == 200
         data = res.json()
         assert data["name"] == "Test Org 1"
         assert data["type"] == "customer"
-        org_id_to_cleanup = data["id"]
         
         # List organizations
         list_res = client.get("/api/organizations")
@@ -31,11 +25,7 @@ def test_organizations_crud():
         org_names = [org["name"] for org in list_res.json()]
         assert "Test Org 1" in org_names
     finally:
-        if org_id_to_cleanup:
-            import asyncio
-            async def cleanup():
-                await repo_delete(org_id_to_cleanup)
-            asyncio.run(cleanup())
+        await repo_query("DELETE organization WHERE name = 'Test Org 1';")
 
 
 @pytest.mark.asyncio

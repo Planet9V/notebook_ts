@@ -41,6 +41,12 @@ def ensure_record_id(value: Union[str, RecordID]) -> RecordID:
     """Ensure a value is a RecordID."""
     if isinstance(value, RecordID):
         return value
+    if isinstance(value, str):
+        value = value.replace("⟨", "").replace("⟩", "")
+        if ":" in value:
+            table, id_part = value.split(":", 1)
+            if id_part.isdigit():
+                return RecordID(table, int(id_part))
     return RecordID.parse(value)
 
 

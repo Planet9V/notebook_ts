@@ -158,6 +158,23 @@ OPENROUTER_MODEL_TYPES = {
         "voyage",
         "jina-embeddings",
     ],
+    "image_generation": [
+        "image",
+        "flux",
+        "recraft",
+        "grok-imagine",
+    ],
+    "audio": [
+        "audio",
+        "lyria",
+        "clip-preview",
+        "pro-preview",
+    ],
+    "video": [
+        "video",
+        "hailuo",
+        "wan-",
+    ],
     "speech_to_text": ["whisper"],
     "language": [],  # everything else defaults to language
 }
@@ -378,6 +395,18 @@ async def discover_ollama_models() -> List[DiscoveredModel]:
     except Exception as e:
         logger.warning(f"Failed to discover Ollama models: {e}")
 
+    # Ensure local Qwen3 reranker is always present in the list
+    existing_names = {m.name for m in models}
+    if "dengcao/Qwen3-Reranker-4B:Q4_K_M" not in existing_names:
+        models.append(
+            DiscoveredModel(
+                name="dengcao/Qwen3-Reranker-4B:Q4_K_M",
+                provider="ollama",
+                model_type="reranking",
+                description="Qwen3 Reranker 4B (Local)"
+            )
+        )
+
     return models
 
 
@@ -531,13 +560,23 @@ def classify_openrouter_by_modality(model_id: str, architecture: dict) -> str:
     input_mods = architecture.get("input_modalities", [])
 
     # Output-modality-based classification (most specific first)
+    if "video" in output_mods:
+        return "video"
     if "image" in output_mods and "text" in output_mods:
+        return "image_generation"
+    if "image" in output_mods:
         return "image_generation"
     if "audio" in output_mods:
         return "audio"
 
     # Name-based classification for reranking/embedding
     name_lower = model_id.lower()
+    if any(pat in name_lower for pat in ["video", "hailuo", "wan-"]):
+        return "video"
+    if any(pat in name_lower for pat in ["audio", "lyria", "clip-preview", "pro-preview"]):
+        return "audio"
+    if any(pat in name_lower for pat in ["image", "flux", "recraft", "grok-imagine"]):
+        return "image_generation"
     for pattern in ["rerank", "reranker"]:
         if pattern in name_lower:
             return "reranking"
@@ -554,7 +593,34 @@ async def discover_openrouter_models() -> List[DiscoveredModel]:
     """Fetch available models from OpenRouter API with ALL attributes."""
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        return []
+        required_openrouter_models = [
+            # Embedding
+            ("qwen/qwen3-embedding-8b", "embedding", "Qwen 3 Embedding 8B"),
+            ("openai/text-embedding-3-small", "embedding", "OpenAI Text Embedding 3 Small"),
+            ("openai/text-embedding-3-large", "embedding", "OpenAI Text Embedding 3 Large"),
+            # Audio
+            ("google/lyria-3-clip-preview", "audio", "Google Lyria 3 Clip Preview"),
+            ("google/lyria-3-pro-preview", "audio", "Google Lyria 3 Pro Preview"),
+            # Image
+            ("black-forest-labs/flux.2-max", "image_generation", "FLUX.2 Max"),
+            ("recraft/recraft-v4-vector", "image_generation", "Recraft v4 Vector"),
+            ("x-ai/grok-imagine-image-quality", "image_generation", "Grok Imagine Image Quality"),
+            # Video
+            ("x-ai/grok-imagine-video", "video", "Grok Imagine Video"),
+            ("minimax/hailuo-2.3", "video", "MiniMax Hailuo 2.3"),
+            ("alibaba/wan-2.6", "video", "Alibaba Wan 2.6"),
+        ]
+        return [
+            DiscoveredModel(
+                name=name,
+                provider="openrouter",
+                model_type=model_type,
+                description=desc,
+                input_modalities=["text"],
+                output_modalities=[model_type.replace("image_generation", "image")]
+            )
+            for name, model_type, desc in required_openrouter_models
+        ]
 
     models = []
     try:
@@ -633,6 +699,38 @@ async def discover_openrouter_models() -> List[DiscoveredModel]:
                 )
     except Exception as e:
         logger.warning(f"Failed to discover OpenRouter models: {e}")
+
+    # Ensure required OpenRouter models are always present
+    required_openrouter_models = [
+        # Embedding
+        ("qwen/qwen3-embedding-8b", "embedding", "Qwen 3 Embedding 8B"),
+        ("openai/text-embedding-3-small", "embedding", "OpenAI Text Embedding 3 Small"),
+        ("openai/text-embedding-3-large", "embedding", "OpenAI Text Embedding 3 Large"),
+        # Audio
+        ("google/lyria-3-clip-preview", "audio", "Google Lyria 3 Clip Preview"),
+        ("google/lyria-3-pro-preview", "audio", "Google Lyria 3 Pro Preview"),
+        # Image
+        ("black-forest-labs/flux.2-max", "image_generation", "FLUX.2 Max"),
+        ("recraft/recraft-v4-vector", "image_generation", "Recraft v4 Vector"),
+        ("x-ai/grok-imagine-image-quality", "image_generation", "Grok Imagine Image Quality"),
+        # Video
+        ("x-ai/grok-imagine-video", "video", "Grok Imagine Video"),
+        ("minimax/hailuo-2.3", "video", "MiniMax Hailuo 2.3"),
+        ("alibaba/wan-2.6", "video", "Alibaba Wan 2.6"),
+    ]
+    existing_names = {m.name for m in models}
+    for name, model_type, desc in required_openrouter_models:
+        if name not in existing_names:
+            models.append(
+                DiscoveredModel(
+                    name=name,
+                    provider="openrouter",
+                    model_type=model_type,
+                    description=desc,
+                    input_modalities=["text"],
+                    output_modalities=[model_type.replace("image_generation", "image")]
+                )
+            )
 
     return models
 

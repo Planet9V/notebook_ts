@@ -1,0 +1,9 @@
+-- Migration 42 Down: Rollback contact.location_ids to location_id
+DEFINE FIELD IF NOT EXISTS location_id ON TABLE contact TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS idx_contact_location ON TABLE contact FIELDS location_id;
+
+-- Copy back first item if any exists
+UPDATE contact SET location_id = location_ids[0] WHERE location_ids != NONE AND array::len(location_ids) > 0;
+
+-- Remove the array field
+REMOVE FIELD location_ids ON TABLE contact;

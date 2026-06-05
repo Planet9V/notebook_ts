@@ -27,6 +27,21 @@ from open_notebook.domain.voice_settings import VoiceSettingsConfig
 
 router = APIRouter()
 
+def is_running_in_docker() -> bool:
+    """Detect if running inside a Docker container."""
+    return os.path.exists("/.dockerenv")
+
+# Apply local host defaults if running outside Docker (e.g. host development)
+if not is_running_in_docker():
+    if not os.getenv("KOKORO_TTS_URL"):
+        os.environ["KOKORO_TTS_URL"] = "http://localhost:8880"
+    if not os.getenv("WHISPER_STT_URL"):
+        os.environ["WHISPER_STT_URL"] = "http://localhost:8881"
+    if not os.getenv("LIVEKIT_URL"):
+        os.environ["LIVEKIT_URL"] = "http://localhost:7880"
+    if not os.getenv("LIVEKIT_WS_URL"):
+        os.environ["LIVEKIT_WS_URL"] = "ws://localhost:7880"
+
 # ── Service URLs (configurable via env) ──────────────────────────────
 LIVEKIT_URL = os.getenv("LIVEKIT_URL", "http://livekit-server:7880")
 LIVEKIT_WS_URL = os.getenv("LIVEKIT_WS_URL", "ws://localhost:7880")
@@ -496,23 +511,43 @@ async def get_voice_registry():
     tts_engines.append(TTSEngineInfo(
         engine="openai",
         status="configured" if openai_key else "not_configured",
-        voices=openai_tts_voices if openai_key else [],
+        voices=openai_tts_voices,
     ))
 
     # ── TTS: ElevenLabs ──
     el_key = await _get_provider_api_key("elevenlabs")
-    # Note: ElevenLabs voices are user-specific. These are available models.
-    el_models = [
-        VoiceEntry(id="eleven_v3", name="Eleven v3 (Latest)", provider="elevenlabs"),
-        VoiceEntry(id="eleven_flash_v2_5", name="Flash v2.5 (Fast)", provider="elevenlabs"),
-        VoiceEntry(id="eleven_turbo_v2_5", name="Turbo v2.5", provider="elevenlabs"),
-        VoiceEntry(id="eleven_multilingual_v2", name="Multilingual v2", provider="elevenlabs"),
-        VoiceEntry(id="eleven_monolingual_v1", name="Monolingual v1", provider="elevenlabs"),
+    el_voices = [
+        VoiceEntry(id="21m00Tcm4TlvDq8ikWAM", name="Rachel (Female)", provider="elevenlabs"),
+        VoiceEntry(id="AZnzlk1XvdvUeBnXmlld", name="Dom (Male)", provider="elevenlabs"),
+        VoiceEntry(id="EXAVITQu4vr4xnSDxMaL", name="Bella (Female)", provider="elevenlabs"),
+        VoiceEntry(id="ErXwobaYiN019PkySvjV", name="Antoni (Male)", provider="elevenlabs"),
+        VoiceEntry(id="MF3mKeuZ5aP759t0x789", name="Ellie (Female)", provider="elevenlabs"),
+        VoiceEntry(id="TX38z5qCq49O5g24s609", name="Liam (Male)", provider="elevenlabs"),
+        VoiceEntry(id="VR6A4UBqKsFlTRUMBEcc", name="Arnold (Male)", provider="elevenlabs"),
+        VoiceEntry(id="pNInz6MdihwTYv7sM3nn", name="Rachel Clone (Female)", provider="elevenlabs"),
     ]
     tts_engines.append(TTSEngineInfo(
         engine="elevenlabs",
         status="configured" if el_key else "not_configured",
-        voices=el_models if el_key else [],
+        voices=el_voices,
+    ))
+
+    # ── TTS: Deepgram ──
+    dg_key = await _get_provider_api_key("deepgram")
+    dg_tts_voices = [
+        VoiceEntry(id="aura-2-thalia-en", name="Thalia (English - Female)", provider="deepgram"),
+        VoiceEntry(id="aura-2-andromeda-en", name="Andromeda (English - Male)", provider="deepgram"),
+        VoiceEntry(id="aura-2-arcas-en", name="Arcas (English - Male)", provider="deepgram"),
+        VoiceEntry(id="aura-2-helios-en", name="Helios (English - Male)", provider="deepgram"),
+        VoiceEntry(id="aura-2-luna-en", name="Luna (English - Female)", provider="deepgram"),
+        VoiceEntry(id="aura-2-orion-en", name="Orion (English - Male)", provider="deepgram"),
+        VoiceEntry(id="aura-2-perseus-en", name="Perseus (English - Male)", provider="deepgram"),
+        VoiceEntry(id="aura-2-stella-en", name="Stella (English - Female)", provider="deepgram"),
+    ]
+    tts_engines.append(TTSEngineInfo(
+        engine="deepgram",
+        status="configured" if dg_key else "not_configured",
+        voices=dg_tts_voices,
     ))
 
     # ── STT: Whisper (local) ──
@@ -1286,4 +1321,102 @@ async def deepgram_tts_synthesize(request: DeepgramTTSRequest):
         raise
     except Exception as e:
         logger.error(f"Deepgram TTS error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/voice/upload-custom")
+async def upload_custom_voice(
+    file: UploadFile = File(...),
+    speaker_name: str = Form(...),
+    provider: str = Form("kokoro"),
+):
+    """
+    Upload a custom voice audio recording/file.
+    Saves it locally, and if the provider is ElevenLabs, triggers instant voice cloning
+    to retrieve a valid ElevenLabs voice ID.
+    """
+    import uuid
+    from open_notebook.config import DATA_FOLDER
+
+    custom_voices_dir = os.path.join(DATA_FOLDER, "custom_voices")
+    os.makedirs(custom_voices_dir, exist_ok=True)
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename missing")
+
+    ext = os.path.splitext(file.filename)[1] or ".wav"
+    file_id = str(uuid.uuid4())
+    filename = f"{file_id}{ext}"
+    local_path = os.path.join(custom_voices_dir, filename)
+
+    try:
+        content = await file.read()
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail="Empty audio file")
+
+        with open(local_path, "wb") as f:
+            f.write(content)
+
+        logger.info(f"Saved custom voice recording to: {local_path}")
+
+        # If ElevenLabs is selected, trigger instant voice cloning
+        if provider == "elevenlabs":
+            api_key = await _get_provider_api_key("elevenlabs")
+            if not api_key:
+                raise HTTPException(
+                    status_code=400,
+                    detail="ElevenLabs API key is required to clone custom voices. Add it in Settings → Voice or Settings → Models & API Keys.",
+                )
+
+            headers = {"xi-api-key": api_key}
+            files = {
+                "files": (file.filename, content, file.content_type or "audio/wav"),
+            }
+            data = {
+                "name": f"Clone: {speaker_name} ({file_id[:8]})",
+                "description": f"Custom voice recording for speaker {speaker_name}",
+            }
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.elevenlabs.io/v1/voices/add",
+                    headers=headers,
+                    files=files,
+                    data=data,
+                )
+
+            if response.status_code != 200:
+                logger.error(f"ElevenLabs voice cloning failed: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"ElevenLabs cloning failed: {response.text}",
+                )
+
+            res_data = response.json()
+            voice_id = res_data.get("voice_id")
+            if not voice_id:
+                raise HTTPException(
+                    status_code=502,
+                    detail="ElevenLabs did not return a voice ID",
+                )
+
+            logger.info(f"ElevenLabs instant voice clone successful! Voice ID: {voice_id}")
+            return {
+                "voice_id": voice_id,
+                "custom_voice_path": local_path,
+                "message": "Voice successfully cloned in ElevenLabs",
+            }
+
+        # Otherwise (Kokoro, OpenAI, Deepgram, etc.)
+        # We save it locally, and return a mock/custom ID prefixing with custom_
+        return {
+            "voice_id": f"custom_{file_id}",
+            "custom_voice_path": local_path,
+            "message": "Custom voice recording saved locally",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to handle custom voice upload: {e}")
         raise HTTPException(status_code=500, detail=str(e))

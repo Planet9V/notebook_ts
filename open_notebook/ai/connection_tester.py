@@ -383,13 +383,95 @@ async def test_individual_model(model) -> Tuple[bool, str]:
     from open_notebook.ai.models import ModelManager
 
     try:
+        # Handle OpenRouter and Ollama direct API connections for chat/generative tests
+        # (This is more robust and bypasses any type mismatch in AIFactory)
+        if model.provider == "openrouter" and model.type in ("language", "reranking", "image_generation", "audio", "video"):
+            credential = await model.get_credential_obj()
+            api_key = None
+            if credential and credential.api_key:
+                api_key = credential.api_key.get_secret_value()
+            if not api_key:
+                api_key = os.environ.get("OPENROUTER_API_KEY")
+            if not api_key:
+                return False, "OpenRouter API Key not configured"
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": model.name,
+                        "messages": [{"role": "user", "content": "Hi"}],
+                        "max_tokens": 5
+                    }
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    choices = data.get("choices", [])
+                    if choices:
+                        text = choices[0].get("message", {}).get("content", "")
+                        return True, f"Response: {text[:100]}"
+                    return True, "Connection successful"
+                else:
+                    err_msg = resp.text
+                    try:
+                        err_json = resp.json()
+                        err_msg = err_json.get("error", {}).get("message", err_msg)
+                    except Exception:
+                        pass
+                    return False, f"OpenRouter returned {resp.status_code}: {err_msg[:100]}"
+
+        elif model.provider == "ollama" and model.type in ("language", "reranking"):
+            credential = await model.get_credential_obj()
+            base_url = None
+            if credential and credential.base_url:
+                base_url = credential.base_url
+            if not base_url:
+                base_url = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                if model.type == "reranking":
+                    resp = await client.post(
+                        f"{base_url.rstrip('/')}/api/generate",
+                        json={
+                            "model": model.name,
+                            "prompt": "Hi",
+                            "stream": False,
+                            "options": {"num_predict": 5}
+                        }
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        text = data.get("response", "")
+                        return True, f"Response: {text[:100]}"
+                    else:
+                        return False, f"Ollama returned {resp.status_code}: {resp.text[:100]}"
+                else:
+                    resp = await client.post(
+                        f"{base_url.rstrip('/')}/api/chat",
+                        json={
+                            "model": model.name,
+                            "messages": [{"role": "user", "content": "Hi"}],
+                            "stream": False
+                        }
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        text = data.get("message", {}).get("content", "")
+                        return True, f"Response: {text[:100]}"
+                    else:
+                        return False, f"Ollama returned {resp.status_code}: {resp.text[:100]}"
+
         manager = ModelManager()
         esp_model = await manager.get_model(model.id)
 
         if esp_model is None:
             return False, "Could not create model instance"
 
-        if model.type in ("language", "reranking"):
+        if model.type in ("language", "reranking", "image_generation", "audio", "video"):
             response = await esp_model.achat_complete(
                 messages=[{"role": "user", "content": "Hi!"}]
             )
@@ -436,9 +518,10 @@ async def test_individual_model(model) -> Tuple[bool, str]:
             return False, f"Unsupported model type: {model.type}"
 
     except Exception as e:
+        import traceback
         error_msg = str(e)
         success, normalized = _normalize_error_message(error_msg)
         if success:
-            return True, normalized
+            return True, normalized, None
         logger.debug(f"Test individual model error for {model.id}: {e}")
-        return False, normalized
+        return False, normalized, traceback.format_exc()

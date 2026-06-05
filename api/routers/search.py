@@ -586,10 +586,10 @@ async def stream_research_response(
                         citations_sent = False
                         accumulated_answer = ""
 
-                        async for chunk in response.iter_lines():
+                        async for chunk in response.aiter_lines():
                             if not chunk:
                                 continue
-                            line = chunk.decode("utf-8").strip()
+                            line = chunk.strip()
                             if line.startswith("data: "):
                                 data_str = line[6:].strip()
                                 if data_str == "[DONE]":

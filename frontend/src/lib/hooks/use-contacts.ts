@@ -39,14 +39,14 @@ export function useCreateContact() {
 
   return useMutation({
     mutationFn: (data: ContactCreate) => contactsApi.create(data),
-    onSuccess: (_data, variables) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: CONTACT_QUERY_KEYS.all })
-      if (variables.customer_id) {
+      if (data.customer_id) {
         queryClient.invalidateQueries({
-          queryKey: CONTACT_QUERY_KEYS.byCustomer(variables.customer_id),
+          queryKey: CONTACT_QUERY_KEYS.byCustomer(data.customer_id),
         })
         queryClient.invalidateQueries({
-          queryKey: CUSTOMER_QUERY_KEYS.detail(variables.customer_id),
+          queryKey: CUSTOMER_QUERY_KEYS.detail(data.customer_id),
         })
       }
       toast({
@@ -72,11 +72,20 @@ export function useUpdateContact() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: ContactUpdate }) =>
       contactsApi.update(id, data),
-    onSuccess: (_data, variables) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: CONTACT_QUERY_KEYS.all })
       queryClient.invalidateQueries({
-        queryKey: CONTACT_QUERY_KEYS.detail(variables.id),
+        queryKey: CONTACT_QUERY_KEYS.detail(data.id),
       })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      if (data.customer_id) {
+        queryClient.invalidateQueries({
+          queryKey: CONTACT_QUERY_KEYS.byCustomer(data.customer_id),
+        })
+        queryClient.invalidateQueries({
+          queryKey: CUSTOMER_QUERY_KEYS.detail(data.customer_id),
+        })
+      }
       toast({
         title: t('common.success') || 'Success',
         description: 'Contact updated successfully',

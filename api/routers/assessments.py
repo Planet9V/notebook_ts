@@ -15,6 +15,9 @@ from api.models import (
     AssessmentSessionResponse,
     CategoryCoverage,
     ComplianceSnapshot,
+    FacilityRollup,
+    FrameworkRollup,
+    CustomerComplianceRollup,
 )
 from open_notebook.database.repository import (
     ensure_record_id,
@@ -168,19 +171,32 @@ async def create_assessment(data: AssessmentCreate):
             raise HTTPException(status_code=404, detail="Compliance framework not found")
             
         # Check for existing link
-        existing = await repo_query(
-            "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) AND type::string(framework_id) = type::string($fw_id)",
-            {"cust_id": cust_id, "fw_id": fw_id}
-        )
+        loc_id = data.location_id
+        if loc_id and ":" not in loc_id:
+            loc_id = f"location:{loc_id}"
+
+        if loc_id:
+            existing = await repo_query(
+                "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) AND type::string(framework_id) = type::string($fw_id) AND type::string(location_id) = type::string($loc_id)",
+                {"cust_id": cust_id, "fw_id": fw_id, "loc_id": loc_id}
+            )
+        else:
+            existing = await repo_query(
+                "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) AND type::string(framework_id) = type::string($fw_id) AND location_id = NONE",
+                {"cust_id": cust_id, "fw_id": fw_id}
+            )
         
         if existing:
             rec = existing[0]
         else:
-            rec = await repo_create("assessment", {
+            insert_data = {
                 "customer_id": cust_id,
                 "framework_id": fw_id,
                 "created_at": datetime.now(timezone.utc).isoformat() + "Z"
-            })
+            }
+            if loc_id:
+                insert_data["location_id"] = loc_id
+            rec = await repo_create("assessment", insert_data)
             if isinstance(rec, list):
                 rec = rec[0]
                 
@@ -199,7 +215,8 @@ async def create_assessment(data: AssessmentCreate):
             id=str(rec["id"]),
             customer_id=str(rec["customer_id"]),
             framework_id=str(rec["framework_id"]),
-            created_at=str(rec.get("created_at") or "")
+            created_at=str(rec.get("created_at") or ""),
+            location_id=str(rec.get("location_id")) if rec.get("location_id") else None
         )
     except HTTPException:
         raise
@@ -209,24 +226,38 @@ async def create_assessment(data: AssessmentCreate):
 
 
 @router.get("/assessments", response_model=List[AssessmentResponse])
-async def get_assessments(customer_id: str):
+async def get_assessments(customer_id: str, location_id: Optional[str] = None):
     """Retrieve all compliance framework assessments active for a customer."""
     try:
         cust_id = customer_id
         if ":" not in cust_id:
             cust_id = f"customer:{cust_id}"
             
-        results = await repo_query(
-            "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) ORDER BY created_at DESC",
-            {"cust_id": cust_id}
-        )
+        if location_id:
+            if location_id == 'none':
+                results = await repo_query(
+                    "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) AND location_id = NONE ORDER BY created_at DESC",
+                    {"cust_id": cust_id}
+                )
+            else:
+                loc_id = location_id if ":" in location_id else f"location:{location_id}"
+                results = await repo_query(
+                    "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) AND type::string(location_id) = type::string($loc_id) ORDER BY created_at DESC",
+                    {"cust_id": cust_id, "loc_id": loc_id}
+                )
+        else:
+            results = await repo_query(
+                "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) ORDER BY created_at DESC",
+                {"cust_id": cust_id}
+            )
         
         return [
             AssessmentResponse(
                 id=str(row["id"]),
                 customer_id=str(row["customer_id"]),
                 framework_id=str(row["framework_id"]),
-                created_at=str(row.get("created_at") or "")
+                created_at=str(row.get("created_at") or ""),
+                location_id=str(row.get("location_id")) if row.get("location_id") else None
             )
             for row in results
         ]
@@ -914,4 +945,162 @@ async def get_assessment_trends(assessment_id: str):
         return trends
     except Exception as e:
         logger.error(f"Error computing auditing trends: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+DB_TO_FRONTEND_MAP = {
+    'Cfats': 'CFATS_RBPS',
+    'CPG': 'CISA_CPG',
+    'SP800_82_V3': 'NIST_800_82',
+    'SP800_82_V2': 'NIST_800_82',
+    'C800_53_R5_V2': 'NIST_800_53',
+    'C800_53_R4_71': 'NIST_800_53',
+    'NCSF_V2': 'NIST_CSF',
+    'NCSF_V1': 'NIST_CSF',
+    'CSC_V8': 'CIS_CONTROLS',
+    'Cnssi_1253': 'CNSSI_1253',
+    'AWWA': 'AWWA_G430',
+    'TSA2018': 'TSA_RAIL',
+    'Tsa': 'TSA_PIPELINE',
+    'COBIT_2019': 'COBIT_2019',
+    'SOC_2': 'SOC_2',
+    'ISA_62443': 'IEC_62443_3_3',
+    'CMMC': 'CMMC_L1',
+    'Universal': 'NIS2',
+}
+
+
+@router.get("/customers/{customer_id}/compliance-rollup", response_model=CustomerComplianceRollup)
+async def get_customer_compliance_rollup(customer_id: str):
+    """Generate isolated facility-level audit statistics and combined rollup reports for an organization."""
+    try:
+        cust_id = customer_id
+        if ":" not in cust_id:
+            cust_id = f"customer:{cust_id}"
+
+        # 1. Fetch customer details to verify existence
+        cust_check = await repo_query("SELECT id FROM $id", {"id": ensure_record_id(cust_id)})
+        if not cust_check:
+            raise HTTPException(status_code=404, detail="Customer profile not found")
+
+        # 2. Fetch all locations for the customer
+        locations = await repo_query(
+            "SELECT id, facility_name, facility_type FROM location WHERE type::string(customer_id) = type::string($cust_id)",
+            {"cust_id": cust_id}
+        )
+        location_map = {str(loc["id"]): f"{loc['facility_name']} ({loc['facility_type']})" if loc.get("facility_type") else str(loc["facility_name"]) for loc in locations}
+
+        # 3. Fetch all regulations/frameworks names
+        regulations = await repo_query("SELECT id, name FROM regulation")
+        reg_map = {str(reg["id"]): str(reg.get("name") or "") for reg in regulations}
+
+        # 4. Fetch all assessments for the customer
+        assessments = await repo_query(
+            "SELECT * FROM assessment WHERE type::string(customer_id) = type::string($cust_id) ORDER BY created_at DESC",
+            {"cust_id": cust_id}
+        )
+
+        # 5. Build framework rollups
+        framework_data = {}
+
+        for assess in assessments:
+            assess_id = str(assess["id"])
+            db_fw_id = str(assess["framework_id"])
+            raw_fw_id = db_fw_id.replace("regulation:", "")
+            frontend_fw_id = DB_TO_FRONTEND_MAP.get(raw_fw_id, raw_fw_id)
+            fw_name = reg_map.get(db_fw_id, raw_fw_id)
+
+            # Retrieve sessions for this assessment
+            sessions = await repo_query(
+                "SELECT * FROM assessment_session WHERE type::string(assessment_id) = type::string($assess_id) ORDER BY created_at DESC",
+                {"assess_id": assess_id}
+            )
+
+            # Determine facility info
+            loc_id = assess.get("location_id")
+            loc_str = str(loc_id) if loc_id else None
+            facility_name = location_map.get(loc_str, "Organization-Wide") if loc_str else "Organization-Wide"
+
+            facility_rollup = FacilityRollup(
+                location_id=loc_str,
+                facility_name=facility_name,
+                status="NOT_STARTED",
+                completion_percentage=0.0,
+                compliance_score=0.0
+            )
+
+            if sessions:
+                latest_session = sessions[0]
+                sess_id = str(latest_session["id"])
+                
+                # Fetch question count
+                q_count_res = await repo_query(
+                    "SELECT count() FROM question WHERE regulation_id = $fw_id GROUP ALL",
+                    {"fw_id": db_fw_id}
+                )
+                total_questions = q_count_res[0]["count"] if q_count_res else 0
+
+                if latest_session.get("status") == "COMPLETED" and latest_session.get("compliance_snapshot"):
+                    snapshot = latest_session["compliance_snapshot"]
+                    completion_percentage = 100.0
+                    compliance_score = float(snapshot.get("compliance_score") or 0.0)
+                else:
+                    # In-progress calculation
+                    answers = await repo_query(
+                        "SELECT answer FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
+                        {"session_id": sess_id}
+                    )
+                    
+                    yes_count = sum(1 for a in answers if a["answer"] == "Y")
+                    alt_count = sum(1 for a in answers if a["answer"] == "ALT")
+                    na_count = sum(1 for a in answers if a["answer"] == "NA")
+                    answered_count = sum(1 for a in answers if a["answer"] != "U")
+
+                    completion_percentage = (answered_count / total_questions) * 100 if total_questions > 0 else 0.0
+                    denominator = total_questions - na_count
+                    compliance_score = ((yes_count + alt_count) / denominator) * 100 if denominator > 0 else 0.0
+
+                facility_rollup.session_id = sess_id
+                facility_rollup.session_name = str(latest_session["session_name"])
+                facility_rollup.status = str(latest_session["status"])
+                facility_rollup.completion_percentage = completion_percentage
+                facility_rollup.compliance_score = compliance_score
+                facility_rollup.last_updated = str(latest_session.get("completed_at") or latest_session.get("created_at") or "")
+
+            if frontend_fw_id not in framework_data:
+                framework_data[frontend_fw_id] = {
+                    "framework_id": frontend_fw_id,
+                    "framework_name": fw_name,
+                    "facilities": []
+                }
+            
+            framework_data[frontend_fw_id]["facilities"].append(facility_rollup)
+
+        # 6. Compute framework averages & compile rollups
+        framework_rollups = []
+        for fw_id, fw_info in framework_data.items():
+            facs = fw_info["facilities"]
+            total_facs = len(facs)
+            
+            # Average calculations across initialized facilities
+            avg_score = sum(f.compliance_score for f in facs) / total_facs if total_facs > 0 else 0.0
+            avg_completion = sum(f.completion_percentage for f in facs) / total_facs if total_facs > 0 else 0.0
+
+            framework_rollups.append(FrameworkRollup(
+                framework_id=fw_id,
+                framework_name=fw_info["framework_name"],
+                facilities=facs,
+                average_compliance_score=avg_score,
+                average_completion_percentage=avg_completion,
+                total_facilities_assessed=total_facs
+            ))
+
+        return CustomerComplianceRollup(
+            customer_id=cust_id,
+            frameworks=framework_rollups
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error computing compliance rollup: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useContacts } from '@/lib/hooks/use-contacts'
 import { Contact } from '@/lib/types/contact'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ContactForm } from './ContactForm'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -20,6 +21,8 @@ import {
 
 interface ContactsPanelProps {
   customerId: string
+  highlightedContactId?: string | null
+  onClearHighlight?: () => void
 }
 
 function CopyableEmail({ email }: { email: string }) {
@@ -81,14 +84,36 @@ function StatusBadge({ status }: { status: string }) {
 function ContactCard({
   contact,
   onEdit,
+  index,
+  isHighlighted,
 }: {
   contact: Contact
   onEdit: (contact: Contact) => void
+  index: number
+  isHighlighted?: boolean
 }) {
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isHighlighted && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [isHighlighted])
+
   return (
-    <div className="p-3 border border-white/5 bg-slate-950/40 rounded-lg space-y-2 relative overflow-hidden group">
+    <div 
+      ref={cardRef}
+      className={`p-3 border rounded-lg space-y-2 relative overflow-hidden group animate-in fade-in slide-in-from-bottom duration-300 transition-all ${
+        isHighlighted 
+          ? 'border-cyan-500 bg-cyan-950/20 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/30' 
+          : 'border-white/5 bg-slate-950/40'
+      }`}
+      style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
+    >
       {/* Left accent bar */}
-      <div className="absolute top-0 left-0 bottom-0 w-1 bg-cyan-500/20" />
+      <div className={`absolute top-0 left-0 bottom-0 w-1 transition-colors ${
+        isHighlighted ? 'bg-cyan-500' : 'bg-cyan-500/20 group-hover:bg-cyan-500/55'
+      }`} />
 
       <div className="pl-1 space-y-2">
         {/* Name & Status Row */}
@@ -102,6 +127,20 @@ function ContactCard({
                 {contact.title}
               </p>
             )}
+            {contact.customer_name && (
+              <p className="text-[9px] font-mono text-cyan-400 truncate flex items-center gap-1 mt-0.5" title={contact.customer_name}>
+                <span className="text-muted-foreground/60">Company:</span> {contact.customer_name}
+              </p>
+            )}
+            {contact.location_names && contact.location_names.length > 0 ? (
+              <p className="text-[9px] font-mono text-cyan-400 truncate flex items-center gap-1 mt-0.5" title={contact.location_names.join(', ')}>
+                <span className="text-muted-foreground/60">Locations:</span> {contact.location_names.join(', ')}
+              </p>
+            ) : contact.location_name ? (
+              <p className="text-[9px] font-mono text-cyan-400 truncate flex items-center gap-1 mt-0.5" title={contact.location_name}>
+                <span className="text-muted-foreground/60">Location:</span> {contact.location_name}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <StatusBadge status={contact.status} />
@@ -171,10 +210,19 @@ function ContactsSkeleton() {
   )
 }
 
-export function ContactsPanel({ customerId }: ContactsPanelProps) {
+export function ContactsPanel({ customerId, highlightedContactId, onClearHighlight }: ContactsPanelProps) {
   const { data: contacts, isLoading } = useContacts(customerId)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+
+  useEffect(() => {
+    if (highlightedContactId) {
+      const timer = setTimeout(() => {
+        onClearHighlight?.()
+      }, 4000) // Clear highlight after 4 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [highlightedContactId, onClearHighlight])
 
   const handleEdit = (contact: Contact) => {
     setEditingContact(contact)
@@ -187,7 +235,7 @@ export function ContactsPanel({ customerId }: ContactsPanelProps) {
   }
 
   return (
-    <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md">
+    <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md animate-in fade-in slide-in-from-bottom duration-300">
       <CardHeader className="pb-2 border-b border-white/5 bg-slate-950/20 flex flex-row items-center justify-between">
         <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono">
           Contacts
@@ -229,18 +277,32 @@ export function ContactsPanel({ customerId }: ContactsPanelProps) {
             </Button>
           </div>
         ) : (
-          /* Contact Cards Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {contacts.map((contact) => (
+             {contacts.map((contact, index) => (
               <ContactCard
                 key={contact.id}
                 contact={contact}
                 onEdit={handleEdit}
+                index={index}
+                isHighlighted={contact.id === highlightedContactId}
               />
             ))}
           </div>
         )}
       </CardContent>
+      {isCreating && (
+        <ContactForm
+          customerId={customerId}
+          onClose={() => setIsCreating(false)}
+        />
+      )}
+      {editingContact && (
+        <ContactForm
+          contact={editingContact}
+          customerId={customerId}
+          onClose={() => setEditingContact(null)}
+        />
+      )}
     </Card>
   )
 }

@@ -1,0 +1,6 @@
+-- Migration 40 Down: Remove location table and contact link
+REMOVE INDEX idx_location_customer ON TABLE location;
+REMOVE TABLE location;
+
+REMOVE INDEX idx_contact_location ON TABLE contact;
+REMOVE FIELD location_id ON TABLE contact;

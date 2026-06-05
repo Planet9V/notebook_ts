@@ -40,13 +40,22 @@ class PodcastEpisodeResponse(BaseModel):
 
 def _resolve_audio_path(audio_file: str) -> Path:
     from open_notebook.config import DATA_FOLDER
+    base_dir = Path(DATA_FOLDER).resolve()
+
     if audio_file.startswith("file://"):
         parsed = urlparse(audio_file)
         target_path = Path(unquote(parsed.path))
     else:
         target_path = Path(audio_file)
 
-    base_dir = Path(DATA_FOLDER).resolve()
+    # If the path contains "podcasts/episodes/", anchor it relative to the current base_dir.
+    # This prevents path traversal checks from failing (403/500) when sharing a database
+    # between host (e.g. ./data) and Docker container (e.g. /app/data).
+    target_posix = target_path.as_posix()
+    if "podcasts/episodes/" in target_posix:
+        rel_part = target_posix.split("podcasts/episodes/", 1)[1]
+        target_path = base_dir / "podcasts" / "episodes" / rel_part
+
     resolved_path = target_path.resolve()
     try:
         resolved_path.relative_to(base_dir)
@@ -132,9 +141,12 @@ async def list_podcast_episodes():
 
             audio_url = None
             if episode.audio_file:
-                audio_path = _resolve_audio_path(episode.audio_file)
-                if audio_path.exists():
-                    audio_url = f"/api/podcasts/episodes/{episode.id}/audio"
+                try:
+                    audio_path = _resolve_audio_path(episode.audio_file)
+                    if audio_path.exists():
+                        audio_url = f"/api/podcasts/episodes/{episode.id}/audio"
+                except Exception as path_err:
+                    logger.warning(f"Could not resolve audio path for episode {episode.id}: {path_err}")
 
             response_episodes.append(
                 PodcastEpisodeResponse(
@@ -184,9 +196,12 @@ async def get_podcast_episode(episode_id: str):
 
         audio_url = None
         if episode.audio_file:
-            audio_path = _resolve_audio_path(episode.audio_file)
-            if audio_path.exists():
-                audio_url = f"/api/podcasts/episodes/{episode.id}/audio"
+            try:
+                audio_path = _resolve_audio_path(episode.audio_file)
+                if audio_path.exists():
+                    audio_url = f"/api/podcasts/episodes/{episode.id}/audio"
+            except Exception as path_err:
+                logger.warning(f"Could not resolve audio path for episode {episode.id}: {path_err}")
 
         return PodcastEpisodeResponse(
             id=str(episode.id),

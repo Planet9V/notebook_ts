@@ -1,0 +1,10 @@
+-- Migration 39 down: Restore original modalities
+UPDATE credential SET modalities = ['language', 'embedding', 'speech_to_text', 'text_to_speech'] WHERE provider = 'openai';
+UPDATE credential SET modalities = ['language', 'embedding'] WHERE provider = 'google';
+UPDATE credential SET modalities = ['language'] WHERE provider = 'openrouter';
+UPDATE credential SET modalities = ['language', 'embedding'] WHERE provider = 'ollama';
+UPDATE credential SET modalities = ['text_to_speech'] WHERE provider = 'elevenlabs';
+UPDATE credential SET modalities = ['speech_to_text', 'text_to_speech'] WHERE provider = 'deepgram';
+UPDATE credential SET modalities = ['language', 'embedding'] WHERE provider = 'vertex';
+UPDATE credential SET modalities = ['language', 'embedding', 'speech_to_text', 'text_to_speech'] WHERE provider = 'azure';
+UPDATE credential SET modalities = ['language', 'embedding', 'speech_to_text', 'text_to_speech'] WHERE provider = 'openai_compatible';
