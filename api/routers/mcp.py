@@ -8,7 +8,7 @@ from loguru import logger
 router = APIRouter()
 
 # Default directory where active MCP tool schemas are registered
-DEFAULT_MCP_DIR = "/Users/jimmcknney/.gemini/antigravity/mcp"
+DEFAULT_MCP_DIR = os.path.expanduser("~/.gemini/antigravity/mcp")
 
 
 def _discover_mcp_servers() -> List[Dict[str, Any]]:

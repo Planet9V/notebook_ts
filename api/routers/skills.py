@@ -16,7 +16,7 @@ from open_notebook.exceptions import InvalidInputError, NotFoundError
 router = APIRouter()
 
 # Default directory for dynamically loaded skills
-DEFAULT_SKILLS_DIR = "/Users/jimmcknney/.gemini/config/skills/"
+DEFAULT_SKILLS_DIR = os.path.expanduser("~/.gemini/config/skills/")
 
 
 def _parse_yaml_frontmatter(content: str) -> Dict[str, str]:
