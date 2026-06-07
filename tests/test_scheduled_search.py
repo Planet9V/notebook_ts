@@ -473,35 +473,22 @@ class TestScheduledSearchWorker:
     """Test suite for the scheduled search execution worker."""
 
     @pytest.mark.anyio
-    @patch("open_notebook.ai.key_provider.get_api_key", new_callable=AsyncMock)
-    async def test_run_search_valyu(self, mock_get_key):
+    @patch("open_notebook.search.valyu_search.run_valyu_search", new_callable=AsyncMock)
+    async def test_run_search_valyu(self, mock_valyu_search):
         """Test _run_search for valyu engine."""
         from open_notebook.domain.scheduled_search_worker import _run_search
 
-        mock_get_key.return_value = "fake-valyu-key"
+        mock_valyu_search.return_value = [
+            {"title": "Result 1", "url": "https://example.com/1", "content": "Content 1"},
+            {"title": "Result 2", "url": "https://example.com/2", "content": "Content 2"},
+        ]
 
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "success": True,
-            "results": [
-                {"title": "Result 1", "url": "https://example.com/1", "content": "Content 1"},
-                {"title": "Result 2", "url": "https://example.com/2", "content": "Content 2"},
-            ],
-        }
-
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client_instance = AsyncMock()
-            mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-            mock_client_instance.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client_instance
-
-            results = await _run_search("valyu", "test query")
+        results = await _run_search("valyu", "test query")
 
         assert len(results) == 2
         assert results[0]["title"] == "Result 1"
         assert results[0]["url"] == "https://example.com/1"
+        mock_valyu_search.assert_called_once_with(query="test query", context="web", max_results=8)
 
     @pytest.mark.anyio
     @patch("open_notebook.ai.key_provider.get_api_key", new_callable=AsyncMock)
@@ -513,13 +500,13 @@ class TestScheduledSearchWorker:
 
         # Ensure env var is not set either
         import os
-        old_val = os.environ.pop("NEWSAPI_KEY", None)
+        old_val = os.environ.pop("BRAVE_API_KEY", None)
         try:
             with pytest.raises(ValueError, match="not configured"):
-                await _run_search("newsapi", "test query")
+                await _run_search("brave", "test query")
         finally:
             if old_val is not None:
-                os.environ["NEWSAPI_KEY"] = old_val
+                os.environ["BRAVE_API_KEY"] = old_val
 
     @pytest.mark.anyio
     async def test_run_search_unsupported_engine(self):
