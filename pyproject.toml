@@ -43,6 +43,8 @@ dependencies = [
     "babel>=2.18.0",
     "openpyxl>=3.1.0",
     "python-docx>=1.1.0",
+    "valyu>=1.0.0",
+    "asyncpg>=0.30.0",
 ]
 
 [tool.setuptools]

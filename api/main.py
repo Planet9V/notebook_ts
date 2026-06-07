@@ -57,6 +57,7 @@ from api.routers import (
     skills,
     mcp,
     publications,
+    research_memory,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -503,6 +504,7 @@ app.include_router(agents.router, prefix="/api", tags=["agents"])
 app.include_router(skills.router, prefix="/api", tags=["skills"])
 app.include_router(mcp.router, prefix="/api", tags=["mcp"])
 app.include_router(publications.router, prefix="/api", tags=["publications"])
+app.include_router(research_memory.router, prefix="/api", tags=["research-memory"])
 
 
 @app.get("/")

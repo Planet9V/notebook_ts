@@ -18,6 +18,24 @@ services:
     restart: always
     pull_policy: always
 
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: tetrel_research
+      POSTGRES_USER: tetrel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tetrel_dev}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tetrel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
   open_notebook:
     build:
       context: .
@@ -38,6 +56,9 @@ services:
       - SURREAL_NAMESPACE=open_notebook
       - SURREAL_DATABASE=open_notebook
 
+      # Postgres (research memory)
+      - POSTGRES_DSN=postgresql://tetrel:${POSTGRES_PASSWORD:-tetrel_dev}@postgres:5432/tetrel_research
+
       # Voice AI — must match whisper-stt container model
       - WHISPER__MODEL=Systran/faster-whisper-base
       - TTS_BATCH_SIZE=1
@@ -47,6 +68,7 @@ services:
       - ${HOME:-~}/.gemini:/root/.gemini
     depends_on:
       - surrealdb
+      - postgres
     restart: always
 
   # ─── Voice AI Services ───────────────────────────────────────────────
@@ -101,3 +123,4 @@ services:
 
 volumes:
   whisper_models:
+  postgres_data:

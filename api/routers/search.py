@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -57,47 +58,35 @@ async def search_knowledge_base(search_request: SearchRequest):
 
         # ── Hybrid: also query Valyu ──
         if search_request.type == "hybrid":
-            from open_notebook.ai.key_provider import get_api_key
-
-            valyu_key = await get_api_key("valyu")
-            if not valyu_key:
-                valyu_key = os.environ.get("VALYU_API_KEY")
-
-            if valyu_key:
-                try:
-                    async with httpx.AsyncClient(timeout=15.0) as client:
-                        resp = await client.post(
-                            "https://api.valyu.ai/v1/search",
-                            headers={"Content-Type": "application/json", "X-API-Key": valyu_key},
-                            json={"query": search_request.query, "search_type": "all", "max_num_results": min(search_request.limit, 20)},
-                        )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            valyu_results = data.get("results", [])
-                            # Collect existing titles for dedup
-                            existing_titles = {r.get("title", "").lower().strip() for r in all_results if isinstance(r, dict)}
-                            for vr in valyu_results:
-                                title = vr.get("title", "Valyu Source")
-                                if title.lower().strip() in existing_titles:
-                                    continue  # Skip duplicates
-                                all_results.append({
-                                    "id": f"valyu:{vr.get('id', '')}",
-                                    "title": title,
-                                    "parent_id": None,
-                                    "content": vr.get("content", vr.get("snippet", ""))[:500],
-                                    "url": vr.get("url", ""),
-                                    "relevance": vr.get("relevance_score", 0.5),
-                                    "similarity": vr.get("relevance_score", 0.5),
-                                    "score": vr.get("relevance_score", 0.5),
-                                    "matches": [vr.get("content", vr.get("snippet", ""))[:300]] if vr.get("content") or vr.get("snippet") else [],
-                                    "source_origin": "Valyu",
-                                    "created": "",
-                                    "updated": "",
-                                })
-                        else:
-                            logger.warning(f"Valyu search returned {resp.status_code}")
-                except Exception as e:
-                    logger.warning(f"Valyu search failed in hybrid mode: {e}")
+            from open_notebook.search.memory_first_search import query_with_cache
+            try:
+                # Query using the memory-first search caching layer
+                valyu_results = await query_with_cache(
+                    query=search_request.query,
+                    context="web",
+                    max_results=min(search_request.limit, 20),
+                )
+                existing_titles = {r.get("title", "").lower().strip() for r in all_results if isinstance(r, dict)}
+                for vr in valyu_results:
+                    title = vr.get("title", "Valyu Source")
+                    if title.lower().strip() in existing_titles:
+                        continue  # Skip duplicates
+                    all_results.append({
+                        "id": f"valyu:{vr.get('id', '') or ''}",
+                        "title": title,
+                        "parent_id": None,
+                        "content": vr.get("content", "")[:500],
+                        "url": vr.get("url", ""),
+                        "relevance": vr.get("score", 0.5),
+                        "similarity": vr.get("score", 0.5),
+                        "score": vr.get("score", 0.5),
+                        "matches": [vr.get("content", "")[:300]] if vr.get("content") else [],
+                        "source_origin": "Valyu",
+                        "created": "",
+                        "updated": "",
+                    })
+            except Exception as e:
+                logger.warning(f"Valyu search failed in hybrid mode: {e}")
 
         # ── Reranker: LLM-based reranking ──
         if search_request.reranker and all_results:
@@ -542,101 +531,87 @@ async def stream_research_response(
 
         # ─── Engine: PERPLEXITY (online search via Perplexity API) ───
         elif engine == "perplexity":
-            perplexity_key = await get_api_key("perplexity")
-            if not perplexity_key:
-                perplexity_key = os.environ.get("PERPLEXITY_API_KEY")
-
-            if not perplexity_key:
-                yield f"data: {json.dumps({'type': 'error', 'message': 'Perplexity API key not configured. Please add one under Settings.'})}\n\n"
+            valyu_key = await get_api_key("valyu") or os.environ.get("VALYU_API_KEY")
+            if not valyu_key:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Valyu API key not configured.'})}\n\n"
                 return
 
-            yield f"data: {json.dumps({'type': 'status', 'content': 'Initializing Perplexity online search...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Initializing Valyu online search...'})}\n\n"
 
-            # Map model name
-            model_name = "sonar"
-            if model_id:
-                try:
-                    registered_model = await Model.get(model_id)
-                    if registered_model:
-                        model_name = registered_model.name
-                except Exception:
-                    pass
+            try:
+                from valyu import Valyu
+                client = Valyu(api_key=valyu_key)
 
-            # Make the API call
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                try:
-                    async with client.stream(
-                        "POST",
-                        "https://api.perplexity.ai/chat/completions",
-                        headers={"Authorization": f"Bearer {perplexity_key}"},
-                        json={
-                            "model": model_name,
-                            "messages": [
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": query},
-                            ],
-                            "stream": True,
-                        },
-                    ) as response:
-                        if response.status_code != 200:
-                            err_body = await response.aread()
-                            yield f"data: {json.dumps({'type': 'error', 'message': f'Perplexity API error: {response.status_code} - {err_body.decode()}'})}\n\n"
-                            return
+                # Iterate the blocking sync SDK generator in a thread pool
+                def run_answer():
+                    return client.answer(query=query, streaming=True)
 
-                        citations_sent = False
-                        accumulated_answer = ""
+                generator = await asyncio.to_thread(run_answer)
 
-                        async for chunk in response.aiter_lines():
-                            if not chunk:
-                                continue
-                            line = chunk.strip()
-                            if line.startswith("data: "):
-                                data_str = line[6:].strip()
-                                if data_str == "[DONE]":
-                                    continue
-                                try:
-                                    data_json = json.loads(data_str)
+                citations_sent = False
+                accumulated_answer = ""
 
-                                    # Extract citations if present
-                                    citations = data_json.get("citations", [])
-                                    if citations and not citations_sent:
-                                        ppl_sources = [
-                                            {"title": f"Web Source {i}", "url": url}
-                                            for i, url in enumerate(citations, 1)
-                                        ]
-                                        yield f"data: {json.dumps({'type': 'sources', 'content': ppl_sources})}\n\n"
-                                        citations_sent = True
+                def next_chunk(gen):
+                    try:
+                        return next(gen)
+                    except StopIteration:
+                        return None
 
-                                    choices = data_json.get("choices", [])
-                                    if choices:
-                                        delta = choices[0].get("delta", {})
-                                        content = delta.get("content", "")
-                                        if content:
-                                            accumulated_answer += content
-                                            yield f"data: {json.dumps({'type': 'answer', 'content': content})}\n\n"
-                                except Exception as e:
-                                    logger.warning(f"Error parsing perplexity stream line: {e}")
+                while True:
+                    chunk = await asyncio.to_thread(next_chunk, generator)
+                    if chunk is None:
+                        break
 
-                        yield f"data: {json.dumps({'type': 'final_answer', 'content': accumulated_answer})}\n\n"
-                        yield f"data: {json.dumps({'type': 'complete', 'final_answer': accumulated_answer})}\n\n"
-                except Exception as e:
-                    yield f"data: {json.dumps({'type': 'error', 'message': f'Failed to query Perplexity: {str(e)}'})}\n\n"
+                    chunk_type = getattr(chunk, "type", "")
+                    if isinstance(chunk, dict):
+                        chunk_type = chunk.get("type", "")
 
-        # ─── Engine: HYBRID (Local KB RAG + Perplexity + Valyu) ───
+                    if chunk_type == "search_results":
+                        results = getattr(chunk, "search_results", [])
+                        if isinstance(chunk, dict):
+                            results = chunk.get("search_results", [])
+
+                        if results and not citations_sent:
+                            sources = []
+                            for idx, r in enumerate(results, 1):
+                                r_dict = r if isinstance(r, dict) else r.model_dump() if hasattr(r, "model_dump") else vars(r) if hasattr(r, "__dict__") else {}
+                                sources.append({
+                                    "title": r_dict.get("title") or f"Web Source {idx}",
+                                    "url": r_dict.get("url", ""),
+                                })
+                            yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
+                            citations_sent = True
+
+                    elif chunk_type == "content":
+                        content = getattr(chunk, "content", "")
+                        if isinstance(chunk, dict):
+                            content = chunk.get("content", "")
+                        if content:
+                            accumulated_answer += content
+                            yield f"data: {json.dumps({'type': 'answer', 'content': content})}\n\n"
+
+                    elif chunk_type == "error":
+                        error_msg = getattr(chunk, "error", "")
+                        if isinstance(chunk, dict):
+                            error_msg = chunk.get("error", "")
+                        yield f"data: {json.dumps({'type': 'error', 'message': f'Valyu Error: {error_msg}'})}\n\n"
+                        return
+
+                yield f"data: {json.dumps({'type': 'final_answer', 'content': accumulated_answer})}\n\n"
+                yield f"data: {json.dumps({'type': 'complete', 'final_answer': accumulated_answer})}\n\n"
+
+            except Exception as e:
+                logger.error(f"Valyu answer streaming failed: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'message': f'Failed to query Valyu: {str(e)}'})}\n\n"
+
+        # ─── Engine: HYBRID (Local KB RAG + Valyu Caching Search) ───
         elif engine == "hybrid":
             from open_notebook.domain.notebook import vector_search as kb_vector_search
+            from open_notebook.search.memory_first_search import query_with_cache
 
-            perplexity_key = await get_api_key("perplexity")
-            if not perplexity_key:
-                perplexity_key = os.environ.get("PERPLEXITY_API_KEY")
-            valyu_key = await get_api_key("valyu")
-            if not valyu_key:
-                valyu_key = os.environ.get("VALYU_API_KEY")
-
-            yield f"data: {json.dumps({'type': 'status', 'content': 'Running Hybrid Multi-Engine search (Local KB + Perplexity + Valyu)...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'status', 'content': 'Running Hybrid Multi-Engine search (Local KB + Valyu)...'})}\n\n"
 
             all_sources: List[Dict[str, Any]] = []
-            perplexity_analysis = ""
 
             # ── 1. Local KB vector search ──
             yield f"data: {json.dumps({'type': 'status', 'content': '⚡ Searching local knowledge base...'})}\n\n"
@@ -657,65 +632,23 @@ async def stream_research_response(
             except Exception as e:
                 logger.warning(f"Local KB search in hybrid mode failed: {e}")
 
-            # ── 2. Perplexity search (non-streaming to get structured result) ──
-            if perplexity_key:
-                yield f"data: {json.dumps({'type': 'status', 'content': '🌐 Querying Perplexity online search...'})}\n\n"
-                try:
-                    async with httpx.AsyncClient(timeout=60.0) as client:
-                        resp = await client.post(
-                            "https://api.perplexity.ai/chat/completions",
-                            headers={"Authorization": f"Bearer {perplexity_key}"},
-                            json={
-                                "model": "sonar",
-                                "messages": [
-                                    {"role": "system", "content": "Provide a comprehensive answer with citations."},
-                                    {"role": "user", "content": query},
-                                ],
-                                "stream": False,
-                            },
-                        )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            choices = data.get("choices", [])
-                            if choices:
-                                perplexity_analysis = choices[0].get("message", {}).get("content", "")
-                            citations = data.get("citations", [])
-                            for i, url in enumerate(citations, 1):
-                                all_sources.append({"title": f"Perplexity Citation {i}", "url": url, "content": ""})
-                            yield f"data: {json.dumps({'type': 'status', 'content': f'Perplexity returned {len(citations)} citations.'})}\n\n"
-                        else:
-                            logger.warning(f"Perplexity in hybrid returned {resp.status_code}")
-                except Exception as e:
-                    logger.warning(f"Perplexity search in hybrid mode failed: {e}")
-
-            # ── 3. Valyu deep search ──
-            if valyu_key:
-                yield f"data: {json.dumps({'type': 'status', 'content': '🔬 Running Valyu deep research...'})}\n\n"
-                try:
-                    async with httpx.AsyncClient(timeout=30.0) as client:
-                        resp = await client.post(
-                            "https://api.valyu.ai/v1/search",
-                            headers={"Content-Type": "application/json", "X-API-Key": valyu_key},
-                            json={
-                                "query": query,
-                                "search_type": "all",
-                                "max_num_results": 6,
-                                "response_length": "medium",
-                            },
-                        )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            if data.get("success"):
-                                valyu_results = data.get("results", [])
-                                for r in valyu_results:
-                                    all_sources.append({
-                                        "title": r.get("title", "Valyu Source"),
-                                        "url": r.get("url", ""),
-                                        "content": r.get("content", ""),
-                                    })
-                                yield f"data: {json.dumps({'type': 'status', 'content': f'Valyu returned {len(valyu_results)} results.'})}\n\n"
-                except Exception as e:
-                    logger.warning(f"Valyu search in hybrid mode failed: {e}")
+            # ── 2. Valyu memory-first search ──
+            yield f"data: {json.dumps({'type': 'status', 'content': '🔬 Querying Valyu search (memory-first)...'})}\n\n"
+            try:
+                valyu_results = await query_with_cache(
+                    query=query,
+                    context="web",
+                    max_results=8,
+                )
+                for r in valyu_results:
+                    all_sources.append({
+                        "title": r.get("title", "Valyu Source"),
+                        "url": r.get("url", ""),
+                        "content": r.get("content", ""),
+                    })
+                yield f"data: {json.dumps({'type': 'status', 'content': f'Valyu search completed.'})}\n\n"
+            except Exception as e:
+                logger.warning(f"Valyu search in hybrid mode failed: {e}")
 
             # ── Deduplicate by URL ──
             seen_urls: set[str] = set()
@@ -732,15 +665,12 @@ async def stream_research_response(
                 yield f"data: {json.dumps({'type': 'status', 'content': 'No results found from any engine. Synthesizing from prompt alone...'})}\n\n"
             else:
                 yield f"data: {json.dumps({'type': 'sources', 'content': deduped_sources})}\n\n"
-                yield f"data: {json.dumps({'type': 'status', 'content': f'Collected {len(deduped_sources)} unique results across all engines. Generating synthesis...'})}\n\n"
+                yield f"data: {json.dumps({'type': 'status', 'content': f'Collected {len(deduped_sources)} unique results. Generating synthesis...'})}\n\n"
 
             # ── Build combined context ──
             search_context = ""
             for i, src in enumerate(deduped_sources, 1):
                 search_context += f"[{i}] {src['title']}\\nURL: {src['url']}\\nContent: {src['content']}\n\n"
-
-            if perplexity_analysis:
-                search_context += f"\\n--- Perplexity Online Analysis ---\\n{perplexity_analysis}\\n"
 
             # ── Synthesize with LLM ──
             from open_notebook.ai.provision import provision_langchain_model
