@@ -124,7 +124,17 @@ def load_livekit_settings():
                             os.environ["LIVEKIT_API_SECRET"] = remote_secret
                             logger.info("Overriding LIVEKIT_API_SECRET with remote secret")
                     else:
-                        logger.info("LiveKit mode is local, using environment/default settings")
+                        logger.info("LiveKit mode is local, setting default environment variables if not present")
+                        if "LIVEKIT_URL" not in os.environ:
+                            default_url = "ws://livekit-server:7880" if is_docker else "ws://localhost:7880"
+                            os.environ["LIVEKIT_URL"] = default_url
+                            logger.info(f"Setting default local LIVEKIT_URL: {default_url}")
+                        if "LIVEKIT_API_KEY" not in os.environ:
+                            os.environ["LIVEKIT_API_KEY"] = "devkey"
+                            logger.info("Setting default local LIVEKIT_API_KEY")
+                        if "LIVEKIT_API_SECRET" not in os.environ:
+                            os.environ["LIVEKIT_API_SECRET"] = "secret"
+                            logger.info("Setting default local LIVEKIT_API_SECRET")
                     return
         except Exception as e:
             logger.warning(f"Failed to fetch LiveKit settings on attempt {attempt+1}: {e}")
