@@ -45,6 +45,8 @@ export function LiveKitConfigCard({ config, settings, onRefresh }: LiveKitConfig
     if (!settings) return
     if (settings.livekit_mode) setMode(settings.livekit_mode as DeploymentMode)
     if (settings.livekit_remote_ws_url) setRemoteUrl(settings.livekit_remote_ws_url)
+    if (settings.livekit_remote_api_key) setRemoteApiKey(settings.livekit_remote_api_key)
+    if (settings.livekit_remote_api_secret) setRemoteApiSecret(settings.livekit_remote_api_secret)
   }, [settings])
 
   const handleModeChange = useCallback(async (targetMode: DeploymentMode) => {
@@ -71,7 +73,8 @@ export function LiveKitConfigCard({ config, settings, onRefresh }: LiveKitConfig
         livekit_mode: 'remote',
         livekit_remote_ws_url: remoteUrl,
         livekit_remote_api_key: remoteApiKey,
-      } as Partial<import('@/lib/api/voice').VoiceSettings> & { livekit_remote_api_key: string })
+        livekit_remote_api_secret: remoteApiSecret,
+      })
       toast.success('Remote LiveKit settings saved')
       onRefresh()
     } catch (error) {
@@ -80,7 +83,7 @@ export function LiveKitConfigCard({ config, settings, onRefresh }: LiveKitConfig
     } finally {
       setSaving(false)
     }
-  }, [remoteUrl, remoteApiKey, onRefresh])
+  }, [remoteUrl, remoteApiKey, remoteApiSecret, onRefresh])
 
   return (
     <Card className="relative overflow-hidden">
