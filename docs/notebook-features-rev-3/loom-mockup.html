@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Loom: Interactive Operations Map Mockup</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg-base: #020617;
+      --bg-surface: rgba(15, 23, 42, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --font-sans: 'Inter', sans-serif;
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      
+      --color-primary: #06b6d4; /* cyan */
+      --color-emerald: #10b981;
+      --color-rose: #f43f5e;
+      --color-violet: #8b5cf6;
+      --color-amber: #f59e0b;
+      
+      --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.4);
+      --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.4);
+      --glow-rose: 0 0 20px rgba(244, 63, 94, 0.4);
+      --glow-violet: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: #f1f5f9;
+      font-family: var(--font-sans);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0),
+        linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 0),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 0);
+      background-size: 24px 24px, 48px 48px, 48px 48px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Header Panel */
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(12px);
+      border-b: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      height: 32px;
+      width: 32px;
+      border-radius: 8px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-primary);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: linear-gradient(to right, #fff, rgba(255,255,255,0.6));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pill-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .pill-btn:hover, .pill-btn.active {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .pill-btn.active {
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      position: relative;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Map Workspace Canvas */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI Panels (Floating overlays) */
+    .glass-panel {
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      position: absolute;
+      z-index: 5;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Left Panel: Explorer controls */
+    #control-panel {
+      top: 24px;
+      left: 24px;
+      width: 320px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Right Panel: Active Node Inspector */
+    #inspector-panel {
+      top: 24px;
+      right: 24px;
+      width: 340px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transform: translateX(380px);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #inspector-panel.open {
+      transform: translateX(0);
+    }
+
+    /* Bottom: Logs Panel */
+    #logs-panel {
+      bottom: 24px;
+      left: 24px;
+      right: 24px;
+      height: 140px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-b: 1px solid rgba(255,255,255,0.05);
+      padding-pb: 10px;
+    }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-subtitle {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* Logs view styling */
+    .log-stream {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 12px;
+      color: #94a3b8;
+    }
+
+    .log-time {
+      color: #475569;
+      flex-shrink: 0;
+    }
+
+    .log-tag {
+      font-weight: 600;
+      flex-shrink: 0;
+      padding: 0 4px;
+      border-radius: 4px;
+    }
+
+    .log-tag.info { background: rgba(6, 182, 212, 0.1); color: var(--color-primary); }
+    .log-tag.success { background: rgba(16, 185, 129, 0.1); color: var(--color-emerald); }
+    .log-tag.error { background: rgba(244, 63, 94, 0.1); color: var(--color-rose); }
+    .log-tag.warning { background: rgba(245, 158, 11, 0.1); color: var(--color-amber); }
+
+    /* Interactive control elements */
+    .action-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .action-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .action-card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-card-desc {
+      font-size: 9px;
+      color: #64748b;
+      line-height: 1.3;
+    }
+
+    /* Badge indicators */
+    .status-badge {
+      font-size: 8px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge.processing { background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--color-primary); }
+    .status-badge.healthy { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--color-emerald); }
+    .status-badge.error { background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); color: var(--color-rose); }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid-bg"></div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">
+        <i data-lucide="network" class="h-4.5 w-4.5"></i>
+      </div>
+      <span class="brand-title">The Loom Workspace</span>
+    </div>
+    
+    <div class="header-controls">
+      <button class="pill-btn active" id="role-selector" onclick="cycleRole()">
+        <i data-lucide="user"></i> Mode: Administrator
+      </button>
+      <button class="pill-btn" onclick="resetCanvas()">
+        <i data-lucide="refresh-cw"></i> Recenter Map
+      </button>
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <main>
+    <div id="canvas-container">
+      <canvas id="loomCanvas"></canvas>
+    </div>
+
+    <!-- LEFT PANEL: CONTROLS -->
+    <div class="glass-panel" id="control-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">
+            <i data-lucide="sliders" class="h-4 w-4 text-cyan-400"></i> Map Controller
+          </div>
+          <p class="panel-subtitle">Simulate topological operations</p>
+        </div>
+      </div>
+
+      <div class="action-card" onclick="simulateResearchRun()">
+        <div class="action-card-header">
+          <span class="action-card-title">
+            <i data-lucide="search-code" class="text-cyan-400 h-3.5 w-3.5"></i> Run Deep Research
+          </span>
+          <span class="status-badge processing" id="btn-research-status">Idle</span>
+        </div>
+        <p class="action-card-desc">Trigger autonomous Valyu background research node on target sector.</p>
+      </div>
+
+      <div class="action-card" onclick="simulateComplianceQuiz()">
+        <div class="action-card-header">
+          <span class="action-card-title">
+            <i data-lucide="shield-alert" class="text-rose-400 h-3.5 w-3.5"></i> Audit Facility post
+          </span>
+          <span class="status-badge healthy" id="btn-compliance-status">Healthy</span>
+        </div>
+        <p class="action-card-desc">Simulate CSET compliance audit answers on refinery threat flow node.</p>
+      </div>
+
+      <div class="action-card" onclick="simulateSreCrash()">
+        <div class="action-card-header">
+          <span class="action-card-title">
+            <i data-lucide="terminal" class="text-violet-400 h-3.5 w-3.5"></i> Trigger Container Error
+          </span>
+          <span class="status-badge healthy" id="btn-sre-status">Active</span>
+        </div>
+        <p class="action-card-desc">Simulate LiveKit SFU crash. Triggers background SRE Agent to auto-fix via Git.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: INSPECTOR (Hidden by default, slides out) -->
+    <div class="glass-panel" id="inspector-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title" id="ins-title">Node Inspector</div>
+          <p class="panel-subtitle" id="ins-subtitle">Node Metadata Details</p>
+        </div>
+        <button class="pill-btn" style="padding: 4px; border-radius: 4px;" onclick="closeInspector()">
+          <i data-lucide="x" class="h-3.5 w-3.5"></i>
+        </button>
+      </div>
+
+      <div id="inspector-content" style="font-size: 11px; space-y-4; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+
+    <!-- BOTTOM PANEL: SYSTEM LOGS -->
+    <div class="glass-panel" id="logs-panel">
+      <div class="panel-header" style="border-b: none; padding-pb: 0;">
+        <div class="panel-title" style="font-size: 10px;">
+          <i data-lucide="terminal" class="h-3.5 w-3.5 text-slate-400"></i> Operations Logger (system_log)
+        </div>
+        <span style="font-size: 8px; color: #475569; font-family: var(--font-mono);">thread-safe loguru sink</span>
+      </div>
+      <div class="log-stream" id="logStream">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Canvas Logic
+    const canvas = document.getElementById('loomCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    let width = canvas.width = container.clientWidth;
+    let height = canvas.height = container.clientHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = container.clientWidth;
+      height = canvas.height = container.clientHeight;
+    });
+
+    // Node Definitions
+    const nodes = [
+      { id: 1, label: 'Research: Rare Earths', type: 'research', x: 200, y: 150, radius: 45, status: 'healthy', value: 'Valyu SDK API • 4 sources' },
+      { id: 2, label: 'Podcast Synthesizer', type: 'create', x: 450, y: 150, radius: 45, status: 'healthy', value: 'Kokoro TTS • 2 speaker profiles' },
+      { id: 3, label: 'Social Scheduler', type: 'publish', x: 700, y: 150, radius: 45, status: 'healthy', value: 'LinkedIn/Twitter SMTP • 3 queued' },
+      { id: 4, label: 'Pipeline: Acme Corp', type: 'sales', x: 200, y: 350, radius: 45, status: 'healthy', value: 'Proposal Stage • $45,000 Deal' },
+      { id: 5, label: 'Refinery Asset Node', type: 'compliance', x: 450, y: 350, radius: 45, status: 'healthy', value: 'CISA Sector 12 • 89% CSET Score' },
+      { id: 6, label: 'SRE Agent Monitor', type: 'ops', x: 700, y: 350, radius: 45, status: 'healthy', value: 'LiveKit / Postgres Audit • OK' },
+    ];
+
+    // Connection vectors
+    const connections = [
+      { from: 1, to: 2, label: 'Ingest source transcript' },
+      { from: 2, to: 3, label: 'Deliver compiled MP3' },
+      { from: 4, to: 5, label: 'Map CSET Audit program' },
+      { from: 5, to: 6, label: 'Monitor connection health' },
+      { from: 1, to: 4, label: 'Feed prospect briefing' }
+    ];
+
+    // Interactivity state
+    let draggedNode = null;
+    let selectedNode = null;
+    let panX = 0;
+    let panY = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let isPanning = false;
+
+    // Mouse Event Handlers
+    container.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - panX;
+      const mouseY = e.clientY - rect.top - panY;
+
+      // Check if clicking a node
+      let foundNode = null;
+      for (const node of nodes) {
+        const dx = mouseX - node.x;
+        const dy = mouseY - node.y;
+        if (Math.sqrt(dx * dx + dy * dy) < node.radius) {
+          foundNode = node;
+          break;
+        }
+      }
+
+      if (foundNode) {
+        draggedNode = foundNode;
+        selectedNode = foundNode;
+        openInspector(foundNode);
+      } else {
+        isPanning = true;
+        dragStartX = e.clientX - panX;
+        dragStartY = e.clientY - panY;
+      }
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      if (draggedNode) {
+        const rect = canvas.getBoundingClientRect();
+        draggedNode.x = e.clientX - rect.left - panX;
+        draggedNode.y = e.clientY - rect.top - panY;
+      } else if (isPanning) {
+        panX = e.clientX - dragStartX;
+        panY = e.clientY - dragStartY;
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      draggedNode = null;
+      isPanning = false;
+    });
+
+    // Styling Maps
+    const COLORS = {
+      research: { stroke: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)', icon: 'search' },
+      create: { stroke: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.4)', icon: 'mic' },
+      publish: { stroke: '#10b981', glow: 'rgba(16, 185, 129, 0.4)', icon: 'share-2' },
+      sales: { stroke: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)', icon: 'trending-up' },
+      compliance: { stroke: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)', icon: 'shield' },
+      ops: { stroke: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)', icon: 'terminal' }
+    };
+
+    // Draw Loop
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(panX, panY);
+
+      // 1. Draw Connections
+      connections.forEach(conn => {
+        const fromNode = nodes.find(n => n.id === conn.from);
+        const toNode = nodes.find(n => n.id === conn.to);
+        if (!fromNode || !toNode) return;
+
+        // Draw line
+        ctx.beginPath();
+        ctx.moveTo(fromNode.x, fromNode.y);
+        ctx.lineTo(toNode.x, toNode.y);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw animated data flow packet
+        const time = Date.now() * 0.002;
+        const ratio = (time % 1);
+        const packetX = fromNode.x + (toNode.x - fromNode.x) * ratio;
+        const packetY = fromNode.y + (toNode.y - fromNode.y) * ratio;
+
+        ctx.beginPath();
+        ctx.arc(packetX, packetY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS[fromNode.type].stroke;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = COLORS[fromNode.type].stroke;
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+      });
+
+      // 2. Draw Nodes
+      nodes.forEach(node => {
+        const config = COLORS[node.type];
+        
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        
+        // Background fill
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fill();
+
+        // Glowing node status border
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = config.stroke;
+
+        if (node.status === 'processing') {
+          // Dynamic pulsing glow
+          const pulse = 8 + Math.sin(Date.now() * 0.008) * 4;
+          ctx.shadowBlur = pulse;
+          ctx.shadowColor = config.stroke;
+          ctx.strokeStyle = config.stroke;
+        } else if (node.status === 'error') {
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = 'rgba(244, 63, 94, 0.8)';
+          ctx.strokeStyle = '#f43f5e';
+        } else {
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = config.glow;
+        }
+
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset
+
+        // Draw label
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = 'bold 9px "Fira Code", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(node.label, node.x, node.y + node.radius + 14);
+
+        // Draw type badge
+        ctx.fillStyle = '#64748b';
+        ctx.font = '600 7px "Inter", sans-serif';
+        ctx.fillText(node.type.toUpperCase(), node.x, node.y + node.radius + 24);
+
+        // Draw internal icon (represented simply as shape marker)
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fill();
+      });
+
+      ctx.restore();
+      requestAnimationFrame(draw);
+    }
+
+    // Initialize Draw
+    draw();
+
+    // Inspector Control Panel Utilities
+    const inspector = document.getElementById('inspector-panel');
+    const insTitle = document.getElementById('ins-title');
+    const insSubtitle = document.getElementById('ins-subtitle');
+    const insContent = document.getElementById('inspector-content');
+
+    function openInspector(node) {
+      inspector.classList.add('open');
+      insTitle.innerText = node.label;
+      insSubtitle.innerText = `Node Type: ${node.type.toUpperCase()} • Status: ${node.status.toUpperCase()}`;
+      
+      insContent.innerHTML = `
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+          <strong style="color: #64748b;">Description:</strong>
+          <p style="margin-top: 4px; color: #cbd5e1; font-family: var(--font-sans);">${node.value}</p>
+        </div>
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+          <strong style="color: #64748b;">Topological Coordinates:</strong>
+          <p style="margin-top: 4px; color: #cbd5e1; font-family: var(--font-mono);">X: ${Math.round(node.x)} px | Y: ${Math.round(node.y)} px</p>
+        </div>
+        <div>
+          <strong style="color: #64748b;">Parent Connections:</strong>
+          <ul style="margin-top: 4px; color: #94a3b8; list-style: inside;">
+            ${connections.filter(c => c.to === node.id).map(c => `<li>From Node ${c.from}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function closeInspector() {
+      inspector.classList.remove('open');
+      selectedNode = null;
+    }
+
+    // Role switcher
+    let currentRoleIdx = 0;
+    const roles = ['Administrator', 'Sales Representative', 'Operations Engineer', 'Social Media Manager'];
+    function cycleRole() {
+      currentRoleIdx = (currentRoleIdx + 1) % roles.length;
+      document.getElementById('role-selector').innerHTML = `<i data-lucide="user"></i> Mode: ${roles[currentRoleIdx]}`;
+      lucide.createIcons();
+      logEvent('SYSTEM', `User swapped UI perspective profile to: ${roles[currentRoleIdx]}`, 'info');
+    }
+
+    function resetCanvas() {
+      panX = 0;
+      panY = 0;
+      logEvent('SYSTEM', 'Canvas recentered to origin vectors.', 'info');
+    }
+
+    // Simulation Trigger Scripts
+    function simulateResearchRun() {
+      const node = nodes.find(n => n.id === 1);
+      const statusBtn = document.getElementById('btn-research-status');
+      
+      node.status = 'processing';
+      statusBtn.className = 'status-badge processing';
+      statusBtn.innerText = 'polling';
+      
+      logEvent('RESEARCH_AGENT', 'Initializing Valyu DeepResearch loop for query: "rare earth mining 2026"', 'info');
+      
+      setTimeout(() => {
+        logEvent('VALYU_SDK', 'Connected to proprietary sources repository. 4 files matched.', 'info');
+      }, 1500);
+
+      setTimeout(() => {
+        node.status = 'healthy';
+        node.value = 'Valyu SDK API • 4 sources • Cached pgvector Postgres';
+        statusBtn.className = 'status-badge healthy';
+        statusBtn.innerText = 'complete';
+        logEvent('RESEARCH_AGENT', 'DeepResearch complete. Stored report as Note & pgvector cache tuple.', 'success');
+        if (selectedNode && selectedNode.id === 1) openInspector(node);
+      }, 4000);
+    }
+
+    function simulateComplianceQuiz() {
+      const node = nodes.find(n => n.id === 5);
+      const statusBtn = document.getElementById('btn-compliance-status');
+      
+      node.status = 'processing';
+      node.value = 'Updating answers scoreboard...';
+      statusBtn.className = 'status-badge processing';
+      statusBtn.innerText = 'scoring';
+      logEvent('COMPLIANCE', 'Recalculating CSET scoring matrix for Refinery location.', 'warning');
+
+      setTimeout(() => {
+        node.status = 'healthy';
+        node.value = 'CISA Sector 12 • 94% CSET Score (All checkpoints completed)';
+        statusBtn.className = 'status-badge healthy';
+        statusBtn.innerText = '94% Score';
+        logEvent('COMPLIANCE', 'CSET score updated successfully. Target state reached.', 'success');
+        if (selectedNode && selectedNode.id === 5) openInspector(node);
+      }, 2000);
+    }
+
+    function simulateSreCrash() {
+      const node = nodes.find(n => n.id === 6);
+      const statusBtn = document.getElementById('btn-sre-status');
+      
+      node.status = 'error';
+      node.label = 'CRITICAL: LiveKit Offline';
+      statusBtn.className = 'status-badge error';
+      statusBtn.innerText = '500 ERROR';
+      logEvent('SRE_AUDITOR', 'CRITICAL ERROR: LiveKit WebRTC connection refused.', 'error');
+
+      setTimeout(() => {
+        logEvent('SRE_AGENT', 'Detected container error. Initializing SRE-Hotfix pipeline...', 'warning');
+      }, 1000);
+
+      setTimeout(() => {
+        logEvent('SRE_AGENT', 'Created hotfix branch "hotfix/livekit-sfu-rebuild". Appended env parameters.', 'info');
+      }, 2500);
+
+      setTimeout(() => {
+        logEvent('SRE_AGENT', 'Opened Local Github PR #1405. Running integration tests...', 'info');
+      }, 4000);
+
+      setTimeout(() => {
+        logEvent('AUDITOR_SUITE', 'Pytest test_voice_connection.py: PASSED', 'success');
+      }, 5500);
+
+      setTimeout(() => {
+        node.status = 'healthy';
+        node.label = 'SRE Agent Monitor';
+        node.value = 'LiveKit / Postgres Audit • OK • PR #1405 Auto-Merged';
+        statusBtn.className = 'status-badge healthy';
+        statusBtn.innerText = 'Healthy';
+        logEvent('SRE_AGENT', 'Hotfix PR auto-merged and container redeployed successfully.', 'success');
+        if (selectedNode && selectedNode.id === 6) openInspector(node);
+      }, 7000);
+    }
+
+    // Logger Utility
+    const stream = document.getElementById('logStream');
+    function logEvent(tag, message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      
+      const timeStr = new Date().toLocaleTimeString();
+      line.innerHTML = `
+        <span class="log-time">[${timeStr}]</span>
+        <span class="log-tag ${type}">${tag}</span>
+        <span class="log-message" style="color: ${type === 'error' ? '#f43f5e' : type === 'success' ? '#10b981' : '#cbd5e1'}">${message}</span>
+      `;
+      
+      stream.appendChild(line);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    // Initial log messages
+    logEvent('DATABASE', 'SurrealDB v2 connection pool initialized.', 'success');
+    logEvent('RESEARCH_MEMORY', 'pgvector postgres connection pool ready.', 'success');
+    logEvent('SUPERVISORD', 'All 6 Docker containers running healthy.', 'success');
+  </script>
+</body>
+</html>

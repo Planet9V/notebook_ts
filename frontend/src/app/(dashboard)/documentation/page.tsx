@@ -89,6 +89,41 @@ const DOCUMENTATION: DocSection[] = [
     ],
   },
   {
+    id: 'notebook-rev-3',
+    title: 'Notebook Features Rev 3',
+    icon: Zap,
+    color: 'rose',
+    badge: 'REV 3',
+    description: 'Autonomous agents, dynamic bento roles, workspace canvas, and live topological node maps.',
+    subsections: [
+      {
+        id: 'rev3-overview',
+        title: 'Rev 3 Overview',
+        content: 'Released on June 8, 2026, Notebook Features Rev 3 introduces dynamic role-based dashboards, a split-pane Workspace Canvas with drag-and-drop citation pipeline, an Autonomous SRE Admin Agent, and the live "Loom" Topological Operations node map.',
+      },
+      {
+        id: 'rev3-bento',
+        title: '1. Dynamic Bento Grid',
+        content: 'Provides custom widgets tailored to Sales, Delivery, Social Media, and Researcher personas, persisted in localStorage and manageable via drag-and-drop customization.',
+      },
+      {
+        id: 'rev3-canvas',
+        title: '2. Unified Workspace Canvas',
+        content: 'Consolidates document analysis, search results, and compliance scoring on the left, with print-ready Rich Markdown SOW editors on the right, supporting citation provenance via drag-and-drop.',
+      },
+      {
+        id: 'rev3-sre',
+        title: '3. Autonomous SRE Agent',
+        content: 'Runs a background container health poller that reads logs, registers GitHub issues, creates configuration patch branches, opens pull requests, and runs tests asynchronously.',
+      },
+      {
+        id: 'rev3-loom',
+        title: '4. The Loom Topological Map',
+        content: 'Maps pipeline cards, research topics, compliance matrices, and social media scheduler tasks onto a zoomable 2D node graph with visual neon glows (blue for processing, green for healthy/done, red for error/blocked).',
+      },
+    ],
+  },
+  {
     id: 'architecture',
     title: 'Architecture & Tech Stack',
     icon: Layers,
