@@ -1,6 +1,7 @@
 import os
 import time
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -219,6 +220,11 @@ async def generate_podcast_command(
                         logger.warning(
                             f"Failed to resolve per-speaker TTS for '{speaker.get('name')}': {e}"
                         )
+                else:
+                    # Fall back to profile-level resolved TTS settings if not overridden
+                    speaker["tts_provider"] = sp_dict.get("tts_provider")
+                    speaker["tts_model"] = sp_dict.get("tts_model")
+                    speaker["tts_config"] = sp_dict.get("tts_config")
 
         # 5b. Apply TTS engine override (Kokoro / OpenAI)
         if input_data.tts_engine == "kokoro":
@@ -270,23 +276,65 @@ async def generate_podcast_command(
         if input_data.briefing_suffix:
             briefing += f"\n\nAdditional instructions: {input_data.briefing_suffix}"
 
-        # Create the record for the episode and associate with the ongoing command
-        episode = PodcastEpisode(
-            name=input_data.episode_name,
-            episode_profile=full_model_dump(episode_profile.model_dump()),
-            speaker_profile=full_model_dump(speaker_profile.model_dump()),
-            command=ensure_record_id(input_data.execution_context.command_id)
-            if input_data.execution_context
-            else None,
-            briefing=briefing,
-            content=input_data.content,
-            audio_file=None,
-            transcript=None,
-            outline=None,
-            notebook_id=input_data.notebook_id,
-            briefing_suffix=input_data.briefing_suffix,
-        )
-        await episode.save()
+        # Check if an episode already exists for this command to avoid duplicates on retries
+        command_id = input_data.execution_context.command_id if input_data.execution_context else None
+        episode = None
+        episode_id = None
+        if command_id:
+            cmd_raw_id = str(command_id).split(":")[-1]
+            episode_id = f"episode:{cmd_raw_id}"
+            
+            existing = await repo_query(
+                "SELECT * FROM episode WHERE command = $command_id",
+                {"command_id": ensure_record_id(command_id)}
+            )
+            if existing:
+                episode = PodcastEpisode(**existing[0])
+                logger.info(f"Found existing episode record: {episode.id} for command {command_id}, reusing it.")
+                # Update fields
+                episode.name = input_data.episode_name
+                episode.episode_profile = full_model_dump(episode_profile.model_dump())
+                episode.speaker_profile = full_model_dump(speaker_profile.model_dump())
+                episode.briefing = briefing
+                episode.content = input_data.content
+                episode.notebook_id = input_data.notebook_id
+                episode.briefing_suffix = input_data.briefing_suffix
+                # Reset audio/transcript/outline if re-running
+                episode.audio_file = None
+                episode.transcript = None
+                episode.outline = None
+
+        if not episode:
+            episode_data = {
+                "name": input_data.episode_name,
+                "episode_profile": full_model_dump(episode_profile.model_dump()),
+                "speaker_profile": full_model_dump(speaker_profile.model_dump()),
+                "command": ensure_record_id(command_id) if command_id else None,
+                "briefing": briefing,
+                "content": input_data.content,
+                "audio_file": None,
+                "transcript": None,
+                "outline": None,
+                "notebook_id": input_data.notebook_id,
+                "briefing_suffix": input_data.briefing_suffix,
+            }
+            if episode_id:
+                episode_data["created"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                episode_data["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                try:
+                    await repo_query(
+                        f"CREATE {episode_id} CONTENT $data",
+                        {"data": episode_data}
+                    )
+                    episode = await PodcastEpisode.get(episode_id)
+                except Exception as create_err:
+                    logger.error(f"Failed to create episode record with ID {episode_id} (might be concurrent duplicate): {create_err}")
+                    raise RuntimeError(f"Duplicate episode creation aborted for command {command_id}: {create_err}") from create_err
+            else:
+                episode = PodcastEpisode(**episode_data)
+                await episode.save()
+        else:
+            await episode.save()
 
         configure("speakers_config", {"profiles": speaker_profiles_dict})
         configure("episode_config", {"profiles": episode_profiles_dict})

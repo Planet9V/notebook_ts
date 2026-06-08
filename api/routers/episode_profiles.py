@@ -97,10 +97,41 @@ class EpisodeProfileCreate(BaseModel):
     transcript_model: Optional[str] = None
 
 
+async def _validate_model_supports_json(model_id: Optional[str], field_name: str):
+    if not model_id:
+        return
+    from open_notebook.ai.models import Model
+    try:
+        model = await Model.get(model_id)
+        if not model:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Selected {field_name} model not found"
+            )
+        params = model.supported_parameters or []
+        is_openai = model.provider == "openai" or model.name.startswith(("openai/", "gpt-"))
+        has_json_support = is_openai or "response_format" in params or "structured_outputs" in params
+        if not has_json_support:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Selected {field_name} model '{model.name}' does not support structured JSON output."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {field_name} model reference: {str(e)}"
+        )
+
+
 @router.post("/episode-profiles", response_model=EpisodeProfileResponse)
 async def create_episode_profile(profile_data: EpisodeProfileCreate):
     """Create a new episode profile"""
     try:
+        await _validate_model_supports_json(profile_data.outline_llm, "outline")
+        await _validate_model_supports_json(profile_data.transcript_llm, "transcript")
+
         profile = EpisodeProfile(
             name=profile_data.name,
             description=profile_data.description,
@@ -119,6 +150,8 @@ async def create_episode_profile(profile_data: EpisodeProfileCreate):
         await profile.save()
         return _profile_to_response(profile)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to create episode profile: {e}")
         raise HTTPException(
@@ -130,6 +163,9 @@ async def create_episode_profile(profile_data: EpisodeProfileCreate):
 async def update_episode_profile(profile_id: str, profile_data: EpisodeProfileCreate):
     """Update an existing episode profile"""
     try:
+        await _validate_model_supports_json(profile_data.outline_llm, "outline")
+        await _validate_model_supports_json(profile_data.transcript_llm, "transcript")
+
         profile = await EpisodeProfile.get(profile_id)
 
         if not profile:

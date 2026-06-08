@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import {
   Mic,
   MicOff,
@@ -33,6 +33,7 @@ import { AvatarPanel } from '@/components/voice/AvatarPanel'
 import { useVoiceSessions } from '@/lib/hooks/use-voice-sessions'
 import { apiClient } from '@/lib/api/client'
 import { useVoiceProcessor, VoiceMessage } from '@/components/voice/useVoiceProcessor'
+import { LiveKitRoom, RoomAudioRenderer, useRoomContext, useLocalParticipant, useRemoteParticipants, useTranscriptions } from '@livekit/components-react'
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -61,13 +62,150 @@ interface TranscriptEntry {
   timestamp: Date
 }
 
+// ── LiveKit Controller Component ─────────────────────────────────────
+
+interface LiveKitVoiceControllerProps {
+  isMuted: boolean
+  sessionId: string | null
+  avatarState: 'idle' | 'listening' | 'thinking' | 'speaking'
+  setAvatarState: React.Dispatch<React.SetStateAction<'idle' | 'listening' | 'thinking' | 'speaking'>>
+  setTranscript: React.Dispatch<React.SetStateAction<TranscriptEntry[]>>
+  setAudioLevel: React.Dispatch<React.SetStateAction<number>>
+  setConnectionState: React.Dispatch<React.SetStateAction<ConnectionState>>
+  setError: React.Dispatch<React.SetStateAction<string | null>>
+}
+
+function LiveKitVoiceController({
+  isMuted,
+  setAvatarState,
+  setTranscript,
+  setAudioLevel,
+  setConnectionState,
+}: LiveKitVoiceControllerProps) {
+  const room = useRoomContext()
+  const { localParticipant } = useLocalParticipant()
+  const remoteParticipants = useRemoteParticipants()
+  const segments = useTranscriptions()
+
+  // 1. Sync connection state
+  useEffect(() => {
+    if (room) {
+      const handleStateChange = () => {
+        if (room.state === 'connected') {
+          setConnectionState('connected')
+        } else if (room.state === 'connecting' || room.state === 'reconnecting') {
+          setConnectionState('connecting')
+        } else if (room.state === 'disconnected') {
+          setConnectionState('disconnected')
+        }
+      }
+      room.on('connectionStateChanged', handleStateChange)
+      handleStateChange()
+      return () => {
+        room.off('connectionStateChanged', handleStateChange)
+      }
+    }
+  }, [room, setConnectionState])
+
+  // 2. Handle Mute state
+  useEffect(() => {
+    if (localParticipant) {
+      localParticipant.setMicrophoneEnabled(!isMuted).catch((err) => {
+        console.error("Failed to set mic enabled:", err)
+      })
+    }
+  }, [isMuted, localParticipant])
+
+  // 3. Find the voice agent remote participant
+  const agentParticipant = useMemo(() => {
+    return remoteParticipants.find(
+      (p) =>
+        p.identity.toLowerCase().includes('agent') ||
+        p.identity.toLowerCase().includes('assistant') ||
+        p.identity.toLowerCase().includes('voice')
+    ) || remoteParticipants[0]
+  }, [remoteParticipants])
+
+  // 4. Update avatar state based on speaker activity
+  const isUserSpeaking = localParticipant?.isSpeaking || false
+  const isAgentSpeaking = agentParticipant?.isSpeaking || false
+
+  useEffect(() => {
+    if (isAgentSpeaking) {
+      setAvatarState('speaking')
+    } else if (isUserSpeaking) {
+      setAvatarState('listening')
+    } else {
+      // Transition from listening to thinking when user stops speaking
+      setAvatarState((prev) => {
+        if (prev === 'listening') {
+          return 'thinking'
+        }
+        return prev === 'thinking' ? 'thinking' : 'idle'
+      })
+    }
+  }, [isAgentSpeaking, isUserSpeaking, setAvatarState])
+
+  // 5. Update audio level for the avatar visualizer
+  useEffect(() => {
+    let animFrame: number
+    const updateLevels = () => {
+      if (isAgentSpeaking && agentParticipant) {
+        setAudioLevel(agentParticipant.audioLevel)
+      } else if (isUserSpeaking && localParticipant) {
+        setAudioLevel(localParticipant.audioLevel)
+      } else {
+        setAudioLevel(0)
+      }
+      animFrame = requestAnimationFrame(updateLevels)
+    }
+    updateLevels()
+    return () => cancelAnimationFrame(animFrame)
+  }, [isAgentSpeaking, isUserSpeaking, agentParticipant, localParticipant, setAudioLevel])
+
+  // 6. Push real-time transcription segments into the transcript
+  useEffect(() => {
+    if (segments.length === 0) return
+
+    setTranscript((prev) => {
+      const updated = [...prev]
+      segments.forEach((seg) => {
+        const id = seg.streamInfo?.id || `seg-${Date.now()}`
+        const isLocal = seg.participantInfo?.identity === localParticipant?.identity
+        const role = isLocal ? 'user' : ('assistant' as const)
+        
+        // Find existing transcription entry by id
+        const existingIdx = updated.findIndex((item) => item.id === id)
+
+        const entry: TranscriptEntry = {
+          id,
+          role,
+          text: seg.text,
+          timestamp: new Date(seg.streamInfo?.timestamp || Date.now()),
+        }
+
+        if (existingIdx !== -1) {
+          // Update the text
+          updated[existingIdx] = entry
+        } else {
+          // Append new segment
+          updated.push(entry)
+        }
+      })
+      return updated
+    })
+  }, [segments, localParticipant, setTranscript])
+
+  return null
+}
+
 // ── Component ───────────────────────────────────────────────────────
 
 export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
   // State
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(!!context)
   const [isExpanded, setIsExpanded] = useState(true)
-  const [showAvatar, setShowAvatar] = useState(false)
+  const [showAvatar, setShowAvatar] = useState(true) // Default to true for premium experience
   const [connectionState, setConnectionState] =
     useState<ConnectionState>('disconnected')
   const [isMuted, setIsMuted] = useState(false)
@@ -81,13 +219,18 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
   const [error, setError] = useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
 
+  // LiveKit WebRTC states
+  const [token, setToken] = useState<string | null>(null)
+  const [wsUrl, setWsUrl] = useState<string | null>(null)
+  const [avatarState, setAvatarState] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle')
+
   // Voice session persistence
   const { sessions, createSession, addMessage } = useVoiceSessions(context?.notebookId)
   const [showHistory, setShowHistory] = useState(false)
   const [useNotebookContext, setUseNotebookContext] = useState(true)
   const [savingNote, setSavingNote] = useState(false)
 
-  // Voice processing pipeline — the CORE that makes chat work
+  // Voice processing pipeline — the fallback CORE that makes chat work without WebRTC
   const voiceProcessor = useVoiceProcessor({
     voice: selectedVoice,
     notebookId: useNotebookContext ? context?.notebookId : undefined,
@@ -139,7 +282,7 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [transcript])
 
-  // ── Audio Level Visualization ───────────────────────────────────
+  // ── Audio Level Visualization (Fallback) ─────────────────────────
   const startAudioVisualization = useCallback((stream: MediaStream) => {
     const ctx = new AudioContext()
     const analyser = ctx.createAnalyser()
@@ -187,26 +330,18 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
         setActiveSessionId(session.id)
       }
 
-      // Get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      })
-      streamRef.current = stream
-
-      // Start audio visualization
-      startAudioVisualization(stream)
-
       // Get LiveKit token
       const tokenData = await voiceApi.getToken(
         'voice-chat',
-        `user-${Date.now()}`
+        `user-${Date.now()}`,
+        undefined,
+        useNotebookContext ? context?.notebookId : undefined,
+        session?.id || undefined
       )
 
-      setConnectionState('connected')
+      setToken(tokenData.token)
+      setWsUrl(tokenData.ws_url)
+      setConnectionState('connecting')
       setIsListening(true)
 
       // Add system message
@@ -215,7 +350,7 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
         {
           id: `sys-${Date.now()}`,
           role: 'assistant',
-          text: `Connected to voice chat. LiveKit room: ${tokenData.room_name}. Speak to interact with the AI assistant.`,
+          text: `Connecting to interactive voice assistant...`,
           timestamp: new Date(),
         },
       ])
@@ -224,19 +359,25 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
         err instanceof Error ? err.message : 'Failed to connect'
       setError(message)
       setConnectionState('error')
+      setToken(null)
+      setWsUrl(null)
       stopAudioVisualization()
     }
-  }, [startAudioVisualization, stopAudioVisualization, createSession, context, selectedVoice])
+  }, [createSession, context, selectedVoice, useNotebookContext, stopAudioVisualization])
 
   const disconnect = useCallback(() => {
-    // Stop microphone
+    // Stop microphone stream (used in fallback)
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
 
+    setToken(null)
+    setWsUrl(null)
     stopAudioVisualization()
     setConnectionState('disconnected')
     setIsListening(false)
     setActiveSessionId(null)
+    setAvatarState('idle')
+    setAudioLevel(0)
   }, [stopAudioVisualization])
 
   // Cleanup on unmount
@@ -252,8 +393,8 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
       streamRef.current.getAudioTracks().forEach((t) => {
         t.enabled = !t.enabled
       })
-      setIsMuted((m) => !m)
     }
+    setIsMuted((m) => !m)
   }, [])
 
   // ── Floating Action Button ──────────────────────────────────────
@@ -281,20 +422,9 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
     )
   }
 
-  // ── Panel UI ────────────────────────────────────────────────────
-  return (
-    <div
-      className={cn(
-        'fixed bottom-6 right-6 z-50',
-        'w-[380px] rounded-2xl overflow-hidden',
-        'bg-background/95 backdrop-blur-xl',
-        'border border-sidebar-border/60',
-        'shadow-2xl shadow-black/40',
-        'flex flex-col',
-        'transition-all duration-300 ease-out',
-        isExpanded ? 'max-h-[600px]' : 'max-h-[72px]'
-      )}
-    >
+  // ── Panel Content Wrapper ────────────────────────────────────────
+  const panelContent = (
+    <>
       {/* ── Header ─────────────────────────────────────────────── */}
       <div
         className={cn(
@@ -512,11 +642,7 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
             <div className="flex justify-center py-4 border-b border-sidebar-border/20">
               <AvatarPanel
                 audioLevel={audioLevel}
-                state={
-                  isListening ? 'listening' :
-                  connectionState === 'connected' ? 'idle' :
-                  'idle'
-                }
+                state={token ? avatarState : (isListening ? 'listening' : 'idle')}
                 size="md"
                 visible={true}
               />
@@ -660,6 +786,7 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
             connectionState === 'error' ? (
               <Button
                 onClick={connect}
+                aria-label="Connect voice assistant"
                 className={cn(
                   'h-12 w-12 rounded-full p-0',
                   'bg-gradient-to-br from-cyan-500 to-blue-600',
@@ -679,68 +806,156 @@ export function VoiceChatPanel({ context }: VoiceChatPanelProps = {}) {
               </Button>
             ) : (
               <>
-                {/* Push-to-Talk: Record / Stop */}
-                {voiceProcessor.isRecording ? (
-                  <Button
-                    onClick={voiceProcessor.stopRecording}
-                    className={cn(
-                      'h-12 w-12 rounded-full p-0',
-                      'bg-red-500/80 hover:bg-red-500',
-                      'shadow-lg shadow-red-500/20',
-                      'transition-all duration-200',
-                      'animate-pulse'
-                    )}
-                    title="Stop recording and process speech"
-                  >
-                    <MicOff className="h-5 w-5 text-white" />
-                  </Button>
-                ) : voiceProcessor.step === 'idle' ? (
-                  <Button
-                    onClick={voiceProcessor.startRecording}
-                    className={cn(
-                      'h-12 w-12 rounded-full p-0',
-                      'bg-gradient-to-br from-cyan-500 to-blue-600',
-                      'hover:from-cyan-400 hover:to-blue-500',
-                      'shadow-lg shadow-cyan-500/25',
-                      'transition-all duration-200'
-                    )}
-                    title="Hold to speak — click again to stop"
-                  >
-                    <Mic className="h-5 w-5 text-white" />
-                  </Button>
+                {token ? (
+                  <>
+                    {/* Mute/Unmute Button */}
+                    <Button
+                      onClick={toggleMute}
+                      className={cn(
+                        'h-12 w-12 rounded-full p-0 transition-all duration-200',
+                        isMuted
+                          ? 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'
+                          : 'bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25'
+                      )}
+                      title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                    >
+                      {isMuted ? (
+                        <MicOff className="h-5 w-5" />
+                      ) : (
+                        <Mic className="h-5 w-5" />
+                      )}
+                    </Button>
+
+                    {/* Status Badge */}
+                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-cyan-500/40 text-cyan-300">
+                      {avatarState === 'speaking' ? '🔊 Speaking...' :
+                       avatarState === 'listening' ? '🎙️ Listening...' :
+                       avatarState === 'thinking' ? '🤔 Thinking...' :
+                       '🟢 Live'}
+                    </Badge>
+
+                    {/* Disconnect Button */}
+                    <Button
+                      onClick={disconnect}
+                      variant="outline"
+                      className="h-10 w-10 rounded-full p-0 hover:bg-red-500/20 hover:border-red-500/50"
+                      title="Disconnect"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
                 ) : (
-                  <Button
-                    disabled
-                    className="h-12 w-12 rounded-full p-0 bg-amber-500/20"
-                    title={`Processing: ${voiceProcessor.step}`}
-                  >
-                    <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
-                  </Button>
-                )}
+                  <>
+                    {/* Fallback controls */}
+                    {voiceProcessor.isRecording ? (
+                      <Button
+                        onClick={voiceProcessor.stopRecording}
+                        className={cn(
+                          'h-12 w-12 rounded-full p-0',
+                          'bg-red-500/80 hover:bg-red-500',
+                          'shadow-lg shadow-red-500/20',
+                          'transition-all duration-200',
+                          'animate-pulse'
+                        )}
+                        title="Stop recording and process speech"
+                      >
+                        <MicOff className="h-5 w-5 text-white" />
+                      </Button>
+                    ) : voiceProcessor.step === 'idle' ? (
+                      <Button
+                        onClick={voiceProcessor.startRecording}
+                        className={cn(
+                          'h-12 w-12 rounded-full p-0',
+                          'bg-gradient-to-br from-cyan-500 to-blue-600',
+                          'hover:from-cyan-400 hover:to-blue-500',
+                          'shadow-lg shadow-cyan-500/25',
+                          'transition-all duration-200'
+                        )}
+                        title="Hold to speak — click again to stop"
+                      >
+                        <Mic className="h-5 w-5 text-white" />
+                      </Button>
+                    ) : (
+                      <Button
+                        disabled
+                        className="h-12 w-12 rounded-full p-0 bg-amber-500/20"
+                        title={`Processing: ${voiceProcessor.step}`}
+                      >
+                        <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+                      </Button>
+                    )}
 
-                {/* Processing status indicator */}
-                {voiceProcessor.step !== 'idle' && !voiceProcessor.isRecording && (
-                  <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-amber-500/40 text-amber-300 animate-pulse">
-                    {voiceProcessor.step === 'transcribing' ? '📝 Transcribing...' :
-                     voiceProcessor.step === 'thinking' ? '🤔 Thinking...' :
-                     voiceProcessor.step === 'speaking' ? '🔊 Speaking...' :
-                     voiceProcessor.step}
-                  </Badge>
-                )}
+                    {/* Processing status indicator */}
+                    {voiceProcessor.step !== 'idle' && !voiceProcessor.isRecording && (
+                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-amber-500/40 text-amber-300 animate-pulse">
+                        {voiceProcessor.step === 'transcribing' ? '📝 Transcribing...' :
+                         voiceProcessor.step === 'thinking' ? '🤔 Thinking...' :
+                         voiceProcessor.step === 'speaking' ? '🔊 Speaking...' :
+                         voiceProcessor.step}
+                      </Badge>
+                    )}
 
-                {/* Disconnect Button */}
-                <Button
-                  onClick={disconnect}
-                  variant="outline"
-                  className="h-10 w-10 rounded-full p-0 hover:bg-red-500/20 hover:border-red-500/50"
-                  title="Disconnect"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                    {/* Disconnect Button */}
+                    <Button
+                      onClick={disconnect}
+                      variant="outline"
+                      className="h-10 w-10 rounded-full p-0 hover:bg-red-500/20 hover:border-red-500/50"
+                      title="Disconnect"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>
         </>
+      )}
+    </>
+  )
+
+  // ── Panel UI ────────────────────────────────────────────────────
+  return (
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden transition-all duration-300 ease-out',
+        context
+          ? 'w-full h-full relative'
+          : [
+              'fixed bottom-6 right-6 z-50',
+              'w-[380px] rounded-2xl',
+              'bg-background/95 backdrop-blur-xl',
+              'border border-sidebar-border/60',
+              'shadow-2xl shadow-black/40',
+            ],
+        isExpanded ? 'max-h-[600px]' : 'max-h-[72px]'
+      )}
+    >
+      {token && wsUrl ? (
+        <LiveKitRoom
+          token={token}
+          serverUrl={wsUrl}
+          connect={true}
+          audio={true}
+          video={false}
+          onDisconnected={disconnect}
+          className="flex flex-col h-full"
+        >
+          <LiveKitVoiceController
+            isMuted={isMuted}
+            sessionId={activeSessionId}
+            avatarState={avatarState}
+            setAvatarState={setAvatarState}
+            setTranscript={setTranscript}
+            setAudioLevel={setAudioLevel}
+            setConnectionState={setConnectionState}
+            setError={setError}
+          />
+          <RoomAudioRenderer />
+          {panelContent}
+        </LiveKitRoom>
+      ) : (
+        panelContent
       )}
     </div>
   )

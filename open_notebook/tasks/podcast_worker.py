@@ -116,6 +116,15 @@ async def trigger_due_episodes() -> list[str]:
         for ep in active_episodes:
             if is_scheduled_due(ep.schedule, ep.last_run):
                 logger.info(f"Triggering scheduled episode: '{ep.name}' (schedule: {ep.schedule})")
+
+                # Guard: skip episodes without a configured notebook
+                if not ep.notebook:
+                    logger.warning(
+                        f"Skipping scheduled episode '{ep.name}': no notebook configured. "
+                        "Edit the schedule to select a notebook."
+                    )
+                    continue
+
                 try:
                     job_id = await PodcastService.submit_generation_job(
                         episode_profile_name=ep.episode_profile,

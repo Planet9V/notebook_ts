@@ -37,4 +37,7 @@ export const QUERY_KEYS = {
   customer: (id: string) => ['customers', id] as const,
   contacts: (customerId?: string) => ['contacts', customerId] as const,
   contact: (id: string) => ['contacts', id] as const,
+  locationNotes: (locationId: string) => ['location-notes', locationId] as const,
+  customerNotes: (customerId: string) => ['customer-notes', customerId] as const,
+  customerNotesRollup: (customerId: string) => ['customer-notes-rollup', customerId] as const,
 }

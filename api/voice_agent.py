@@ -19,7 +19,7 @@ async def entrypoint(ctx: JobContext):
 
     # Wait for the user participant to join
     logger.info("Waiting for remote participant...")
-    participant = await ctx.wait_for_remote_participant()
+    participant = await ctx.wait_for_participant()
     logger.info(f"Participant connected: {participant.identity}")
 
     # Extract notebook_id and session_id from participant metadata
@@ -143,5 +143,7 @@ def load_livekit_settings():
 
 
 if __name__ == "__main__":
+    from open_notebook.utils.logging import setup_db_logging
+    setup_db_logging("voice_agent")
     load_livekit_settings()
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))

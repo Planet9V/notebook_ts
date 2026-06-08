@@ -148,3 +148,12 @@ specs/
 test.mp3
 debug_bento.html
 debug_bento.png
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Local temporary/scratch files
+scratch/
+.loki/
+graphify-out/

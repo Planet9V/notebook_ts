@@ -19,7 +19,9 @@ Comprehensive list of all environment variables available in Open Notebook.
 
 ---
 
-## Database: SurrealDB
+## Databases
+
+### SurrealDB (Transactional & Graph Database)
 
 | Variable | Required? | Default | Description |
 |----------|-----------|---------|-------------|
@@ -28,6 +30,12 @@ Comprehensive list of all environment variables available in Open Notebook.
 | `SURREAL_PASSWORD` | Yes | root | SurrealDB password |
 | `SURREAL_NAMESPACE` | Yes | open_notebook | SurrealDB namespace |
 | `SURREAL_DATABASE` | Yes | open_notebook | SurrealDB database name |
+
+### PostgreSQL + pgvector (Semantic Cache)
+
+| Variable | Required? | Default | Description |
+|----------|-----------|---------|-------------|
+| `POSTGRES_DSN` | Yes | postgresql://tetrel:tetrel_dev@postgres:5432/tetrel_research | PostgreSQL connection URI for the semantic cache |
 
 ---
 

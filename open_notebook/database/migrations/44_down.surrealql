@@ -1,0 +1,1 @@
+REMOVE INDEX entity_note_unique_edge ON TABLE entity_note;

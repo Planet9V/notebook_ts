@@ -1,4 +1,5 @@
 export type EpisodeStatus =
+  | 'new'
   | 'running'
   | 'processing'
   | 'completed'
@@ -88,6 +89,7 @@ export type EpisodeStatusGroup = 'running' | 'completed' | 'failed' | 'pending'
 export type EpisodeStatusGroups = Record<EpisodeStatusGroup, PodcastEpisode[]>
 
 export const ACTIVE_EPISODE_STATUSES: EpisodeStatus[] = [
+  'new',
   'running',
   'processing',
   'pending',

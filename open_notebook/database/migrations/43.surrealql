@@ -1,0 +1,7 @@
+-- Migration 43: Entity Notes - attach notes to locations and customers
+DEFINE TABLE IF NOT EXISTS entity_note TYPE RELATION
+  FROM note
+  TO location | customer;
+
+DEFINE INDEX IF NOT EXISTS idx_entity_note_out ON TABLE entity_note FIELDS out;
+DEFINE INDEX IF NOT EXISTS idx_entity_note_in ON TABLE entity_note FIELDS in;

@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from open_notebook.utils.logging import setup_db_logging
+setup_db_logging("api")
+
 import asyncio
 import os
 from contextlib import asynccontextmanager
@@ -58,6 +61,7 @@ from api.routers import (
     mcp,
     publications,
     research_memory,
+    system_logs,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -505,6 +509,7 @@ app.include_router(skills.router, prefix="/api", tags=["skills"])
 app.include_router(mcp.router, prefix="/api", tags=["mcp"])
 app.include_router(publications.router, prefix="/api", tags=["publications"])
 app.include_router(research_memory.router, prefix="/api", tags=["research-memory"])
+app.include_router(system_logs.router, prefix="/api", tags=["system-logs"])
 
 
 @app.get("/")

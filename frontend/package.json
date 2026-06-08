@@ -14,6 +14,7 @@
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.1.1",
+    "@livekit/components-react": "^2.9.21",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -44,6 +45,7 @@
     "elkjs": "^0.11.1",
     "i18next": "^25.7.3",
     "i18next-browser-languagedetector": "^8.2.0",
+    "livekit-client": "^2.19.1",
     "lucide-react": "^0.525.0",
     "next": "^16.2.6",
     "next-themes": "^0.4.6",

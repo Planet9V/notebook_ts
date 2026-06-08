@@ -1,0 +1,2 @@
+-- Migration 45 Rollback: Remove system_log table
+REMOVE TABLE system_log;

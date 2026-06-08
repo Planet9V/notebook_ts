@@ -18,6 +18,7 @@ interface ModelSelectorProps {
   disabled?: boolean
   /** If true, show a clear button */
   clearable?: boolean
+  supportsJsonOnly?: boolean
 }
 
 export function ModelSelector({
@@ -30,9 +31,12 @@ export function ModelSelector({
   placeholder,
   disabled = false,
   clearable = false,
+  supportsJsonOnly = false,
 }: ModelSelectorProps) {
   const { t } = useTranslation()
-  const { data: models, isLoading } = useModels()
+  const { data: models, isLoading } = useModels(
+    supportsJsonOnly ? { type: modelType, supports_json: true } : undefined
+  )
   const derivedId = useId()
   const selectId = id || derivedId
 

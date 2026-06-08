@@ -618,6 +618,18 @@ class Note(ObjectModel):
             raise InvalidInputError("Notebook ID must be provided")
         return await self.relate("artifact", notebook_id)
 
+    async def add_to_location(self, location_id: str) -> Any:
+        """Link this note to a location/facility via entity_note edge."""
+        if not location_id:
+            raise InvalidInputError("Location ID must be provided")
+        return await self.relate("entity_note", location_id)
+
+    async def add_to_customer(self, customer_id: str) -> Any:
+        """Link this note to a customer/organization via entity_note edge."""
+        if not customer_id:
+            raise InvalidInputError("Customer ID must be provided")
+        return await self.relate("entity_note", customer_id)
+
     def get_context(
         self, context_size: Literal["short", "long"] = "short"
     ) -> Dict[str, Any]:

@@ -251,6 +251,7 @@ export function EpisodeProfileFormDialog({
                     value={field.value}
                     onChange={field.onChange}
                     placeholder={t('podcasts.selectOutlineModel')}
+                    supportsJsonOnly={true}
                   />
                   {errors.outline_llm ? (
                     <p className="text-xs text-red-600 mt-1">
@@ -280,6 +281,7 @@ export function EpisodeProfileFormDialog({
                     value={field.value}
                     onChange={field.onChange}
                     placeholder={t('podcasts.selectTranscriptModel')}
+                    supportsJsonOnly={true}
                   />
                   {errors.transcript_llm ? (
                     <p className="text-xs text-red-600 mt-1">

@@ -11,7 +11,7 @@ import re
 from playwright.sync_api import sync_playwright, expect
 
 # Constants
-BASE_URL = "http://localhost:3000"
+BASE_URL = "http://localhost:8502"
 CUSTOMER_THREAT = "rb4qbxge1hgysmks7wdr"  # Customer with active threat (activeThreatCount = 2)
 CUSTOMER_SECURE = "o9xp6yesfb84jwyxar67"  # Customer with secure state (activeThreatCount = 0)
 
