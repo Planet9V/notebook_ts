@@ -13,17 +13,20 @@ Architecture:
 """
 
 import asyncio
+import json
 import os
 import time
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Header
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
 from open_notebook.domain.voice_settings import VoiceSettingsConfig
+from open_notebook.domain.notebook import Notebook, vector_search
+from open_notebook.utils.text_utils import extract_text_content
 
 router = APIRouter()
 
@@ -110,6 +113,12 @@ class VoiceTokenRequest(BaseModel):
     )
     name: Optional[str] = Field(
         None, description="Display name for participant"
+    )
+    notebook_id: Optional[str] = Field(
+        None, description="Notebook ID for RAG context"
+    )
+    session_id: Optional[str] = Field(
+        None, description="Active voice session ID"
     )
 
 
@@ -285,6 +294,20 @@ async def create_voice_token(request: VoiceTokenRequest):
     with publish/subscribe capabilities for audio.
     """
     try:
+        # Load voice settings config to determine mode and credentials
+        db_config = await VoiceSettingsConfig.get_instance()
+        api_key = LIVEKIT_API_KEY
+        api_secret = LIVEKIT_API_SECRET
+        ws_url = LIVEKIT_WS_URL
+
+        if db_config.livekit_mode == "remote":
+            if db_config.livekit_remote_api_key:
+                api_key = db_config.livekit_remote_api_key
+            if db_config.livekit_remote_api_secret:
+                api_secret = db_config.livekit_remote_api_secret
+            if db_config.livekit_remote_ws_url:
+                ws_url = db_config.livekit_remote_ws_url
+
         # Build JWT manually using HMAC-SHA256 (no livekit SDK dependency)
         import base64
         import hashlib
@@ -299,13 +322,17 @@ async def create_voice_token(request: VoiceTokenRequest):
         # LiveKit JWT claims
         # See: https://docs.livekit.io/realtime/concepts/authentication/
         payload = {
-            "iss": LIVEKIT_API_KEY,
+            "iss": api_key,
             "sub": request.identity,
             "name": request.name or request.identity,
             "nbf": now,
             "exp": exp,
             "iat": now,
             "jti": f"voice-{request.identity}-{now}",
+            "metadata": json.dumps({
+                "notebook_id": request.notebook_id,
+                "session_id": request.session_id
+            }) if (request.notebook_id or request.session_id) else "",
             "video": {
                 "room": request.room_name,
                 "roomJoin": True,
@@ -323,7 +350,7 @@ async def create_voice_token(request: VoiceTokenRequest):
         payload_b64 = _b64url(json.dumps(payload, separators=(",", ":")).encode())
         signing_input = f"{header_b64}.{payload_b64}"
         signature = hmac.new(
-            LIVEKIT_API_SECRET.encode(),
+            api_secret.encode(),
             signing_input.encode(),
             hashlib.sha256,
         ).digest()
@@ -331,7 +358,7 @@ async def create_voice_token(request: VoiceTokenRequest):
 
         return VoiceTokenResponse(
             token=token,
-            ws_url=LIVEKIT_WS_URL,
+            ws_url=ws_url,
             room_name=request.room_name,
             identity=request.identity,
         )
@@ -707,6 +734,12 @@ class VoiceSettings(BaseModel):
     livekit_remote_ws_url: str = Field(
         default="", description="Remote LiveKit WebSocket URL"
     )
+    livekit_remote_api_key: str = Field(
+        default="", description="Remote LiveKit API Key"
+    )
+    livekit_remote_api_secret: str = Field(
+        default="", description="Remote LiveKit API Secret"
+    )
     livekit_remote_api_key_set: bool = Field(
         default=False, description="Whether remote LiveKit API key is configured"
     )
@@ -760,6 +793,8 @@ async def get_voice_settings():
         voice_enabled=config.voice_enabled,
         livekit_mode=config.livekit_mode,
         livekit_remote_ws_url=config.livekit_remote_ws_url,
+        livekit_remote_api_key=config.livekit_remote_api_key,
+        livekit_remote_api_secret=config.livekit_remote_api_secret,
         livekit_remote_api_key_set=bool(config.livekit_remote_api_key),
     )
 
@@ -789,7 +824,7 @@ async def update_voice_settings(request: Request):
         "deepgram_smart_format", "deepgram_punctuate", "deepgram_diarize",
         "whisper_model", "whisper_compute_type",
         "voice_enabled",
-        "livekit_mode", "livekit_remote_ws_url", "livekit_remote_api_key",
+        "livekit_mode", "livekit_remote_ws_url", "livekit_remote_api_key", "livekit_remote_api_secret",
     }
 
     # Only patch fields that were explicitly sent in the request
@@ -1420,3 +1455,199 @@ async def upload_custom_voice(
     except Exception as e:
         logger.error(f"Failed to handle custom voice upload: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── OpenAI-Compatible Completions Endpoint for LiveKit Agent ──────────
+
+
+class OpenAICompletionsMessage(BaseModel):
+    role: str
+    content: str
+
+
+class OpenAICompletionsRequest(BaseModel):
+    messages: List[OpenAICompletionsMessage]
+    model: str = "default"
+    stream: bool = True
+
+
+@router.post("/voice/agent/llm/v1/chat/completions")
+async def agent_llm_completions(
+    request: OpenAICompletionsRequest,
+    x_notebook_id: Optional[str] = Header(None),
+    x_session_id: Optional[str] = Header(None)
+):
+    """
+    OpenAI-compatible completions proxy for the LiveKit voice agent.
+    Performs RAG context retrieval using x_notebook_id, streams responses,
+    and saves turns to x_session_id.
+    """
+    logger.info(f"Received agent completions request. Notebook ID: {x_notebook_id}, Session ID: {x_session_id}, messages count: {len(request.messages)}")
+    
+    # Retrieve the last user message
+    user_query = ""
+    for msg in reversed(request.messages):
+        if msg.role == "user":
+            user_query = msg.content
+            break
+
+    if not user_query:
+        user_query = "Hello"
+
+    rag_context = ""
+    sources_used = 0
+
+    if x_notebook_id:
+        try:
+            notebook = await Notebook.get(x_notebook_id)
+            if notebook:
+                # Build context from sources
+                try:
+                    sources = await notebook.get_sources()
+                    for src in sources[:5]:
+                        title = src.title or "Untitled"
+                        rag_context += f"Source: {title}\n"
+                        sources_used += 1
+                except Exception as e:
+                    logger.warning(f"Voice agent completions: failed to get notebook sources: {e}")
+
+                try:
+                    notes = await notebook.get_notes()
+                    for note in notes[:5]:
+                        title = note.title or "Untitled"
+                        content = (note.content or "")[:300]
+                        rag_context += f"Note: {title}\n{content}\n\n"
+                        sources_used += 1
+                except Exception as e:
+                    logger.warning(f"Voice agent completions: failed to get notebook notes: {e}")
+        except Exception as e:
+            logger.warning(f"Voice agent completions: failed to get notebook context: {e}")
+
+    # Vector search
+    try:
+        results = await vector_search(
+            keyword=user_query,
+            results=5,
+            source=True,
+            note=True,
+            minimum_score=0.3,
+        )
+        if results:
+            for i, r in enumerate(results, 1):
+                title = r.get("title", f"Source {i}") if isinstance(r, dict) else getattr(r, "title", f"Source {i}")
+                content = (r.get("content", "") if isinstance(r, dict) else getattr(r, "content", ""))[:400]
+                rag_context += f"[{i}] {title}\n{content}\n\n"
+                sources_used += 1
+    except Exception as e:
+        logger.warning(f"Voice agent completions: RAG search failed: {e}")
+
+    system_prompt = (
+        "You are a helpful voice assistant for a research and knowledge management platform. "
+        "Respond conversationally and concisely — your response will be read aloud via TTS. "
+        "Keep responses under 3 paragraphs unless explicitly asked. "
+        "When using context, reference key points naturally but don't list source numbers."
+    )
+
+    from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+    payload_messages = [SystemMessage(content=system_prompt)]
+
+    # Append chat history (excluding the last user message)
+    history_messages = request.messages[:-1]
+    for msg in history_messages:
+        if msg.role == "system":
+            payload_messages.append(SystemMessage(content=msg.content))
+        elif msg.role == "user":
+            payload_messages.append(HumanMessage(content=msg.content))
+        elif msg.role == "assistant":
+            payload_messages.append(AIMessage(content=msg.content))
+
+    # Append user prompt with RAG context
+    final_prompt = ""
+    if rag_context:
+        final_prompt += f"Context from knowledge base:\n{rag_context}\n\n"
+    final_prompt += f"User query: {user_query}"
+    payload_messages.append(HumanMessage(content=final_prompt))
+
+    from open_notebook.ai.provision import provision_langchain_model
+    llm = await provision_langchain_model(
+        content=final_prompt, model_id=None, default_type="chat"
+    )
+
+    async def event_generator():
+        try:
+            accumulated = ""
+            async for chunk in llm.astream(payload_messages):
+                content = extract_text_content(chunk.content)
+                if content:
+                    accumulated += content
+                    choice = {
+                        "choices": [
+                            {
+                                "delta": {"content": content},
+                                "index": 0,
+                                "finish_reason": None
+                            }
+                        ]
+                    }
+                    yield f"data: {json.dumps(choice)}\n\n"
+
+            # Persist prompt and completion to session in the database
+            if x_session_id:
+                try:
+                    from api.routers.voice_sessions import add_voice_message, VoiceMessageRequest
+                    await add_voice_message(
+                        session_id=x_session_id,
+                        request=VoiceMessageRequest(role="human", content=user_query)
+                    )
+                    await add_voice_message(
+                        session_id=x_session_id,
+                        request=VoiceMessageRequest(role="ai", content=accumulated)
+                    )
+                    logger.info(f"Saved real-time voice message turn to session {x_session_id}")
+                except Exception as db_err:
+                    logger.warning(f"Failed to save voice messages to database: {db_err}")
+
+            choice_final = {
+                "choices": [
+                    {
+                        "delta": {},
+                        "index": 0,
+                        "finish_reason": "stop"
+                    }
+                ]
+            }
+            yield f"data: {json.dumps(choice_final)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            logger.error(f"Voice agent completions stream error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield "data: [DONE]\n\n"
+
+    if request.stream:
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    else:
+        response = await llm.ainvoke(payload_messages)
+        answer = extract_text_content(response.content)
+        if x_session_id:
+            try:
+                from api.routers.voice_sessions import add_voice_message, VoiceMessageRequest
+                await add_voice_message(
+                    session_id=x_session_id,
+                    request=VoiceMessageRequest(role="human", content=user_query)
+                )
+                await add_voice_message(
+                    session_id=x_session_id,
+                    request=VoiceMessageRequest(role="ai", content=answer)
+                )
+            except Exception as db_err:
+                logger.warning(f"Failed to save voice messages to database: {db_err}")
+        return {
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": answer},
+                    "finish_reason": "stop",
+                    "index": 0
+                }
+            ]
+        }
+

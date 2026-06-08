@@ -152,6 +152,56 @@ class TestExpandedVoiceSettings:
         assert data["stt_engine"] == "deepgram"
         assert data["livekit_mode"] == "remote"
 
+    def test_settings_update_and_token_generation_remote(self, client):
+        """Updating to remote LiveKit mode should generate a token signed with remote keys and return remote WS URL."""
+        # 1. Update settings with remote configs
+        response = client.put(
+            "/api/voice/settings",
+            json={
+                "livekit_mode": "remote",
+                "livekit_remote_ws_url": "wss://my-remote-livekit:7880",
+                "livekit_remote_api_key": "my-remote-key",
+                "livekit_remote_api_secret": "my-remote-secret",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["livekit_mode"] == "remote"
+        assert data["livekit_remote_ws_url"] == "wss://my-remote-livekit:7880"
+        assert data["livekit_remote_api_key"] == "my-remote-key"
+        assert data["livekit_remote_api_secret"] == "my-remote-secret"
+
+        # 2. Get voice token
+        token_response = client.post(
+            "/api/voice/token",
+            json={
+                "room_name": "test-remote-room",
+                "identity": "remote-user",
+            }
+        )
+        assert token_response.status_code == 200
+        token_data = token_response.json()
+        assert token_data["ws_url"] == "wss://my-remote-livekit:7880"
+        
+        # Verify JWT payload header matches my-remote-key
+        import base64
+        import json
+        jwt_parts = token_data["token"].split(".")
+        assert len(jwt_parts) == 3
+        # Decode base64 payload
+        payload_bytes = base64.urlsafe_b64decode(jwt_parts[1] + "==")
+        payload = json.loads(payload_bytes.decode())
+        assert payload["iss"] == "my-remote-key"
+        assert payload["sub"] == "remote-user"
+        
+        # Reset back to local mode to avoid messing up other tests
+        client.put(
+            "/api/voice/settings",
+            json={
+                "livekit_mode": "local",
+            },
+        )
+
 
 # ── Platform Detection Tests ─────────────────────────────────────────
 

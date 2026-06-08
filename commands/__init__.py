@@ -1,5 +1,10 @@
 """Surreal-commands integration for Open Notebook"""
 
+import os
+if os.environ.get("PROCESS_NAME") == "worker":
+    from open_notebook.utils.logging import setup_db_logging
+    setup_db_logging("worker")
+
 from .embedding_commands import (
     embed_insight_command,
     embed_note_command,

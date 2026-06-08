@@ -57,12 +57,16 @@ export const voiceApi = {
   async getToken(
     roomName: string = 'voice-chat',
     identity: string = 'user',
-    name?: string
+    name?: string,
+    notebookId?: string,
+    sessionId?: string
   ): Promise<VoiceToken> {
     const { data } = await apiClient.post('/voice/token', {
       room_name: roomName,
       identity,
       name,
+      notebook_id: notebookId,
+      session_id: sessionId,
     })
     return data
   },
@@ -267,5 +271,8 @@ export interface VoiceSettings {
   // LiveKit mode
   livekit_mode: string  // local | remote
   livekit_remote_ws_url: string
+  livekit_remote_api_key?: string
+  livekit_remote_api_secret?: string
   livekit_remote_api_key_set: boolean
 }
+

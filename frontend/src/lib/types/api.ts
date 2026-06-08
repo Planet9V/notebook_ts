@@ -27,6 +27,10 @@ export interface NoteResponse {
   note_type: string | null
   created: string
   updated: string
+  command_id?: string
+  location_id?: string | null
+  location_name?: string | null
+  customer_id?: string | null
 }
 
 export interface SourceListResponse {
@@ -124,6 +128,8 @@ export interface CreateNoteRequest {
   content: string
   note_type?: string
   notebook_id?: string
+  location_id?: string
+  customer_id?: string
 }
 
 export interface CreateSourceRequest {
@@ -281,3 +287,18 @@ export interface User {
   organization?: string | null
 }
 
+// Entity Notes Rollup Types
+export interface LocationNotesRollup {
+  location_id: string
+  facility_name: string
+  note_count: number
+  latest_note_date?: string | null
+  notes: NoteResponse[]
+}
+
+export interface CustomerNotesRollup {
+  customer_id: string
+  direct_notes: NoteResponse[]
+  locations: LocationNotesRollup[]
+  total_note_count: number
+}

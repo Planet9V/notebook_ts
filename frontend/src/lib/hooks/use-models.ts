@@ -13,10 +13,10 @@ export const MODEL_QUERY_KEYS = {
   providers: ['models', 'providers'] as const,
 }
 
-export function useModels() {
+export function useModels(params?: { type?: string; supports_json?: boolean }) {
   return useQuery({
-    queryKey: MODEL_QUERY_KEYS.models,
-    queryFn: () => modelsApi.list(),
+    queryKey: params ? [...MODEL_QUERY_KEYS.models, params] : MODEL_QUERY_KEYS.models,
+    queryFn: () => modelsApi.list(params),
   })
 }
 

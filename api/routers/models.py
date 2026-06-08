@@ -224,13 +224,24 @@ def _check_openai_compatible_support(mode: str) -> bool:
 @router.get("/models", response_model=List[ModelResponse])
 async def get_models(
     type: Optional[str] = Query(None, description="Filter by model type"),
+    supports_json: Optional[bool] = Query(None, description="Filter models that support JSON response format"),
 ):
-    """Get all configured models with optional type filtering."""
+    """Get all configured models with optional type filtering and JSON support filtering."""
     try:
         if type:
             models = await Model.get_models_by_type(type)
         else:
             models = await Model.get_all()
+
+        if supports_json:
+            filtered_models = []
+            for model in models:
+                params = model.supported_parameters or []
+                is_openai = model.provider == "openai" or model.name.startswith(("openai/", "gpt-"))
+                has_json_support = is_openai or "response_format" in params or "structured_outputs" in params
+                if has_json_support:
+                    filtered_models.append(model)
+            models = filtered_models
 
         return [
             _model_to_response(model)

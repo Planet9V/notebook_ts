@@ -521,6 +521,12 @@ class NoteCreate(BaseModel):
     notebook_id: Optional[str] = Field(
         None, description="Notebook ID to add the note to"
     )
+    location_id: Optional[str] = Field(
+        None, description="Location/facility ID to attach the note to"
+    )
+    customer_id: Optional[str] = Field(
+        None, description="Customer/organization ID to attach the note to"
+    )
 
 
 class NoteUpdate(BaseModel):
@@ -537,6 +543,26 @@ class NoteResponse(BaseModel):
     created: str
     updated: str
     command_id: Optional[str] = None
+    location_id: Optional[str] = None
+    location_name: Optional[str] = None
+    customer_id: Optional[str] = None
+
+
+class LocationNotesRollup(BaseModel):
+    """Notes rollup for a single location/facility."""
+    location_id: str
+    facility_name: str
+    note_count: int
+    latest_note_date: Optional[str] = None
+    notes: List[NoteResponse]
+
+
+class CustomerNotesRollup(BaseModel):
+    """Rolled-up notes view for a customer: direct notes + location notes."""
+    customer_id: str
+    direct_notes: List[NoteResponse]
+    locations: List[LocationNotesRollup]
+    total_note_count: int
 
 
 # Embedding API models

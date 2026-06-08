@@ -30,7 +30,7 @@ import {
   SECTOR_FRAMEWORK_MAP,
   SECTOR_GUIDELINES,
 } from './data'
-import { ProfileTab, ComplianceTab, EducationTab, ActivityTab } from './components'
+import { ProfileTab, ComplianceTab, EducationTab, ActivityTab, NotesTab } from './components'
 
 const FRONTEND_TO_DB_MAP: Record<string, string> = {
   'CFATS_RBPS': 'Cfats',
@@ -85,7 +85,7 @@ export default function CustomerDossierPage() {
   const { data: locations = [] } = useLocations(customerId)
   const [notebooks, setNotebooks] = useState<Notebook[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [activeTab, setActiveTab] = useState<'profile' | 'contacts' | 'locations' | 'projects' | 'threats' | 'compliance' | 'education' | 'activity'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'contacts' | 'locations' | 'projects' | 'threats' | 'compliance' | 'education' | 'activity' | 'notes'>('profile')
   const [highlightedContactId, setHighlightedContactId] = useState<string | null>(null)
 
   const handleNavigateToContacts = (contactId?: string) => {
@@ -624,7 +624,7 @@ export default function CustomerDossierPage() {
 
           {/* Tab Selection */}
           <div className="flex border-b border-white/5 font-mono text-xs overflow-x-auto select-none gap-2">
-            {(['profile', 'contacts', 'locations', 'projects', 'threats', 'compliance', 'education', 'activity'] as const).map(tab => (
+            {(['profile', 'contacts', 'locations', 'projects', 'threats', 'compliance', 'education', 'activity', 'notes'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -646,6 +646,7 @@ export default function CustomerDossierPage() {
                 {tab === 'compliance' && 'COMPLIANCE WIZARD (CSET)'}
                 {tab === 'education' && 'SECTOR REFERENCE'}
                 {tab === 'activity' && 'ACTIVITY TIMELINE'}
+                {tab === 'notes' && 'NOTES'}
               </button>
             ))}
           </div>
@@ -812,6 +813,11 @@ export default function CustomerDossierPage() {
             {/* Tab 6: Activity Timeline */}
             {activeTab === 'activity' && customer && (
               <ActivityTab customerId={customer.id} />
+            )}
+
+            {/* Tab 7: Notes */}
+            {activeTab === 'notes' && (
+              <NotesTab customerId={customerId} />
             )}
 
           </div>

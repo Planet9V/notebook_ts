@@ -76,125 +76,40 @@ async def execute_scheduled_search(scheduled_search) -> Dict[str, Any]:
 
 
 async def _run_search(engine: str, query: str) -> List[Dict[str, Any]]:
-    """Run a search against the specified engine. Returns list of result dicts."""
+    """Run a search against the specified engine. Returns list of result dicts.
+
+    Valyu-family engines (valyu, valyu_web, valyu_news, valyu_academic,
+    valyu_financial, valyu_sec) are routed through the unified Valyu search
+    module. Brave is handled directly via httpx.
+    """
     import os
 
     import httpx
 
     from open_notebook.ai.key_provider import get_api_key
+    from open_notebook.search.valyu_search import run_valyu_search
 
-    results = []
+    # Map engine name → Valyu context
+    VALYU_ENGINE_CONTEXTS: dict[str, str] = {
+        "valyu": "web",
+        "valyu_web": "web",
+        "valyu_news": "news",
+        "valyu_academic": "academic",
+        "valyu_financial": "financial",
+        "valyu_sec": "compliance",
+    }
 
-    if engine == "valyu":
-        api_key = await get_api_key("valyu") or os.environ.get("VALYU_API_KEY")
-        if not api_key:
-            raise ValueError("Valyu API key not configured")
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                "https://api.valyu.ai/v1/search",
-                headers={"Content-Type": "application/json", "X-API-Key": api_key},
-                json={
-                    "query": query,
-                    "search_type": "all",
-                    "max_num_results": 8,
-                    "response_length": "medium",
-                },
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("success"):
-                    results = [
-                        {
-                            "title": r.get("title", ""),
-                            "url": r.get("url", ""),
-                            "content": r.get("content", ""),
-                        }
-                        for r in data.get("results", [])
-                    ]
-
-    elif engine == "tavily":
-        api_key = await get_api_key("tavily") or os.environ.get("TAVILY_API_KEY")
-        if not api_key:
-            raise ValueError("Tavily API key not configured")
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(
-                "https://api.tavily.com/search",
-                json={"api_key": api_key, "query": query, "search_depth": "advanced", "max_results": 6},
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = [
-                    {
-                        "title": r.get("title", ""),
-                        "url": r.get("url", ""),
-                        "content": r.get("content", ""),
-                    }
-                    for r in data.get("results", [])
-                ]
-
-    elif engine == "perplexity":
-        api_key = await get_api_key("perplexity") or os.environ.get("PERPLEXITY_API_KEY")
-        if not api_key:
-            raise ValueError("Perplexity API key not configured")
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://api.perplexity.ai/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": "sonar",
-                    "messages": [
-                        {"role": "system", "content": "Provide research findings with sources."},
-                        {"role": "user", "content": query},
-                    ],
-                },
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                citations = data.get("citations", [])
-                answer = ""
-                for choice in data.get("choices", []):
-                    answer += choice.get("message", {}).get("content", "")
-                results = [{"title": "Perplexity Research", "url": url, "content": answer} for url in (citations or [""])]
-
-    elif engine == "newsapi":
-        api_key = await get_api_key("newsapi") or os.environ.get("NEWSAPI_KEY")
-        if not api_key:
-            raise ValueError("NewsAPI key not configured")
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(
-                "https://newsapi.org/v2/everything",
-                params={"apiKey": api_key, "q": query, "sortBy": "relevancy", "pageSize": 8, "language": "en"},
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = [
-                    {
-                        "title": r.get("title", ""),
-                        "url": r.get("url", ""),
-                        "content": r.get("description", "") or r.get("content", ""),
-                    }
-                    for r in data.get("articles", [])
-                ]
-
-    elif engine == "google_scholar":
-        api_key = await get_api_key("google_scholar") or os.environ.get("GOOGLE_SCHOLAR_API_KEY")
-        if not api_key:
-            raise ValueError("Google Scholar API key not configured")
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(
-                "https://serpapi.com/search.json",
-                params={"api_key": api_key, "engine": "google_scholar", "q": query, "num": 8},
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = [
-                    {
-                        "title": r.get("title", ""),
-                        "url": r.get("link", ""),
-                        "content": r.get("snippet", ""),
-                    }
-                    for r in data.get("organic_results", [])
-                ]
+    if engine in VALYU_ENGINE_CONTEXTS:
+        context = VALYU_ENGINE_CONTEXTS[engine]
+        results = await run_valyu_search(query=query, context=context, max_results=8)
+        return [
+            {
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "content": r.get("content", ""),
+            }
+            for r in results
+        ]
 
     elif engine == "brave":
         api_key = await get_api_key("brave") or os.environ.get("BRAVE_API_KEY")
@@ -208,7 +123,7 @@ async def _run_search(engine: str, query: str) -> List[Dict[str, Any]]:
             )
             if resp.status_code == 200:
                 data = resp.json()
-                results = [
+                return [
                     {
                         "title": r.get("title", ""),
                         "url": r.get("url", ""),
@@ -216,11 +131,12 @@ async def _run_search(engine: str, query: str) -> List[Dict[str, Any]]:
                     }
                     for r in data.get("web", {}).get("results", [])
                 ]
+        return []
 
     else:
         raise ValueError(f"Unsupported search engine: {engine}")
 
-    return results
+    return []
 
 
 async def _save_results_as_source(

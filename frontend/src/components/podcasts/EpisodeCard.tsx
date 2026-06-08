@@ -75,6 +75,10 @@ const getSTATUS_META = (t: TFunction): Record<
     label: t('podcasts.pendingLabel'),
     className: 'bg-sky-100 text-sky-800 border-sky-200',
   },
+  new: {
+    label: t('podcasts.pendingLabel'),
+    className: 'bg-sky-100 text-sky-800 border-sky-200',
+  },
   unknown: {
     label: t('common.unknown'),
     className: 'bg-muted text-muted-foreground border-transparent',
@@ -88,7 +92,8 @@ function StatusBadge({ status }: { status?: EpisodeStatus | null }) {
     return null
   }
 
-  const meta = getSTATUS_META(t)[status ?? 'unknown']
+  const metaConfig = getSTATUS_META(t)
+  const meta = metaConfig[status ?? 'unknown'] || metaConfig.unknown
   return (
     <Badge
       variant="outline"
@@ -119,20 +124,54 @@ type TranscriptData = {
 }
 
 function extractOutlineSegments(outline: unknown): OutlineSegment[] {
-  if (outline && typeof outline === 'object' && 'segments' in outline) {
-    const data = outline as OutlineData
-    if (Array.isArray(data.segments)) {
-      return data.segments
+  if (!outline) return []
+  
+  let parsed = outline
+  if (typeof outline === 'string') {
+    try {
+      parsed = JSON.parse(outline)
+    } catch (e) {
+      console.error('Failed to parse outline JSON string', e)
+      return []
+    }
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed)) {
+      return parsed as OutlineSegment[]
+    }
+    if ('segments' in parsed) {
+      const data = parsed as OutlineData
+      if (Array.isArray(data.segments)) {
+        return data.segments
+      }
     }
   }
   return []
 }
 
 function extractTranscriptEntries(transcript: unknown): TranscriptEntry[] {
-  if (transcript && typeof transcript === 'object' && 'transcript' in transcript) {
-    const data = transcript as TranscriptData
-    if (Array.isArray(data.transcript)) {
-      return data.transcript
+  if (!transcript) return []
+  
+  let parsed = transcript
+  if (typeof transcript === 'string') {
+    try {
+      parsed = JSON.parse(transcript)
+    } catch (e) {
+      console.error('Failed to parse transcript JSON string', e)
+      return []
+    }
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed)) {
+      return parsed as TranscriptEntry[]
+    }
+    if ('transcript' in parsed) {
+      const data = parsed as TranscriptData
+      if (Array.isArray(data.transcript)) {
+        return data.transcript
+      }
     }
   }
   return []

@@ -51,6 +51,8 @@ import {
   FlaskConical,
   Contact2,
   Calendar,
+  Brain,
+  ScrollText,
 } from 'lucide-react'
 import { VoiceStatusIndicator } from '@/components/voice/VoiceStatusIndicator'
 
@@ -74,6 +76,7 @@ const getNavigation = (t: TFunction) => [
     title: t('navigation.intelligence', 'Intelligence'),
     items: [
       { name: t('navigation.askAndSearch'), href: '/search', icon: Search },
+      { name: t('navigation.researchMemory'), href: '/research-memory', icon: Brain },
       { name: t('navigation.notebooks'), href: '/notebooks', icon: Book },
       { name: t('navigation.compliance', 'Compliance Hub'), href: '/compliance', icon: ShieldCheck },
       { name: 'Voice Lab', href: '/voice-playground', icon: FlaskConical },
@@ -94,6 +97,7 @@ const getNavigation = (t: TFunction) => [
       { name: 'Style Guides', href: '/settings/styleguides', icon: Palette },
       { name: 'Voice AI', href: '/settings/voice', icon: AudioLines },
       { name: 'Containers', href: '/settings/containers', icon: Boxes },
+      { name: 'System Logs', href: '/settings/logs', icon: ScrollText },
       { name: 'Documentation', href: '/documentation', icon: BookOpen },
       { name: t('navigation.settings'), href: '/settings', icon: Settings },
       { name: t('navigation.advanced'), href: '/advanced', icon: Wrench },

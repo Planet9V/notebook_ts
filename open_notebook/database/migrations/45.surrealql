@@ -1,0 +1,5 @@
+-- Migration 45: Define system_log table and indexes for application-wide logging
+DEFINE TABLE IF NOT EXISTS system_log SCHEMALESS;
+DEFINE INDEX IF NOT EXISTS idx_system_log_timestamp ON TABLE system_log COLUMNS timestamp;
+DEFINE INDEX IF NOT EXISTS idx_system_log_component ON TABLE system_log COLUMNS component;
+DEFINE INDEX IF NOT EXISTS idx_system_log_level ON TABLE system_log COLUMNS level;

@@ -216,6 +216,7 @@ export const enUS = {
     language: "Toggle language",
     theme: "Theme",
     ask: "Ask",
+    researchMemory: "Research Memory",
   },
   notebooks: {
     title: "Notebooks",
@@ -1052,6 +1053,19 @@ export const enUS = {
       closeDrawer: "Close Documentation Drawer",
     }
   },
+  notes: {
+    addedToFacility: "Note added to facility",
+    addedToOrganization: "Note added to organization",
+    createFailed: "Failed to create note",
+    updated: "Note updated",
+    updateFailed: "Failed to update note",
+    deleted: "Note deleted",
+    deleteFailed: "Failed to delete note",
+    detached: "Note unlinked",
+    detachFailed: "Failed to unlink note",
+    deleteConfirm: "Delete this note? This cannot be undone.",
+    detachConfirm: "Unlink this note from this entity?",
+  },
   agents: {
     registry: "Agent Registry",
     createAgent: "Create Autonomous Agent",
@@ -1095,6 +1109,44 @@ export const enUS = {
       stepsCompleted: "Steps Completed",
       stepLogHeader: "Step {number}: {name}",
       rawPayload: "Raw Step Payload",
-    }
-  }
+    },
+  },
+  researchMemory: {
+    title: "Research Memory",
+    description: "Browse and search your accumulated research corpus",
+    stats: {
+      totalDocuments: "Total Documents",
+      sourceTypes: "Source Types",
+      dateRange: "Date Range",
+      storageSize: "Storage Size",
+      oldest: "Oldest",
+      newest: "Newest",
+      noDocuments: "No documents stored yet",
+    },
+    search: {
+      placeholder: "Search research memory...",
+      searching: "Searching...",
+      searchButton: "Search",
+      noResults: "No results found for \"{query}\"",
+      resultsFound: "{count} results found",
+      similarity: "Similarity",
+    },
+    browse: {
+      title: "Browse Documents",
+      page: "Page {current} of {total}",
+      previous: "Previous",
+      next: "Next",
+      sortBy: "Sort by",
+      filterBySource: "Filter by source type",
+      allSources: "All sources",
+    },
+    document: {
+      sourceType: "Source",
+      createdAt: "Stored",
+      query: "Original Query",
+      score: "Score",
+      viewContent: "View Content",
+      noContent: "No content available",
+    },
+  },
 }

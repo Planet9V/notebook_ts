@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -13,32 +13,12 @@ import {
   Layers,
   Map,
   Server,
-  Users,
   Shield,
-  Wrench,
   ChevronRight,
   ChevronDown,
-  ExternalLink,
   ArrowUp,
-  FileText,
-  Database,
-  Cpu,
-  Globe,
   Terminal,
-  Palette,
   Zap,
-  Lock,
-  BarChart3,
-  Workflow,
-  MessageSquare,
-  Mic,
-  FolderKanban,
-  ShieldCheck,
-  Bot,
-  Shuffle,
-  Telescope,
-  LayoutDashboard,
-  Hash,
 } from 'lucide-react'
 
 // ─── DOCUMENTATION DATA ─────────────────────────────────────────────────────
@@ -109,17 +89,52 @@ const DOCUMENTATION: DocSection[] = [
     ],
   },
   {
+    id: 'notebook-rev-3',
+    title: 'Notebook Features Rev 3',
+    icon: Zap,
+    color: 'rose',
+    badge: 'REV 3',
+    description: 'Autonomous agents, dynamic bento roles, workspace canvas, and live topological node maps.',
+    subsections: [
+      {
+        id: 'rev3-overview',
+        title: 'Rev 3 Overview',
+        content: 'Released on June 8, 2026, Notebook Features Rev 3 introduces dynamic role-based dashboards, a split-pane Workspace Canvas with drag-and-drop citation pipeline, an Autonomous SRE Admin Agent, and the live "Loom" Topological Operations node map.',
+      },
+      {
+        id: 'rev3-bento',
+        title: '1. Dynamic Bento Grid',
+        content: 'Provides custom widgets tailored to Sales, Delivery, Social Media, and Researcher personas, persisted in localStorage and manageable via drag-and-drop customization.',
+      },
+      {
+        id: 'rev3-canvas',
+        title: '2. Unified Workspace Canvas',
+        content: 'Consolidates document analysis, search results, and compliance scoring on the left, with print-ready Rich Markdown SOW editors on the right, supporting citation provenance via drag-and-drop.',
+      },
+      {
+        id: 'rev3-sre',
+        title: '3. Autonomous SRE Agent',
+        content: 'Runs a background container health poller that reads logs, registers GitHub issues, creates configuration patch branches, opens pull requests, and runs tests asynchronously.',
+      },
+      {
+        id: 'rev3-loom',
+        title: '4. The Loom Topological Map',
+        content: 'Maps pipeline cards, research topics, compliance matrices, and social media scheduler tasks onto a zoomable 2D node graph with visual neon glows (blue for processing, green for healthy/done, red for error/blocked).',
+      },
+    ],
+  },
+  {
     id: 'architecture',
     title: 'Architecture & Tech Stack',
     icon: Layers,
     color: 'violet',
     badge: 'ARCH',
-    description: 'System architecture, technology choices, and infrastructure components.',
+    description: 'System architecture, technology choices, and database schema layout.',
     subsections: [
       {
         id: 'arch-overview',
         title: 'System Architecture',
-        content: 'The application follows a classic 3-tier architecture: a Next.js 16 frontend communicating via REST API with a FastAPI backend, backed by SurrealDB for persistence and multiple LLM providers for AI capabilities.\n\n┌─────────────────────────────────────────────────┐\n│                   FRONTEND                       │\n│  Next.js 16 · React 19 · TypeScript · Tailwind 4 │\n│  shadcn/ui · Zustand · React Query · i18next     │\n├─────────────────────────────────────────────────┤\n│                REST API (axios)                  │\n├─────────────────────────────────────────────────┤\n│                   BACKEND                        │\n│  FastAPI · Python 3.11 · Pydantic v2 · Uvicorn   │\n│  LangChain · LangGraph · Esperanto · AI-Prompter │\n├─────────────────────────────────────────────────┤\n│              DATA & AI LAYER                     │\n│  SurrealDB · OpenRouter · Ollama · Multi-LLM     │\n│  Vector Embeddings · Reranking · TTS             │\n└─────────────────────────────────────────────────┘',
+        content: 'The application follows a classic 3-tier architecture: a Next.js 16 frontend communicating via REST API with a FastAPI backend, backed by SurrealDB for persistence and multiple LLM providers for AI capabilities.\n\n┌─────────────────────────────────────────────────┐\n│                   FRONTEND                       │\n│  Next.js 16 · React 19 · TypeScript · Tailwind 4 │\n│  shadcn/ui · Zustand · React Query · i18next     │\n├─────────────────────────────────────────────────┤\n│                REST API (axios)                  │\n├─────────────────────────────────────────────────┤\n│                   BACKEND                        │\n│  FastAPI · Python 3.11 · Pydantic v2 · Uvicorn   │\n│  LangChain · LangGraph · Esperanto · AI-Prompter │\n├─────────────────────────────────────────────────┤\n│                DATA & AI LAYER                   │\n│  SurrealDB · OpenRouter · Ollama · Multi-LLM     │\n│  Vector Embeddings · Reranking · TTS             │\n└─────────────────────────────────────────────────┘',
       },
       {
         id: 'arch-backend',
@@ -143,6 +158,8 @@ const DOCUMENTATION: DocSection[] = [
             ['numpy', '≥2.4.1', 'Numerical operations for embeddings'],
             ['httpx', '≥0.27.0', 'Async HTTP client with SOCKS proxy support'],
             ['Loguru', '≥0.7.2', 'Structured logging'],
+            ['valyu', '≥1.0.0', 'Unified enterprise search engine SDK'],
+            ['asyncpg', '≥0.30.0', 'Asynchronous PostgreSQL client library'],
           ],
         },
       },
@@ -190,8 +207,36 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'arch-database',
-        title: 'Database Architecture',
-        content: 'SurrealDB serves as the primary data store, combining document, graph, and vector capabilities in a single database.\n\nKey characteristics:\n• Multi-model: Documents, graphs, and vectors in one DB\n• 19+ migration files tracking schema evolution\n• Repository pattern abstraction (repository.py)\n• Supports relations between entities (customer → notebooks, source → notes)\n• Vector storage for embeddings with cosine similarity search\n• Full-text search capabilities\n\nPrimary entity types: Source, Note, Notebook, Customer, Contact, Assessment, Session, Question, Answer, Credential, Pipeline, Podcast, Episode, Transformation, Styleguide, ResearchItem, Project, ScheduledSearch',
+        title: 'Database Architecture & Schema Layout',
+        content: 'The database layer utilizes SurrealDB (version >= 1.0.4) as its primary datastore, leveraging its support for relational graphs, schemafull/schemaless tables, and document storage.\n\n' +
+                 '### Repository Architecture\n' +
+                 'The repository layer is defined in `open_notebook/database/repository.py` and manages connection pooling and generic query execution:\n' +
+                 '• Connection Context Manager (`db_connection`): Configures connection pooling using the official python `AsyncSurreal` client, and dynamically sets namespaces, credentials, and databases (SURREAL_URL, SURREAL_USER, SURREAL_PASSWORD, SURREAL_NAMESPACE, SURREAL_DATABASE).\n' +
+                 '• Generic CRUD wrappers: Exposes `repo_query` for arbitrary SurrealQL scripts, `repo_create` for insertions, `repo_update` for MERGE updates, `repo_relate` for graph edge creation, `repo_upsert` for idempotent adjustments, and `repo_delete` for removals.\n\n' +
+                 '### Migrations\n' +
+                 'Migrations are managed in `open_notebook/database/migrations/`. The database evolution is tracked through 42 sequentially numbered migration scripts, each accompanied by a `*_down.surrealql` rollback script, totaling 84 migration files.\n\n' +
+                 '### Table Schema Classifications\n' +
+                 'The system manages a total of 42 unique tables divided into three classifications:\n\n' +
+                 '1. SCHEMAFULL Tables (25 tables) - Strict schema constraints are enforced:\n' +
+                 '   `activity`, `agent_config`, `agent_execution`, `agent_log`, `asset`, `asset_edge`, `contact`, `credential`, `email_setting`, `episode`, `episode_profile`, `location`, `note`, `notebook`, `publication_metrics_history`, `scheduled_search`, `scheduled_post`, `skill_registry`, `source`, `source_embedding`, `source_insight`, `speaker_profile`, `sync_status`, `transformation`, `voice_settings`.\n\n' +
+                 '2. SCHEMALESS Tables (14 tables) - Flexible JSON structures without validation constraints:\n' +
+                 '   `assessment`, `assessment_answer`, `assessment_session`, `chat_session`, `customer`, `customer_project`, `customer_research`, `file_audit_log`, `organization`, `podcast_config`, `project`, `project_research`, `research_item`, `scheduled_episode`.\n\n' +
+                 '3. Graph Relation (TYPE RELATION) Tables (3 tables) - Specialized SurrealDB graph edges linking nodes:\n' +
+                 '   `artifact` (links `note` to `notebook`),\n' +
+                 '   `reference` (links `source` to `notebook`),\n' +
+                 '   `refers_to` (links `chat_session` to `notebook | source`).\n\n' +
+                 '### Data Seeding\n' +
+                 'Compliance frameworks and auditing questions are dynamically created during the seed ingestion process:\n' +
+                 '• Seeding Entrypoint: `scripts/cset_ingest_seed.py`\n' +
+                 '• Source Material: `data/cset_seeds/cset_questions.sql`\n' +
+                 '• Seeded Items:\n' +
+                 '  - 2 Regulations: `IEC_62443` (Industrial Communication Networks) and `NIST_SP_800_82` (Guide to ICS Security).\n' +
+                 '  - 6 Questions: `Q1` to `Q4` map to `IEC_62443` (standard codes `SR 5.1` to `SR 5.4`); `Q5` to `Q6` map to `NIST_SP_800_82` (standard codes `Section 6.2.3` and `Section 6.2.4`).\n\n' +
+                 '### Postgres + pgvector Caching Database\n' +
+                 'The application leverages a secondary PostgreSQL instance (pgvector/pgvector:pg17) to power the semantic caching layer (`ResearchMemory`):\n' +
+                 '• Connection DSN: Configured via environment variable `POSTGRES_DSN` with asyncpg connection pooling (`min_size=2`, `max_size=10`).\n' +
+                 '• Table Schema: The `research_corpus` table stores cached search query results: `id`, `query`, `title`, `url`, `content`, `source_type`, `relevance_score`, `embedding` (vector(1536)), `metadata`, `created_at`, `updated_at`.\n' +
+                 '• Indices: Equipped with an HNSW cosine similarity index `idx_research_embedding` for semantic matching, a Gin index `idx_research_content_fts` on content for Full-Text Search (FTS) queries, and unique constraints `idx_research_query_url` (query + url) and `idx_research_query_content_hash` (query + content md5 hash) to prevent duplicate cached search entries.'
       },
     ],
   },
@@ -216,12 +261,16 @@ const DOCUMENTATION: DocSection[] = [
             ['Operations', 'Research Intelligence', '/research', 'Research item management'],
             ['Operations', 'Project Delivery', '/projects', 'Project tracking and delivery'],
             ['Intelligence', 'Ask & Search', '/search', 'Semantic search with AI chat'],
+            ['Intelligence', 'Research Memory', '/research-memory', 'Browse and search semantic research cache'],
             ['Intelligence', 'Notebooks', '/notebooks', 'Multi-document workspaces'],
             ['Intelligence', 'Compliance Hub', '/compliance', 'CSET compliance dashboard'],
+            ['Intelligence', 'Voice Lab', '/voice-playground', 'Real-time audio chat playground and testing sandbox'],
             ['Create', 'Podcasts', '/podcasts', 'AI-generated podcast management'],
             ['Manage', 'Models', '/settings/api-keys', 'API keys and model configuration'],
             ['Manage', 'Transformations', '/transformations', 'Content transformation templates'],
             ['Manage', 'Style Guides', '/settings/styleguides', 'Document style guide management'],
+            ['Manage', 'Voice AI', '/settings/voice', 'Speech synthesis (TTS) speaker profile configuration'],
+            ['Manage', 'Containers', '/settings/containers', 'Background docker/process health monitor and restarting utilities'],
             ['Manage', 'Documentation', '/documentation', 'This documentation wiki'],
             ['Manage', 'Settings', '/settings', 'Application settings and pipeline config'],
             ['Manage', 'Advanced', '/advanced', 'Developer tools and diagnostics'],
@@ -230,12 +279,20 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'sitemap-routes',
-        title: 'Complete Route Tree',
-        content: 'All application routes organized by domain area. The app uses Next.js App Router with a (dashboard) layout group.',
+        title: 'Complete Route Tree & Layout Structure',
+        content: 'The frontend features exactly 32 page files (`page.tsx`) defined in the `frontend/src/app` directory.\n\n' +
+                 '### Next.js App Router Structure & Layout Groups:\n' +
+                 '• Root Layout (`src/app/layout.tsx`): Establishes global HTML, font configurations, and injects global context providers (QueryClient, Toaster).\n' +
+                 '• Route Groups: The application partitions routes into structural groups such as `(auth)` (login screen) and `(dashboard)` (authenticated features).\n' +
+                 '• Dashboard Layout (`src/app/(dashboard)/layout.tsx`): Implements an authentication guard (`useAuth`) that redirects unauthenticated users to `/login`. It also initializes modal contexts and wraps child components in the global AppShell.\n\n' +
+                 '### AppShell & Sidebar Collapsibility:\n' +
+                 '• App Shell (`src/components/layout/AppShell.tsx`): Sets up the core layout framework, rendering collapsible sidebar, breadcrumbs navigation, and setup warning banners.\n' +
+                 '• App Sidebar (`src/components/layout/AppSidebar.tsx`): Organizes menus into functional groups (Collect, Operations, Intelligence, Create, Manage). Collapsibility state is managed globally by the Zustand `sidebar-store` (`isCollapsed` on desktop, `isMobileOpen` for mobile drawer) and saved to local storage.',
         table: {
           headers: ['Route', 'Page', 'Description'],
           rows: [
-            ['/', 'Home', 'Redirects to default page'],
+            ['/', 'Home', 'Redirects to default dashboard page'],
+            ['/login', 'Login', 'Authentication access panel'],
             ['/sources', 'Sources', 'Document source listing, upload, and management'],
             ['/operations', 'Operations Hub', 'Business analytics dashboard with charts and KPIs'],
             ['/customer-ledger', 'Customer Ledger', 'CRM customer listing with search, filter, sort'],
@@ -244,9 +301,11 @@ const DOCUMENTATION: DocSection[] = [
             ['/research', 'Research Intelligence', 'Research item management with priority and status tracking'],
             ['/projects', 'Project Delivery', 'Project tracking with milestones and deliverables'],
             ['/search', 'Ask & Search', 'Semantic search with streaming AI responses'],
+            ['/research-memory', 'Research Memory', 'Audit log and semantic cache dashboard for query/results history'],
             ['/notebooks', 'Notebooks', 'Multi-document workspace with AI chat panel'],
-            ['/notebooks?id=X', 'Notebook Detail', 'Specific notebook with sources, notes, and chat'],
+            ['/notebooks/[id]', 'Notebook Detail', 'Specific notebook with sources, notes, and chat'],
             ['/compliance', 'Compliance Hub', 'CSET compliance overview and assessment dashboard'],
+            ['/voice-playground', 'Voice Lab', 'Real-time audio chat playground and testing sandbox'],
             ['/podcasts', 'Podcasts', 'Podcast episode listing with player and generation'],
             ['/transformations', 'Transformations', 'Template-based content transformation with preview'],
             ['/pipeline', 'Sales Pipeline', 'Kanban board with 7 deal stages'],
@@ -254,6 +313,8 @@ const DOCUMENTATION: DocSection[] = [
             ['/settings/api-keys', 'Model Providers', 'API key management and default model assignments'],
             ['/settings/pipeline', 'Pipeline Settings', 'Automation rules for pipeline stages'],
             ['/settings/styleguides', 'Style Guides', 'Document style guide CRUD'],
+            ['/settings/voice', 'Voice AI', 'Configure speech generation voices and settings'],
+            ['/settings/containers', 'Containers', 'Background docker/process health monitor and restarting utilities'],
             ['/documentation', 'Documentation', 'This comprehensive wiki'],
             ['/advanced', 'Advanced', 'Developer tools, DB management, diagnostics'],
           ],
@@ -269,6 +330,61 @@ const DOCUMENTATION: DocSection[] = [
     badge: 'API',
     description: 'Complete REST API endpoint documentation organized by domain.',
     subsections: [
+      {
+        id: 'api-overview',
+        title: 'FastAPI Backend Endpoints Overview',
+        content: 'The platform API is built using FastAPI (Python 3.11) with a total of 272 registered endpoints. The endpoints are modularly grouped by router files under `api/routers/`. Below is the complete endpoint count and responsibility breakdown per router file:',
+        table: {
+          headers: ['Router File', 'Route Count', 'Primary Responsibility / Exemplary Endpoints'],
+          rows: [
+            ['api/routers/notebooks.py', '20', 'Drawing canvas notebook management, node/edge validation (POST /api/graph/validate), export routes (POST /api/notebooks/export/*).'],
+            ['api/routers/models.py', '14', 'Model registries, auto-assignment of default models, sync, provider configuration.'],
+            ['api/routers/credentials.py', '14', 'Cloud credentials management, OAuth flows, and environment migration utilities.'],
+            ['api/routers/research_items.py', '14', 'Background research tasks, deep research triggering, item approvals.'],
+            ['api/routers/voice.py', '14', 'Voice configuration, text-to-speech (TTS) preflight, audio transcribing (STT).'],
+            ['api/routers/sources.py', '12', 'Document source ingestion, full-text storage, and direct file download routing.'],
+            ['api/routers/podcasts.py', '12', 'Podcast episode creation, background generation, and execution scheduling.'],
+            ['api/routers/agents.py', '11', 'LLM agent definitions, custom prompts, and background pipeline runs.'],
+            ['api/routers/publications.py', '11', 'Scheduled posts publishing calendar, marketing metrics collection.'],
+            ['api/routers/assessments.py', '10', 'Compliance assessments, auditing sessions, CSET reporting, and rollup analytics.'],
+            ['api/routers/projects.py', '9', 'Project management, task tracking, and linking research items to active projects.'],
+            ['api/routers/transformations.py', '8', 'Content prompt templates, transformation pipelines, and execution engines.'],
+            ['api/routers/scheduled_search.py', '8', 'Automated recurring query scheduling and background search execution.'],
+            ['api/routers/chat.py', '7', 'General LLM assistant sessions, message threads, and notebook context building.'],
+            ['api/routers/contacts.py', '6', 'Customer stakeholder contacts list and contact updates.'],
+            ['api/routers/locations.py', '6', 'Facility locations definition, CRUD, and customer scoping.'],
+            ['api/routers/episode_profiles.py', '6', 'Speaker profiles, audio metadata, and duplicating podcast outlines.'],
+            ['api/routers/speaker_profiles.py', '6', 'Voice synthesizer speaker configs, duplication, and metadata querying.'],
+            ['api/routers/source_chat.py', '6', 'Vector-augmented chat sessions scoping to individual source documents.'],
+            ['api/routers/voice_sessions.py', '6', 'Web-socket or message-based real-time voice sessions, note creation.'],
+            ['api/routers/customers.py', '5', 'Customer profile registry, metadata adjustments.'],
+            ['api/routers/search.py', '5', 'Multi-modal semantic research search, document comparison.'],
+            ['api/routers/research_memory.py', '3', 'Research semantic cache querying, browse logs, and statistics.'],
+            ['api/routers/notes.py', '5', 'Note entity definitions, content updating, and notebook associations.'],
+            ['api/routers/commands.py', '5', 'Dynamic task execution, command registry debugging.'],
+            ['api/routers/pipeline.py', '5', 'Scanning status checking, compliance pipelines, automation rules.'],
+            ['api/routers/styleguides.py', '5', 'Styleguide templates for podcast/transcript text rendering.'],
+            ['api/routers/skills.py', '5', 'Extensible agent skill registry CRUD.'],
+            ['api/routers/import_export.py', '4', 'CSV/JSON data bulk importer/exporter utilities.'],
+            ['api/routers/containers.py', '4', 'Background process container health monitor, restarts, logs.'],
+            ['api/routers/activities.py', '3', 'Unified timeline activities listing, manual log insertions.'],
+            ['api/routers/insights.py', '3', 'Extracted document insights viewing and note conversion.'],
+            ['api/routers/organizations.py', '2', 'Shared tenant organization boundaries.'],
+            ['api/routers/auth.py', '2', 'Basic user profile and active auth session validators.'],
+            ['api/routers/regulations.py', '2', 'Regulation and framework query tools.'],
+            ['api/routers/embedding_rebuild.py', '2', 'Chunk re-indexing commands.'],
+            ['api/routers/settings.py', '2', 'System configurations management.'],
+            ['api/routers/voice_rag.py', '2', 'RAG-based real-time audio chat controllers.'],
+            ['api/main.py', '2', 'Root endpoint and raw server health route.'],
+            ['api/routers/config.py', '1', 'Global frontend config mappings injector.'],
+            ['api/routers/embedding.py', '1', 'Single-shot vector embedding calculation endpoint.'],
+            ['api/routers/context.py', '1', 'Context compiling for LLM prompting.'],
+            ['api/routers/languages.py', '1', 'Supported translation languages enumerations.'],
+            ['api/routers/platform.py', '1', 'Operating system platform indicators.'],
+            ['api/routers/mcp.py', '1', 'Enabled Model Context Protocol (MCP) server statuses.']
+          ]
+        }
+      },
       {
         id: 'api-sources',
         title: 'Sources API',
@@ -332,10 +448,24 @@ const DOCUMENTATION: DocSection[] = [
           rows: [
             ['POST', '/api/search', 'Execute semantic search query'],
             ['POST', '/api/search/ask', 'AI-powered question answering with streaming'],
+            ['POST', '/api/search/research', 'Perform streaming research using Local KB, Perplexity, or Hybrid'],
             ['GET', '/api/search/history', 'Get search history'],
             ['POST', '/api/scheduled-search', 'Create scheduled/recurring search'],
             ['GET', '/api/scheduled-search', 'List scheduled searches'],
             ['DELETE', '/api/scheduled-search/{id}', 'Delete scheduled search'],
+          ],
+        },
+      },
+      {
+        id: 'api-research-memory',
+        title: 'Research Memory API',
+        content: 'Endpoints to query, browse, and monitor the persistent pgvector-based research semantic cache.',
+        table: {
+          headers: ['Method', 'Path', 'Purpose'],
+          rows: [
+            ['GET', '/api/research-memory/stats', 'Get cache storage size and document distribution statistics'],
+            ['POST', '/api/research-memory/search', 'Execute full-text keyword search across cached research corpus'],
+            ['GET', '/api/research-memory/browse', 'Browse paginated history of cached search query results'],
           ],
         },
       },
@@ -466,24 +596,65 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'feat-search',
-        title: 'Ask & Search',
-        content: 'Semantic search powered by vector embeddings with AI-enhanced question answering.',
+        title: 'Ask & Search (Research Intelligence)',
+        content: 'Semantic search and deep research powered by the unified Valyu Research Platform, persistent pgvector-based semantic caching, and hybrid Reciprocal Rank Fusion.\n\n' +
+                 '### 1. Unified Search & Context Routing\n' +
+                 'The search API (`api/routers/search.py` and `open_notebook/search/valyu_search.py`) replaces deprecated multi-engine search cascades with the unified Valyu SDK, offering direct, optimized access to proprietary data sources. It supports context-aware routing which maps business domains to Valyu search parameters:\n' +
+                 '• `compliance`: Targets proprietary databases (search_type=\'proprietary\') restricting results to `sec_filings` and `legal` sources.\n' +
+                 '• `academic`: Searches proprietary databases (search_type=\'proprietary\') filtering for `arxiv`, `pubmed`, and `semantic_scholar`.\n' +
+                 '• `financial`: Restricts queries to `fred`, `bls`, and `sec_filings`.\n' +
+                 '• `biomedical`: Restricts queries to `pubmed` and `clinicaltrials`.\n' +
+                 '• `news`: Queries current news feeds (search_type=\'news\').\n' +
+                 '• `web`: Queries the full web index (search_type=\'all\').\n' +
+                 '• Brave Fallback: If the Valyu API is unreachable or returns an error, the system automatically falls back to Brave Search using direct HTTP client connections.\n\n' +
+                 '### 2. Memory-First Semantic Caching\n' +
+                 'To minimize external API dependency, costs, and request latencies, a memory-first caching layer (`open_notebook/search/memory_first_search.py`) intercepts all search queries:\n' +
+                 '• Cache Lookup: The user query is vectorized via the active embedding model, and the PostgreSQL pgvector cache (`research_corpus` table) is queried using cosine similarity (1 - (embedding <=> query_vector)).\n' +
+                 '• Cache Hit: If similar query results are found with a cosine similarity score ≥ 0.85, they are returned instantly without invoking the Valyu API.\n' +
+                 '• Cache Miss: If no similar results exist, a query is routed to the Valyu Search API. The raw results are returned to the client immediately while a background task (`asyncio.create_task`) asynchronously vectorizes and stores them in Postgres using `INSERT INTO ... ON CONFLICT DO NOTHING` (guided by unique constraints on query/url and query/content-hash).\n\n' +
+                 '### 3. Reciprocal Rank Fusion (RRF) Hybrid Search\n' +
+                 'The platform implements a hybrid search merging strategy (`hybrid_rrf_search`) to combine vector search and traditional keyword matching:\n' +
+                 '• Semantic Retrieval: Cosine similarity-based search via pgvector HNSW index.\n' +
+                 '• Lexical Retrieval: Traditional English full-text search (FTS) using PostgreSQL GIN indexing (`to_tsvector` / `plainto_tsquery`) to catch exact nomenclature, codes, and numbers.\n' +
+                 '• RRF Formula: Merges the two ranked lists by assigning a combined score based on ranks: RRF(d) = 1/(60 + rank_semantic(d)) + 1/(60 + rank_keyword(d)). The documents are then sorted by this final fusion score, ensuring highly relevant exact-match and concept-match results.\n\n' +
+                 '### 4. Asynchronous Valyu DeepResearch Workflow\n' +
+                 'For intensive, long-running research, the system runs an asynchronous DeepResearch background pipeline (`open_notebook/search/deep_research.py`):\n' +
+                 '• Task Creation: Creating a research task maps user-friendly depth configurations to Valyu SDK execution modes: `quick` → `fast`, `standard` → `standard`, `deep` → `heavy`, and `exhaustive` → `max`.\n' +
+                 '• Non-Blocking Polling: FastAPI spawns the research thread and monitors task completion asynchronously via a status polling loop (polling every 10 seconds with a 10-minute timeout limit).\n' +
+                 '• Progress Broadcasting: The backend updates the research item\'s status (`ri.deep_research_state`) and appends event logs (`ri.deep_research_events`) during execution. The frontend displays these events in a real-time progress drawer.\n' +
+                 '• Caching & Note Conversion: Once completed, the final markdown report is automatically vectorized and saved in the Postgres `ResearchMemory` cache using a special URI prefix (`valyu://deep_research/{id}`) and `deep_research` source type. It is then saved to SurrealDB as a Note and attached to the target notebook.',
         items: [
-          { label: 'Semantic Search', description: 'Vector-based search across all sources. Embedding similarity with cosine distance. Results ranked by relevance with source citations.' },
-          { label: 'AI Question Answering', description: 'Ask natural language questions. Streaming AI responses synthesized from multiple sources. Advanced model selection with OpenRouter integration.' },
-          { label: 'Reranking', description: 'Cross-encoder reranking for improved result quality. Supports Cohere rerank-4-pro, local Qwen3-Reranker via Ollama.' },
-          { label: 'Search History', description: 'Persistent search history with timestamps. Re-run previous searches.' },
-          { label: 'Scheduled Search', description: 'Create recurring searches that run on a schedule. Automated monitoring for new relevant content.' },
+          { label: 'Valyu Search Integration', description: 'Replaces legacy multi-engine APIs with unified SDK searches. Employs context-aware parameters and automated Brave Search fallback routing.' },
+          { label: 'pgvector Semantic Cache', description: 'Checks local Postgres research memory using vector cosine similarity. Saves search costs and reduces latency with background caching workers.' },
+          { label: 'RRF Hybrid Search', description: 'Blends pgvector semantic results and Postgres FTS keyword results using Reciprocal Rank Fusion (k=60) for maximum query recall.' },
+          { label: 'Asynchronous DeepResearch', description: 'Launches non-blocking background tasks with progress tracking, status event logging, and automatic caching of completed long-form report documents.' },
+          { label: 'Scheduled Searches', description: 'Periodically runs scheduled queries against Valyu or Brave search engines, saving new results as sources or notes directly into notebooks.' },
         ],
       },
       {
         id: 'feat-crm',
-        title: 'CRM & Pipeline',
-        content: 'Enterprise customer relationship management with sales pipeline tracking.',
+        title: 'CRM & Sales Pipeline Subsystem',
+        content: 'Enterprise customer relationship management with sales pipeline tracking and automated transition rules.\n\n' +
+                 '### 1. Three Pipelines & Mapped Stages\n' +
+                 'The system manages customer and task progression across three distinct workflows defined in `pipelines.ts`:\n' +
+                 '• Sales Pipeline (`sales`): 7 stages representing the deal lifecycle: `bulk_import` (Import Staging), `data_enrichment` (Data Enrichment), `lead` (Leads Prospecting), `research` (Client Research), `technical_discovery` (Technical Discovery), `proposal` (Proposal Drafts), and `won` (Contract Won).\n' +
+                 '• Research Pipeline (`research`): 5 stages tracking research tasks: `queued` (Queued Research), `researching` (Researching), `analyzing` (Analyzing), `completed` (Completed), and `archived` (Archived).\n' +
+                 '• Publication Queue (`publication`): 6 stages for editing calendar items: `concept` (Concept Outline), `refinement` (Draft Refinement), `publication_type` (Publication Type), `review` (Editorial Review), `publish` (Published Docs), and `track` (Post Analytics).\n\n' +
+                 '### 2. Kanban Configuration & Colors\n' +
+                 'The Kanban board uses color codes mapped to progress: columns are styled with custom color badges defined in frontend constants. Dragging cards between columns triggers updates to the notebook endpoint `/api/notebooks/{notebook_id}` to synchronize stages.\n\n' +
+                 '### 3. Backend Transition Validation Rules\n' +
+                 'Notebook stage transitions are validated on updates in `api/routers/notebooks.py`. Transitioning items past initial stages requires assignee and date configurations, along with resource and compliance gates:\n' +
+                 '• **Sales Pipeline**: Transitioning to non-lead stages (`research`, `technical_discovery`, `proposal`, `won`) validates that the deal has an assignee (`assigned_to`) and a target close date (`close_date`). Transitioning to `proposal` or `won` requires at least one source document or research note. Transitioning to `won` (if a customer is linked) requires that a compliance assessment has been completed and locked.\n' +
+                 '• **Research Pipeline**: Transitioning to non-queued stages (`researching`, `analyzing`, `completed`, `archived`) requires an assignee (`assigned_to`) and a target completion date (`close_date`). Transitioning to `completed` (if a customer is linked) requires that a compliance quiz session has been completed and locked.\n' +
+                 '• **Publication Queue**: Transitioning to non-concept stages (`refinement`, `publication_type`, `review`, `publish`, `track`) requires an assignee (`assigned_to`) and a scheduled date (`close_date`). Transitioning to `publish` (if a customer is linked) requires that a compliance assessment has been completed and locked.\n\n' +
+                 '### 4. Contact & Location Ownership Constraints\n' +
+                 'The system models relationships using a parent-child structure in SurrealDB:\n' +
+                 '• Mappings: `Customer` is the parent; `Contact` (people) and `Location` (facilities) are children. A contact links to a customer (`customer_id`) and multiple locations (`location_ids` array).\n' +
+                 '• Ownership Constraints: To prevent cross-tenant data corruption or unauthorized links, the API enforces that every location in a contact\'s `location_ids` array must have a `customer_id` matching the contact\'s `customer_id`. Any mismatch returns an HTTP `400 Bad Request` validation error.',
         items: [
           { label: 'Customer Management', description: '30+ field customer profiles. Primary sector, CISA infrastructure sectors, compliance frameworks, corporate description, industry classification, customer type (prospect/client/partner/vendor), tier (enterprise/mid-market/SMB).' },
           { label: 'Customer Dossier', description: '6-tab deep-dive: Profile Stakeholders, Contacts, Associated Projects, Threat Canvas (network graph), Compliance Wizard, Sector Reference Guidelines.' },
-          { label: 'Pipeline Kanban', description: '7-stage deal pipeline: Lead → Qualified → Proposal → Negotiation → Closed Won → Closed Lost → On Hold. Drag-and-drop deal movement. Deal value tracking.' },
+          { label: 'Pipeline Kanban', description: '7-stage deal pipeline: Import Staging → Data Enrichment → Leads Prospecting → Client Research → Technical Discovery → Proposal Drafts → Contract Won. Drag-and-drop deal movement. Deal value tracking.' },
           { label: 'Contact Management', description: 'Multi-contact per customer. Role-based contacts (C-suite, Manager, Technical, Legal). Email and phone tracking.' },
           { label: 'Import/Export', description: 'Bulk CSV/XLSX import with column mapping wizard. Preview with validation. Export to CSV/XLSX.' },
         ],
@@ -491,20 +662,113 @@ const DOCUMENTATION: DocSection[] = [
       {
         id: 'feat-compliance',
         title: 'CSET Compliance Auditing',
-        content: 'Full CISA Cybersecurity Evaluation Tool (CSET) implementation for regulatory compliance assessment.',
+        content: 'Full CISA Cybersecurity Evaluation Tool (CSET) implementation for regulatory compliance assessment.\n\n' +
+                 '### 1. 16 Critical Infrastructure Sectors Mapping\n' +
+                 'The system maps client profiles to CISA-defined critical infrastructure sectors. The 16 sectors plus a default Cross-Sector fallback include:\n' +
+                 'Chemical, Commercial Facilities, Communications, Critical Manufacturing, Dams, Defense Industrial Base, Emergency Services, Energy, Financial Services, Food and Agriculture, Government Facilities, Healthcare and Public Health, Information Technology, Nuclear Reactors, Materials, and Waste, Transportation Systems, Water and Wastewater Systems, and Cross-Sector.\n' +
+                 'The system maps each sector to recommended frameworks via `SECTOR_FRAMEWORK_MAP` (e.g. mapping `Energy` to NERC CIP, `IEC_62443_3_3`, and `NIST_800_82`).\n\n' +
+                 '### 2. Dynamic "No Exclusion" Asset-Audit Linkage Logic\n' +
+                 'In the CSET Components framework (ID `"regulation:Components"`), questions are dynamically excluded (forced to `"NA"`) if their associated asset types are missing from the drawing canvas notebook diagram.\n' +
+                 'Exact Execution Flow:\n' +
+                 '1. Asset Retrieval: `get_active_cset_prefixes_for_session` resolves the customer ID linked to the active session. It queries the `asset` table for all drawing canvas objects linked to the notebook: `SELECT type FROM asset WHERE notebook_id = $nb_id`.\n' +
+                 '2. Normalizing & Prefix Resolution: Each asset\'s `type` is normalized (lowercase, symbols removed) and mapped to standard CSET components using `CSET_COMPONENT_MAPPING`. For example: `switch` maps to prefixes like `["Switch", "VLAN Switch", "Router"]`, while `firewall` maps to `["Firewall", "VPN", "IDS", "IPS"]`.\n' +
+                 '3. Filtering: In `get_session_questions`, the questions are evaluated sequentially. If a question\'s `standard_code` prefix does not match any prefix corresponding to the active canvas assets, the answer is dynamically forced to `"NA"`. (The prefix `"Comp"` is always active for general component items).\n\n' +
+                 '### 3. Scoring Rollup & Compliance Formulas\n' +
+                 '1. Individual Session Scores:\n' +
+                 '   • Compliance Score Formula:\n' +
+                 '     Compliance Score = ((Yes Count + Alt Count) / (Total Questions - NA Count)) * 100\n' +
+                 '   • Completion Percentage Formula:\n' +
+                 '     Completion Percentage = (Answered Count / Total Questions) * 100\n' +
+                 '     (where Answered Count includes any answer other than the default Unanswered "U")\n' +
+                 '   • Locking Snapshot Behavior: When a session is finalized (via `POST /api/sessions/{session_id}/complete`), these scores and category breakdowns are saved as a static, read-only JSON object `compliance_snapshot` in the `assessment_session` document.\n\n' +
+                 '2. Cross-Facility Aggregation (Rollup):\n' +
+                 '   Under `GET /api/customers/{customer_id}/compliance-rollup`, the system aggregates scores across all locations:\n' +
+                 '   - Queries all assessments for the customer, mapping assessments without location ID to "Organization-Wide".\n' +
+                 '   - Obtains the latest session for each location. In-progress sessions are computed dynamically, while completed sessions use the static `compliance_snapshot`.\n' +
+                 '   - Computes framework-level metrics by averaging scores across all assessed locations:\n' +
+                 '     Average Compliance Score = sum(Facility Compliance Scores) / Total Assessed Facilities\n' +
+                 '     Average Completion Percentage = sum(Facility Completion Percentages) / Total Assessed Facilities\n\n' +
+                 '### 4. Prioritized Recommendations Gating & Purdue Levels\n' +
+                 'Actionable recommendations are compiled from failed or unanswered questions ("N" or "U") and prioritized by Purdue Levels:\n' +
+                 '• Critical (Priority Order 1): Purdue Levels 1 & 2 (kinetic boundary and field device controls).\n' +
+                 '• High (Priority Order 2): Purdue Level 3 (Operations Control, DMZ, and supervision).\n' +
+                 '• Medium (Priority Order 3): Other Purdue Levels (enterprise and external connections).\n' +
+                 'Recommendations are sorted first by priority order, then alphabetically by standard code (`x["order"]`, `x["standard_code"]`).',
         items: [
           { label: 'Sector Mapping', description: '16 CISA infrastructure sectors with automatic framework recommendation. SECTOR_FRAMEWORK_MAP links sectors to relevant compliance standards. Color-coded sector visualization.' },
           { label: '50+ Compliance Frameworks', description: 'NERC CIP (14 standards), IEC 62443, NIST SP 800 series, CMMC, ISO 27001, PCI DSS, HIPAA, SOC 2, and more. Framework definitions with full metadata.' },
-          { label: 'Assessment Wizard', description: 'Question-by-question auditing interface. YES/NO/N\\/A/ALT answer options. Purdue level classification. Evidence attachment and comments.' },
+          { label: 'Assessment Wizard', description: 'Question-by-question auditing interface. YES/NO/N\/A/ALT answer options. Purdue level classification. Evidence attachment and comments.' },
           { label: 'Milestone Tracking', description: 'Multiple audit sessions per assessment. Carry-forward answers between sessions. Session status tracking (Active → Completed).' },
           { label: 'Gap Analysis Reports', description: 'Automated compliance scoring. Category coverage index. Radar spider visualization. Prioritized remediation roadmap. Trend analysis across sessions.' },
           { label: 'Dynamic Sector Reference', description: 'Sector-specific guidelines and directives. Auto-generated from mapped CISA sectors. Framework pills showing assignment status.' },
         ],
       },
       {
+        id: 'feat-telemetry',
+        title: 'Activity Telemetry Subsystem',
+        content: 'The activity telemetry subsystem tracks all significant actions, logs events to SurrealDB, and streams them on a unified timeline.\n\n' +
+                 '### Database Schema for `activity`\n' +
+                 'The system stores telemetry logs in a SCHEMAFULL `activity` table with the following properties:\n' +
+                 '• `customer_id` (string): Scopes telemetry to a specific customer profile.\n' +
+                 '• `activity_type` (string): Category tag for validation.\n' +
+                 '• `description` (string): Human-readable event details.\n' +
+                 '• `metadata` (option<object>): Custom JSON payload (e.g. `{"notebook_id": "..."}`).\n' +
+                 '• `actor` (string, default "system"): Entity that triggered the event.\n' +
+                 '• `created`/`updated` (option<datetime>): Event timestamps.\n' +
+                 'Indexes are defined on `customer_id`, `activity_type`, and `created` to optimize query performance.\n\n' +
+                 '### Dynamic Event Emission & Try-Except Gating\n' +
+                 'Events are emitted asynchronously via `emit_activity` in `api/routers/activity_emitter.py` using a fire-and-forget pattern:\n' +
+                 '• The telemetry logging write is entirely wrapped in a `try-except` block.\n' +
+                 '• Database errors or connection timeouts are caught, logged as warnings (`logger.warning`), and suppressed.\n' +
+                 '• This try-except block ensures that telemetry logging failures never interrupt primary database transactions (like saving notebooks or notes).\n\n' +
+                 '### Unified Timeline API\n' +
+                 'The timeline endpoint `GET /api/activities` (in `api/routers/activities.py`):\n' +
+                 '• Filters events by `customer_id` and optionally by `activity_type`.\n' +
+                 '• Returns results sorted chronologically (`ORDER BY created DESC`).\n' +
+                 '• Implements pagination via `limit` (default 50) and `offset` query parameters.\n\n' +
+                 '### 14 Standardized Event Types\n' +
+                 'Telemetry events are validated against the following 14 types:\n' +
+                 '1. `notebook_created`: New diagram canvas created.\n' +
+                 '2. `note_added`: Note added to a workspace.\n' +
+                 '3. `source_added`: Document uploaded.\n' +
+                 '4. `stage_changed`: Sales or scanning stage changed.\n' +
+                 '5. `contact_added`: New stakeholder contact added.\n' +
+                 '6. `contact_updated`: Stakeholder details modified.\n' +
+                 '7. `deal_updated`: Notebook estimated value changed.\n' +
+                 '8. `assessment_started`: Compliance framework audit started.\n' +
+                 '9. `assessment_completed`: Compliance session finalized and locked.\n' +
+                 '10. `pipeline_moved`: Automation rule triggered.\n' +
+                 '11. `customer_updated`: Dossier parameters updated.\n' +
+                 '12. `email_sent`: Client notification sent.\n' +
+                 '13. `meeting_logged`: Consultation meeting logged.\n' +
+                 '14. `custom`: Catch-all type for miscellaneous activities.'
+      },
+      {
         id: 'feat-podcasts',
-        title: 'Podcast Generation',
-        content: 'AI-powered podcast creation from document sources.',
+        title: 'Podcast Generation Subsystem',
+        content: 'Generate B2B audio podcasts from document sources using advanced multi-speaker profiles, diverse TTS engines, and safety controls.\n\n' +
+                 '### 1. Speaker & Episode Profiles Structure\n' +
+                 '• Speaker Profile (`SpeakerProfile`): Contains name, description, global voice model link, and 1 to 4 speakers. Each speaker configuration requires: `name`, `voice_id` (ElevenLabs voice ID hash or Kokoro voice name), `backstory`, and `personality`. Custom voice model overrides can be applied per-speaker.\n' +
+                 '• Episode Profile (`EpisodeProfile`): Defines name, description, mapped speaker configuration, outline and transcript generating LLMs, BCP 47 language locale code (e.g. `en-US`), default briefing template, and segment counts (between 3 and 20).\n\n' +
+                 '### 2. Four TTS Engines & Kokoro Protocol Mapping\n' +
+                 'The audio synthesis backend integrates with 4 TTS engine APIs:\n' +
+                 '1. Kokoro TTS: High-speed local open-source synthesizer running on port 8880. If provider is set to `"kokoro"`, the backend automatically redirects the request to an OpenAI-compatible `/v1/audio/speech` endpoint mapped to the local Kokoro container.\n' +
+                 '2. OpenAI TTS: Standard cloud synthesis using `tts-1` / `tts-1-hd` via `https://api.openai.com/v1/audio/speech`.\n' +
+                 '3. ElevenLabs TTS: High-fidelity voice cloning via `https://api.elevenlabs.io/v1/text-to-speech/{voice_id}`.\n' +
+                 '4. Deepgram TTS: Low-latency voice synthesis via `https://api.deepgram.com/v1/speak` aura models.\n\n' +
+                 '### 3. Backend Diagnostics & Preflight Checks\n' +
+                 'The `/api/voice/preflight` diagnostics endpoint checks connections and keys before initiating long synthesis tasks:\n' +
+                 '• Kokoro: Pings `KOKORO_TTS_URL/health`.\n' +
+                 '• OpenAI: Queries the models list at `https://api.openai.com/v1/models` using the API key.\n' +
+                 '• ElevenLabs: Queries active voices at `https://api.elevenlabs.io/v1/voices`.\n' +
+                 '• Deepgram: Pings project metadata at `https://api.deepgram.com/v1/projects`.\n' +
+                 'Response latencies are measured, and raw API error outputs are sanitized to avoid key leakages in logs.\n\n' +
+                 '### 4. SurrealDB Link Conversions & Job Isolation\n' +
+                 '• Link Conversions: To prevent SurrealDB syntax errors where empty strings break record-link attributes, the system automatically converts empty strings `""` to `None` for option record links (`voice_model`, `outline_llm`, `transcript_llm`) before database persistence.\n' +
+                 '• Job Isolation and Cleanup: During podcast command setups, the background task loads all profiles in batch. To prevent validation failures from incomplete or outdated profiles, the backend checks credentials for all configurations and silently removes invalid ones from the dictionary passed to the generation worker, ensuring isolated execution.\n\n' +
+                 '### 5. Audio Compilation Safety & Path Traversal Protections\n' +
+                 '• Directory Isolation: The compiler generates audio segments in an isolated, UUID4-based directory under the paths root: `{DATA_FOLDER}/podcasts/episodes/{uuid4()}/` to prevent collisions.\n' +
+                 '• Path Traversal Prevention: The download router (`/api/podcasts/episodes/{episode_id}/audio`) resolves absolute paths of requested files and verifies they remain strictly within the `{DATA_FOLDER}/podcasts/episodes/` root directory. Attempting traversal using parent operators (like `..`) triggers an HTTP `403 Forbidden` or `400 Bad Request` error.',
         items: [
           { label: 'Episode Profiles', description: 'Configure episode structure: format, duration, topics. Link to source documents for content extraction.' },
           { label: 'Speaker Profiles', description: 'Define speakers with voice characteristics, speaking style, and personality. Multi-speaker support for conversational podcasts.' },
@@ -562,48 +826,55 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'comp-hooks',
-        title: 'Custom Hooks (32)',
-        content: 'Custom React hooks organized by domain, providing data fetching, state management, and UI utilities.',
+        title: 'Custom Hooks (41)',
+        content: 'The frontend codebase defines exactly 41 custom React hooks (40 in the core `frontend/src/lib/hooks/` folder and 1 localized within the voice settings page) to coordinate state, data fetching, and layouts.',
         table: {
-          headers: ['Hook', 'Purpose'],
+          headers: ['Hook Name', 'Target File', 'Purpose & Responsibility'],
           rows: [
-            ['useModels', 'Fetch OpenRouter + Ollama models with caching and filtering'],
-            ['useCredentials', 'Manage API provider credentials (CRUD)'],
-            ['useCustomers', 'Customer CRUD operations with React Query'],
-            ['useContacts', 'Contact management per customer'],
-            ['usePipeline', 'Pipeline deal management and stage transitions'],
-            ['useNotebooks', 'Notebook CRUD and source linking'],
-            ['useNotes', 'Note CRUD within notebooks'],
-            ['useSources', 'Source management, upload, and processing'],
-            ['useNotebookChat', 'Streaming notebook chat with LangGraph'],
-            ['useSourceChat', 'Streaming source-level AI chat'],
-            ['useAsk', 'Search query execution with streaming AI answers'],
-            ['useSearch', 'Search utilities and history management'],
-            ['usePodcasts', 'Podcast and episode management'],
-            ['useTransformations', 'Transformation template CRUD and execution'],
-            ['useProjects', 'Project management operations'],
-            ['useResearchItems', 'Research item tracking and prioritization'],
-            ['useScheduledSearch', 'Scheduled search CRUD'],
-            ['useImport', 'Bulk import wizard state machine'],
-            ['useStyleguides', 'Style guide management'],
-            ['useSettings', 'Application settings read/write'],
-            ['useAuth', 'Authentication state and logout'],
-            ['useInsights', 'Source insight generation'],
-            ['useCreateDialogs', 'Dialog state for create actions'],
-            ['useModalManager', 'Global modal state coordination'],
-            ['useNavigation', 'Programmatic navigation helpers'],
-            ['useMediaQuery', 'Responsive breakpoint detection'],
-            ['useToast', 'Toast notification helpers'],
-            ['useTranslation', 'i18n translation access'],
-            ['useVersionCheck', 'Application version polling'],
-            ['useDebounce (lib)', 'Input debouncing utility'],
+            ['useAuth', 'hooks/use-auth.ts', 'Integrates with useAuthStore to guard routes, redirect users post-login, and handle session expiration.'],
+            ['useNotebookChat', 'hooks/useNotebookChat.ts', 'Orchestrates notebook-level chat sessions. Retrieves history, and manages Server-Sent Events (SSE) message streaming with context parsing.'],
+            ['useSourceChat', 'hooks/useSourceChat.ts', 'Manages chat session state and messaging constrained to the context of a single document source.'],
+            ['useAsk', 'hooks/use-ask.ts', 'Interfaces with the search API endpoint (/api/search/ask) for Q&A queries.'],
+            ['useSearch', 'hooks/use-search.ts', 'Executes and manages history for semantic vector searches.'],
+            ['useInsights', 'hooks/use-insights.ts', 'Orchestrates dynamic AI analysis generation for uploaded documents.'],
+            ['useModalManager', 'hooks/use-modal-manager.ts', 'Synchronizes open detail modals with Next.js URL parameters (?modal=source&id=xyz) for shareable views.'],
+            ['useBreadcrumbs', 'hooks/use-breadcrumbs.ts', 'Triggers dynamic header breadcrumb title updates as pages mount/unmount.'],
+            ['useNotebookColumns', 'hooks/use-notebook-columns.ts', 'Coordinates multi-column widths and visibility settings in the notebook workspace.'],
+            ['useCustomers', 'hooks/use-customers.ts', 'React Query wrapper handling CRM customer queries, cache invalidations, and mutations.'],
+            ['useModels', 'hooks/use-models.ts', 'Fetches available language models and embedding providers from OpenRouter and Ollama configurations.'],
+            ['useCredentials', 'hooks/use-credentials.ts', 'Handles CRUD operations for API keys.'],
+            ['useVoiceSessions', 'hooks/use-voice-sessions.ts', 'Manages live WebRTC audio stream connections for voice assistant features.']
           ],
         },
       },
       {
         id: 'comp-stores',
-        title: 'State Management (Zustand)',
-        content: 'Lightweight global state management using Zustand stores.',
+        title: 'State Management (Zustand & React Query)',
+        content: 'The platform manages global UI configurations, themes, and user authentication using 6 distinct Zustand stores defined under `frontend/src/lib/stores/`:\n\n' +
+                 '1. `auth-store.ts` (Authentication State)\n' +
+                 '   - State: `user` (profile metadata), `accessToken` (JWT), `refreshToken` (JWT), and login status.\n' +
+                 '   - Persistence Key: `auth-storage` in `localStorage`.\n' +
+                 '   - Usage: Authorizes outgoing API calls by injecting JWT headers; evaluated by the auth guard to handle logins and redirections.\n\n' +
+                 '2. `sidebar-store.ts` (Layout Collapse State)\n' +
+                 '   - State: `isCollapsed` (desktop sidebar toggle) and `isMobileOpen` (mobile drawer sidebar toggle).\n' +
+                 '   - Persistence Key: `sidebar-storage` in `localStorage`.\n' +
+                 '   - Usage: Adjusts main layout padding and sidebar sizing in the AppShell component.\n\n' +
+                 '3. `theme-store.ts` (Theme Selection)\n' +
+                 '   - State: `theme` (\'light\' | \'dark\' | \'system\').\n' +
+                 '   - Persistence Key: `theme-storage` in `localStorage`.\n' +
+                 '   - Usage: Controls UI styling by toggling the `class="dark"` attribute on the `<html>` root node.\n\n' +
+                 '4. `breadcrumb-store.ts` (Breadcrumb Navigation)\n' +
+                 '   - State: `items` (array of navigation label and link pairs).\n' +
+                 '   - Persistence Key: Memory-only (unpersisted).\n' +
+                 '   - Usage: Modifies the top dashboard header title path dynamically based on active page mount lifecycle.\n\n' +
+                 '5. `navigation-store.ts` (Navigation Stack History)\n' +
+                 '   - State: `history` (list of traversed paths) and active views tracker.\n' +
+                 '   - Persistence Key: Memory-only (unpersisted).\n' +
+                 '   - Usage: Powers custom back-navigation and coordinates modal-driven sub-routes.\n\n' +
+                 '6. `notebook-columns-store.ts` (Workspace Layout Configuration)\n' +
+                 '   - State: Dynamic panel widths, visibility flags, and display order for notebook columns.\n' +
+                 '   - Persistence Key: Memory-only.\n' +
+                 '   - Usage: Saves columns layout configurations dynamically during dragging/resizing within notebooks detail page.',
         items: [
           { label: 'sidebar-store', description: 'Controls sidebar collapsed/expanded state. Persisted across sessions.' },
           { label: 'TanStack Query', description: 'Server state management for all API data. Automatic caching, refetching, and invalidation. Query client configured with sensible defaults.' },
@@ -612,36 +883,54 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'comp-api-clients',
-        title: 'API Client Modules (23)',
-        content: 'Type-safe API client modules organized by domain. All use the central Axios client with base URL configuration and error interceptors.',
+        title: 'API Client Modules (30)',
+        content: 'The frontend includes exactly 30 API files in `frontend/src/lib/api/` (consisting of 27 resource-specific API modules, 1 base Axios configuration, 1 query-client helper, and 1 developer reference file). All endpoints communicate via a central client.\n\n' +
+                 '### Base Configuration (`client.ts`):\n' +
+                 '• Auto-Inject JWT: An request interceptor automatically extracts the JWT token from the `auth-storage` localStorage and attaches it as an `Authorization: Bearer <token>` header.\n' +
+                 '• Timeout: Configured with a 10-minute timeout (`600000ms`) to accommodate heavy background requests such as vector embedding calculation, semantic reranking, and text-to-speech generation.\n' +
+                 '• 401 Error Handler Interceptor: On encountering an HTTP `401 Unauthorized` response, the client automatically triggers `clearAuth()` on the auth store to wipe the expired session and immediately redirects the user to `/login`.',
         table: {
-          headers: ['Module', 'Endpoints Covered'],
+          headers: ['Module', 'Endpoints Covered', 'Role in the Platform'],
           rows: [
-            ['client.ts', 'Base Axios instance, interceptors, auth headers'],
-            ['sources.ts', 'Source CRUD, upload, reprocessing'],
-            ['notebooks.ts', 'Notebook CRUD, source linking'],
-            ['notes.ts', 'Note CRUD'],
-            ['chat.ts', 'Notebook chat streaming'],
-            ['source-chat.ts', 'Source-level chat streaming'],
-            ['search.ts', 'Search query, history, ask'],
-            ['customers.ts', 'Customer CRUD, import/export'],
-            ['contacts.ts', 'Contact CRUD'],
-            ['pipeline.ts', 'Pipeline stage management'],
-            ['models.ts', 'Model catalog, OpenRouter sync'],
-            ['credentials.ts', 'Provider API key management'],
-            ['podcasts.ts', 'Podcast and episode management'],
-            ['embedding.ts', 'Embedding status and rebuild'],
-            ['transformations.ts', 'Template CRUD and execution'],
-            ['settings.ts', 'Application settings'],
-            ['projects.ts', 'Project management'],
-            ['research-items.ts', 'Research item tracking'],
-            ['scheduled-search.ts', 'Scheduled search management'],
-            ['styleguides.ts', 'Style guide CRUD'],
-            ['insights.ts', 'Source insight generation'],
-            ['query-client.ts', 'React Query client configuration'],
+            ['client.ts', 'Base Axios instance setup', 'Attaches authorization headers, manages request timeouts, and intercepts 401 errors.'],
+            ['sources.ts', '/sources/upload, /sources/', 'Orchestrates document source ingestion, metadata updates, and content deletion.'],
+            ['chat.ts', '/chat/sessions, /chat/messages', 'Fetches conversation histories and updates notebook chat configurations.'],
+            ['source-chat.ts', '/source-chat/sessions', 'Coordinates conversations constrained to a single document context.'],
+            ['search.ts', '/search/query, /search/ask, /search/research', 'Handles semantic searches, streaming question answering, and deep research.'],
+            ['research-memory.ts', '/research-memory/stats, /research-memory/search, /research-memory/browse', 'Interfaces with PostgreSQL pgvector query audit logs and cache stats.'],
+            ['credentials.ts', '/credentials/', 'Manages database CRUD operations for third-party API keys.'],
+            ['models.ts', '/models/', 'Queries and synchronizes the list of cloud/local text-generation and embedding models.'],
+            ['podcasts.ts', '/podcasts/generate', 'Coordinates speech generation jobs and podcast metadata updates.'],
+            ['pipeline.ts', '/pipeline/stages', 'Controls CRM sales pipeline stages and deal state transitions.'],
+            ['voice.ts', '/voice/session, /voice/auth', 'Obtains WebRTC session tokens and handles real-time call states.'],
+            ['transformations.ts', '/transformations/apply', 'Triggers document conversions using transformation templates.']
           ],
         },
       },
+      {
+        id: 'comp-citations',
+        title: 'Citations & Interactive Code References',
+        content: 'The platform implements a robust inline reference citation system and is designing an interactive code citations framework.\n\n' +
+                 '### 1. Existing Citation Parsing & Modal Linking\n' +
+                 '• Parsing: Inline tags such as `[source:abc123]` or `[note:xyz]` in chat answers and search summaries are parsed by regular expressions (`source-references.tsx`).\n' +
+                 '• Markdown link parsing: The helper `convertReferencesToMarkdownLinks` transforms reference tags to markdown hash links: `[source:abc123](#ref-source-abc123)` prior to passing the text to ReactMarkdown.\n' +
+                 '• Component Rendering: For plain text citation rendering, the helper `convertSourceReferences` parses the tags and wraps them in custom button components with click event handlers calling `onReferenceClick(type, id)`.\n' +
+                 '• ReactMarkdown Interception: Link elements starting with `#ref-` are intercepted. Instead of standard page navigation, their click events are captured to trigger `openModal(type, id)` via the `useModalManager` hook.\n' +
+                 '• Modal Launching: `useModalManager` updates the URL search query (e.g. `?modal=source&id=abc123`), prompting the parent shell to display the relevant document source or note.\n\n' +
+                 '### 2. Clickable Code Citations Protocol\n' +
+                 'To enable interactive code auditing directly from documentation wiki pages, the platform establishes the `code:` protocol:\n' +
+                 '• Custom URI Schema:\n' +
+                 '  - File links use `code:filePath` (e.g. `code:frontend/src/lib/stores/auth-store.ts`).\n' +
+                 '  - Line-specific links append hash offsets: `code:filePath#Lline` (e.g. `code:frontend/src/lib/stores/auth-store.ts#L12`).\n' +
+                 '• Citation Component Rendering:\n' +
+                 '  The application uses a custom anchor parser `createCodeCitationLinkComponent` passed to `<ReactMarkdown>`. Any links matching the `code:` schema are rendered as custom terminal badges (incorporating a `Terminal` icon and a dark-mode border/background) rather than standard anchor links.\n' +
+                 '• URL Query Integration:\n' +
+                 '  Clicking a code citation badge updates the active URL query parameters using the `useModalManager` hook: `?modal=code&id=frontend/src/lib/stores/auth-store.ts:12`.\n' +
+                 '• Backend Developer Code-Preview Endpoint:\n' +
+                 '  A secure read-only router in the FastAPI backend (`/api/developer/code-preview?path={filePath}`) maps paths against the dynamically resolved project root. It prevents directory traversal using path resolution checks (throwing a `403 Forbidden` if the resolved path exits the safe root) and returns raw file contents.\n' +
+                 '• Frontend Code Viewer Modal:\n' +
+                 '  Renders the file inside a dark-themed syntax highlighter, automatically scrolling to and highlighting the cited line. In local development, an "Open in IDE" button generates a `vscode://file/{absolutePath}:{line}` deep link to launch the file directly in the developer\'s editor.'
+      }
     ],
   },
   {
@@ -656,70 +945,13 @@ const DOCUMENTATION: DocSection[] = [
         id: 'dev-setup',
         title: 'Development Setup',
         content: 'Prerequisites: Python 3.11+, Node.js 20+, SurrealDB, and optionally Ollama for local models.',
-        code: `# 1. Clone and install backend
-git clone <repository-url>
-cd notebook_tetrel
-pip install -e ".[dev]"
-
-# 2. Start SurrealDB
-surreal start --log info --user root --pass root \\
-  file:data/surreal.db
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your API keys
-
-# 4. Start backend API
-uvicorn api.main:app --reload --port 8502
-
-# 5. Install and start frontend
-cd frontend
-npm install
-npm run dev  # Starts at localhost:3000
-
-# 6. (Optional) Start Ollama for local models
-ollama serve
-ollama pull llama3.2
-ollama pull dengcao/Qwen3-Reranker-4B:Q4_K_M`,
+        code: `# 1. Clone and install backend\ngit clone <repository-url>\ncd notebook_tetrel\npip install -e ".[dev]"\n\n# 2. Start SurrealDB\nsurreal start --log info --user root --pass root \\\n  file:data/surreal.db\n\n# 3. Configure environment\ncp .env.example .env\n# Edit .env with your API keys\n\n# 4. Start backend API\nuvicorn api.main:app --reload --port 8502\n\n# 5. Install and start frontend\ncd frontend\nnpm install\nnpm run dev  # Starts at localhost:3000\n\n# 6. (Optional) Start Ollama for local models\nollama serve\nollama pull Llama3.2\nollama pull dengcao/Qwen3-Reranker-4B:Q4_K_M`,
       },
       {
         id: 'dev-structure',
         title: 'Project Structure',
         content: 'The monorepo contains the Python backend and Next.js frontend in a single repository.',
-        code: `notebook_tetrel/
-├── api/                    # FastAPI backend
-│   ├── main.py             # App entry, router registration, CORS
-│   ├── models.py           # Pydantic request/response models
-│   └── routers/            # 32 API router modules
-│       ├── sources.py      # Source CRUD and file upload
-│       ├── notebooks.py    # Notebook management
-│       ├── chat.py         # Streaming AI chat
-│       ├── search.py       # Semantic search
-│       ├── customers.py    # CRM customers
-│       ├── assessments.py  # Compliance assessments
-│       ├── models.py       # AI model management
-│       └── ...             # 25 more routers
-├── open_notebook/          # Domain layer
-│   ├── database/
-│   │   ├── repository.py   # SurrealDB abstraction
-│   │   └── migrations/     # 19+ schema migrations
-│   ├── domain/             # Business entities
-│   └── config/             # Application configuration
-├── frontend/               # Next.js frontend
-│   ├── src/
-│   │   ├── app/(dashboard)/ # 15+ page routes
-│   │   ├── components/      # 18 component directories
-│   │   ├── lib/
-│   │   │   ├── api/         # 23 API client modules
-│   │   │   ├── hooks/       # 32 custom hooks
-│   │   │   ├── stores/      # Zustand stores
-│   │   │   ├── types/       # TypeScript type definitions
-│   │   │   └── locales/     # i18n translation files
-│   │   └── styles/          # Global CSS
-│   └── public/              # Static assets
-├── scripts/                 # Migration and utility scripts
-├── pyproject.toml           # Python project config
-└── CLAUDE.md                # AI coding guidelines`,
+        code: `notebook_tetrel/\n├── api/                    # FastAPI backend\n│   ├── main.py             # App entry, router registration, CORS\n│   ├── models.py           # Pydantic request/response models\n│   └── routers/            # 32 API router modules\n│       ├── sources.py      # Source CRUD and file upload\n│       ├── notebooks.py    # Notebook management\n│       ├── chat.py         # Streaming AI chat\n│       ├── search.py       # Semantic search\n│       ├── customers.py    # CRM customers\n│       ├── assessments.py  # Compliance assessments\n│       ├── models.py       # AI model management\n│       └── ...             # 25 more routers\n├── open_notebook/          # Domain layer\n│   ├── database/\n│   │   ├── repository.py   # SurrealDB abstraction\n│   │   └── migrations/     # 42 migrations (84 files total)\n│   ├── domain/             # Business entities\n│   └── config/             # Application configuration\n├── frontend/               # Next.js frontend\n│   ├── src/\n│   │   ├── app/(dashboard)/ # 32 page routes\n│   │   ├── components/      # 18 component directories\n│   │   ├── lib/\n│   │   │   ├── api/         # 30 API client modules\n│   │   │   ├── hooks/       # 40 custom hooks\n│   │   │   ├── stores/      # Zustand stores\n│   │   │   ├── types/       # TypeScript type definitions\n│   │   │   └── locales/     # i18n translation files\n│   │   └── styles/          # Global CSS\n│   └── public/              # Static assets\n├── scripts/                 # Migration and utility scripts\n├── pyproject.toml           # Python project config\n└── CLAUDE.md                # AI coding guidelines`,
       },
       {
         id: 'dev-standards',
@@ -884,8 +1116,8 @@ export default function DocumentationPage() {
   }
 
   // Stats
-  const totalEndpoints = DOCUMENTATION.find(s => s.id === 'api')?.subsections.reduce((sum, sub) => sum + (sub.table?.rows.length || 0), 0) || 0
-  const totalHooks = 32
+  const totalEndpoints = 272
+  const totalHooks = 40
   const totalComponents = 18
 
   return (

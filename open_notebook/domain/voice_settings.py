@@ -50,6 +50,7 @@ class VoiceSettingsConfig(RecordModel):
     livekit_mode: str = Field(default="local")
     livekit_remote_ws_url: str = Field(default="")
     livekit_remote_api_key: str = Field(default="")
+    livekit_remote_api_secret: str = Field(default="")
 
     # Global
     voice_enabled: bool = Field(default=True)

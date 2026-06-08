@@ -216,6 +216,7 @@ export const ptBR = {
     language: "Alternar idioma",
     theme: "Tema",
     ask: "Perguntar",
+    researchMemory: "Research Memory",
   },
   notebooks: {
     title: "Cadernos",
@@ -1078,5 +1079,43 @@ export const ptBR = {
       stepLogHeader: "Step {number}: {name}",
       rawPayload: "Raw Step Payload",
     }
-  }
+  },
+  researchMemory: {
+    title: "Research Memory",
+    description: "Browse and search your accumulated research corpus",
+    stats: {
+      totalDocuments: "Total Documents",
+      sourceTypes: "Source Types",
+      dateRange: "Date Range",
+      storageSize: "Storage Size",
+      oldest: "Oldest",
+      newest: "Newest",
+      noDocuments: "No documents stored yet",
+    },
+    search: {
+      placeholder: "Search research memory...",
+      searching: "Searching...",
+      searchButton: "Search",
+      noResults: "No results found for \"{query}\"",
+      resultsFound: "{count} results found",
+      similarity: "Similarity",
+    },
+    browse: {
+      title: "Browse Documents",
+      page: "Page {current} of {total}",
+      previous: "Previous",
+      next: "Next",
+      sortBy: "Sort by",
+      filterBySource: "Filter by source type",
+      allSources: "All sources",
+    },
+    document: {
+      sourceType: "Source",
+      createdAt: "Stored",
+      query: "Original Query",
+      score: "Score",
+      viewContent: "View Content",
+      noContent: "No content available",
+    },
+  },
 }

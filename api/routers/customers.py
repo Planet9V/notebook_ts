@@ -358,6 +358,12 @@ async def delete_customer(customer_id: str):
             {"rec_id": rec_id, "clean_id_val": clean_id_val}
         )
 
+        # Delete entity_note edges to this customer
+        await repo_query(
+            "DELETE entity_note WHERE out = $rec_id;",
+            {"rec_id": ensure_record_id(rec_id)}
+        )
+
         # Delete the customer record
         await repo_delete(rec_id)
 

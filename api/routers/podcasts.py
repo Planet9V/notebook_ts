@@ -19,6 +19,8 @@ from api.models import (
     ScheduledEpisodeResponse,
 )
 from open_notebook.domain.scheduled_episode import ScheduledEpisode
+from open_notebook.database.repository import repo_query, repo_delete, ensure_record_id
+
 
 router = APIRouter()
 
@@ -119,8 +121,39 @@ async def list_podcast_episodes():
     try:
         episodes = await PodcastService.list_episodes()
 
+        # Fetch active or failed podcast generation commands from the database
+        active_commands = await repo_query(
+            "SELECT id, status, name, args, error_message FROM command WHERE name = 'generate_podcast' AND status IN ['new', 'running', 'failed', 'error']"
+        )
+
         response_episodes = []
+        episode_command_ids = set()
+
+        # Group and deduplicate database episodes sharing the same command ID
+        episodes_by_cmd = {}
+        no_cmd_episodes = []
         for episode in episodes:
+            if episode.command:
+                cmd_id_str = str(episode.command)
+                if cmd_id_str not in episodes_by_cmd:
+                    episodes_by_cmd[cmd_id_str] = []
+                episodes_by_cmd[cmd_id_str].append(episode)
+            else:
+                no_cmd_episodes.append(episode)
+
+        # For each command group, pick the best episode (preferring the one with audio_file)
+        filtered_episodes = list(no_cmd_episodes)
+        for cmd_id_str, ep_list in episodes_by_cmd.items():
+            best_ep = ep_list[0]
+            for ep in ep_list:
+                if ep.audio_file:
+                    best_ep = ep
+                    break
+            filtered_episodes.append(best_ep)
+            episode_command_ids.add(cmd_id_str)
+
+        # Build response objects for database episodes
+        for episode in filtered_episodes:
             # Skip incomplete episodes without command or audio
             if not episode.command and not episode.audio_file:
                 continue
@@ -165,6 +198,37 @@ async def list_podcast_episodes():
                 )
             )
 
+        # Synthesize placeholder episodes for active commands without database episode records yet
+        for cmd in active_commands:
+            cmd_id_str = str(cmd["id"])
+            if cmd_id_str not in episode_command_ids:
+                args = cmd.get("args") or {}
+                ep_profile_name = args.get("episode_profile", "Default")
+                sp_profile_name = args.get("speaker_profile", "Default")
+                ep_name = args.get("episode_name", "Untitled Episode")
+                
+                response_episodes.append(
+                    PodcastEpisodeResponse(
+                        id=cmd_id_str,
+                        name=ep_name,
+                        episode_profile={"name": ep_profile_name},
+                        speaker_profile={"name": sp_profile_name},
+                        briefing="",
+                        audio_file=None,
+                        audio_url=None,
+                        transcript=None,
+                        outline=None,
+                        created=None,
+                        job_status=cmd["status"],
+                        error_message=cmd.get("error_message"),
+                    )
+                )
+
+        # Sort episodes placing placeholders/active items at the top
+        def sort_key(x):
+            return x.created or "9999-99-99"
+        
+        response_episodes.sort(key=sort_key, reverse=True)
         return response_episodes
 
     except Exception as e:
@@ -178,6 +242,28 @@ async def list_podcast_episodes():
 async def get_podcast_episode(episode_id: str):
     """Get a specific podcast episode"""
     try:
+        if episode_id.startswith("command:"):
+            cmd_id = ensure_record_id(episode_id)
+            res = await repo_query("SELECT * FROM command WHERE id = $cmd_id", {"cmd_id": cmd_id})
+            if not res:
+                raise HTTPException(status_code=404, detail="Job not found")
+            cmd = res[0]
+            args = cmd.get("args") or {}
+            return PodcastEpisodeResponse(
+                id=str(cmd["id"]),
+                name=args.get("episode_name", "Untitled Episode"),
+                episode_profile={"name": args.get("episode_profile", "Default")},
+                speaker_profile={"name": args.get("speaker_profile", "Default")},
+                briefing="",
+                audio_file=None,
+                audio_url=None,
+                transcript=None,
+                outline=None,
+                created=None,
+                job_status=cmd["status"],
+                error_message=cmd.get("error_message"),
+            )
+
         episode = await PodcastService.get_episode(episode_id)
 
         # Get job status and error message if available
@@ -218,6 +304,8 @@ async def get_podcast_episode(episode_id: str):
             error_message=error_message,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error fetching podcast episode")
         raise HTTPException(status_code=404, detail="Episode not found")
@@ -252,6 +340,62 @@ async def stream_podcast_episode_audio(episode_id: str):
 async def retry_podcast_episode(episode_id: str):
     """Retry a failed podcast episode by deleting it and submitting a new job"""
     try:
+        if episode_id.startswith("command:"):
+            cmd_id = ensure_record_id(episode_id)
+            res = await repo_query("SELECT * FROM command WHERE id = $cmd_id", {"cmd_id": cmd_id})
+            if not res:
+                raise HTTPException(status_code=404, detail="Job not found")
+            cmd = res[0]
+            if cmd["status"] not in ("failed", "error"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Job is not in a failed state (current: {cmd['status']})",
+                )
+            args = cmd.get("args") or {}
+            ep_profile_name = args.get("episode_profile")
+            sp_profile_name = args.get("speaker_profile")
+            episode_name = args.get("episode_name")
+            content = args.get("content")
+            notebook_id = args.get("notebook_id")
+            briefing_suffix = args.get("briefing_suffix")
+            tts_engine = args.get("tts_engine", "default")
+            voice_mapping = args.get("voice_mapping")
+
+            # Guard: refuse to retry if the original command is missing required fields.
+            # This prevents the infinite retry loop where broken commands with only
+            # episode_name keep getting resubmitted and immediately fail Pydantic validation.
+            missing = []
+            if not ep_profile_name:
+                missing.append("episode_profile")
+            if not sp_profile_name:
+                missing.append("speaker_profile")
+            if not content and not notebook_id:
+                missing.append("content or notebook_id")
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Cannot retry: original command is missing required fields: "
+                        f"{', '.join(missing)}. Please delete this job and create a new episode."
+                    ),
+                )
+
+            # Delete the failed command record
+            await repo_delete(cmd_id)
+
+            # Submit a new job
+            job_id = await PodcastService.submit_generation_job(
+                episode_profile_name=ep_profile_name,
+                speaker_profile_name=sp_profile_name,
+                episode_name=episode_name,
+                content=content,
+                notebook_id=notebook_id,
+                briefing_suffix=briefing_suffix,
+                tts_engine=tts_engine,
+                voice_mapping=voice_mapping,
+            )
+            return {"job_id": job_id, "message": "Retry submitted successfully"}
+
         episode = await PodcastService.get_episode(episode_id)
 
         # Validate episode is in a failed state
@@ -266,9 +410,17 @@ async def retry_podcast_episode(episode_id: str):
         ep_profile_name = episode.episode_profile.get("name")
         sp_profile_name = episode.speaker_profile.get("name")
         episode_name = episode.name
-        content = episode.content
+        content = getattr(episode, "content", None)
         notebook_id = getattr(episode, "notebook_id", None)
         briefing_suffix = getattr(episode, "briefing_suffix", None)
+
+        # Guard: refuse to retry if the episode is missing required fields
+        if not content and not notebook_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot retry: episode has no content or notebook_id. "
+                       "Please delete this episode and create a new one.",
+            )
 
         if not ep_profile_name or not sp_profile_name:
             raise HTTPException(
@@ -313,6 +465,12 @@ async def retry_podcast_episode(episode_id: str):
 async def delete_podcast_episode(episode_id: str):
     """Delete a podcast episode and its associated audio file"""
     try:
+        if episode_id.startswith("command:"):
+            cmd_id = ensure_record_id(episode_id)
+            await repo_delete(cmd_id)
+            logger.info(f"Deleted pending podcast command: {episode_id}")
+            return {"message": "Episode deleted successfully", "episode_id": episode_id}
+
         # Get the episode first to check if it exists and get the audio file path
         episode = await PodcastService.get_episode(episode_id)
 
@@ -434,6 +592,19 @@ async def trigger_scheduled_episode(schedule_id: str):
     """Instantly trigger a scheduled episode execution"""
     try:
         ep = await ScheduledEpisode.get(schedule_id)
+
+        if not ep.notebook:
+            raise HTTPException(
+                status_code=400,
+                detail="Scheduled episode has no notebook configured. "
+                       "Please edit the schedule and select a notebook.",
+            )
+
+        logger.info(
+            f"Triggering scheduled episode '{ep.name}' with notebook={ep.notebook}, "
+            f"episode_profile={ep.episode_profile}, speaker_profile={ep.speaker_profile}"
+        )
+
         job_id = await PodcastService.submit_generation_job(
             episode_profile_name=ep.episode_profile,
             speaker_profile_name=ep.speaker_profile,
@@ -443,6 +614,8 @@ async def trigger_scheduled_episode(schedule_id: str):
         ep.last_run = datetime.now()
         await ep.save()
         return {"status": "triggered", "job_id": job_id}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(f"Error triggering scheduled episode {schedule_id}")
         raise HTTPException(

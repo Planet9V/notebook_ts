@@ -94,3 +94,20 @@ The subsystem is composed of three backend routers registered in [main.py](file:
 | `POST` | `/api/voice/token` | `(api/routers/voice.py:279)` | Generates room authentication token for LiveKit |
 | `GET` | `/api/voice/sessions` | `(api/routers/voice_sessions.py:77)` | Lists all historical voice session lists |
 | `POST` | `/api/voice/sessions/{id}/save-as-note` | `(api/routers/voice_sessions.py:323)` | Saves audio transcript as a standard note |
+
+---
+
+## ⚙️ Configuration & Deployment Modes
+
+The WebRTC streaming agent handles voice interaction dynamically based on settings configurable on the **Admin Configuration Pages**:
+
+### 1. Local Mode (Default)
+* **WebSocket URL:** Defaults to `ws://localhost:7880` (or `ws://livekit-server:7880` internally within the Docker bridge network).
+* **Credentials:** Signed using system environment variables (`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and `LIVEKIT_WS_URL`).
+* **Use Case:** Local host testing and single-machine desktop development.
+
+### 2. Remote Self-Hosted Mode
+* **WebSocket URL:** User-defined remote endpoint (e.g. `wss://livekit.my-remote-server.com`).
+* **Credentials:** User-entered API Key and API Secret (stored securely in SurrealDB).
+* **Token Generation:** The `/api/voice/token` endpoint dynamically detects the remote mode, signs the WebRTC JWT token with the remote credentials, and returns the remote WebSocket URL to the client.
+* **Worker Integration:** The Python voice agent worker ([voice_agent.py](file:///Users/jimmcknney/notebook_tetrel/api/voice_agent.py)) queries `/api/voice/settings` on startup and overrides its own environment variables with the remote host settings to register with the remote server.

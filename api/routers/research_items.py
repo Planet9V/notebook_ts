@@ -297,13 +297,11 @@ async def delete_research_item(item_id: str):
 async def run_deep_research_workflow(ri: ResearchItem):
     import asyncio
     from datetime import datetime, timezone
+    from open_notebook.search.deep_research import run_deep_research
+    from open_notebook.search.research_memory import ResearchMemory
+    from open_notebook.utils.embedding import generate_embedding
 
-    from langchain_core.messages import HumanMessage, SystemMessage
-
-    from open_notebook.ai.provision import provision_langchain_model
-    from open_notebook.domain.scheduled_search_worker import _run_search
-
-    async def save_state(stage: str, message: str):
+    async def on_progress(stage: str, message: str):
         ri.deep_research_state = stage
         event = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -315,125 +313,55 @@ async def run_deep_research_workflow(ri: ResearchItem):
         ri.deep_research_events.append(event)
         await ri.save()
 
-    # Step 1: Clarifying
-    await save_state("clarifying", "Starting clarifying step: restating research query and identifying goals.")
-    model = await provision_langchain_model(
-        content=ri.query,
-        model_id=ri.model_id,
-        default_type="chat",
-        max_tokens=8192
-    )
-    system_prompt = "You are a professional research assistant. Clarify the user's research query by restating it clearly, defining the main research goals, identifying target domains/key concepts, and clarifying any ambiguities."
-    human_prompt = f"Research Query: {ri.query}\nFormatting Instructions: {ri.formatting_instructions or 'None'}"
-    response = await model.ainvoke([SystemMessage(content=system_prompt), HumanMessage(content=human_prompt)])
-    clarification = response.content
-    await save_state("clarifying", f"Clarified query and goals:\n{clarification}")
+    # Determine research depth mode
+    depth = "standard"
+    query_lower = ri.query.lower()
+    if "quick" in query_lower or "fast" in query_lower:
+        depth = "quick"
+    elif "exhaustive" in query_lower or "max" in query_lower:
+        depth = "exhaustive"
+    elif "heavy" in query_lower or "deep" in query_lower:
+        depth = "deep"
 
-    # Step 2: Planning
-    await save_state("planning", "Starting planning step: breaking query down into a research plan.")
-    system_prompt = "You are a research planner. Based on the clarified research query and goals, construct a step-by-step research plan. Include key sub-questions to investigate, specific search terms to use, and what information is critical to gather."
-    human_prompt = f"Original Query: {ri.query}\nClarification: {clarification}"
-    response = await model.ainvoke([SystemMessage(content=system_prompt), HumanMessage(content=human_prompt)])
-    research_plan = response.content
-    
-    # Generate sub-queries from plan
-    sub_queries = [ri.query]
+    await on_progress("planning", f"Initiating Valyu DeepResearch ({depth} mode)...")
+
     try:
-        query_sys_prompt = "You are a search query generator. Generate 2 to 3 distinct search queries to gather comprehensive information for the following research plan. Provide each search query on a new line. Do not include any other text."
-        query_hum_prompt = f"Original Query: {ri.query}\nResearch Plan:\n{research_plan}"
-        query_response = await model.ainvoke([SystemMessage(content=query_sys_prompt), HumanMessage(content=query_hum_prompt)])
-        lines = [line.strip() for line in query_response.content.strip().split("\n") if line.strip()]
-        if lines:
-            sub_queries = lines[:3]
-    except Exception as q_err:
-        logger.warning(f"Failed to generate search queries from plan: {q_err}. Using original query.")
-        
-    await save_state("planning", f"Research plan generated. Search queries to run: {sub_queries}")
+        # Run deep research via Valyu SDK
+        research_result = await run_deep_research(
+            query=ri.query,
+            depth=depth,
+            timeout=600,  # 10 minutes timeout limit
+            on_progress=on_progress,
+        )
 
-    # Step 3: Gathering
-    await save_state("gathering", f"Starting gathering step: executing concurrent searches on selected engines.")
-    engines = ri.engines if ri.engines else ([ri.engine] if ri.engine else ["perplexity"])
-    
-    async def safe_run_search(engine: str, query: str):
+        report_markdown = research_result.get("output", "")
+        sources_used = research_result.get("sources_used", [])
+        deepresearch_id = research_result.get("deepresearch_id", "")
+
+        # Embed and store completed report in pgvector ResearchMemory
+        await on_progress("reporting", "Valyu DeepResearch complete. Storing report in pgvector cache...")
         try:
-            return await _run_search(engine, query)
-        except Exception as e:
-            logger.warning(f"Error executing search on engine {engine} with query '{query}': {e}")
-            return []
+            embedding = await generate_embedding(report_markdown)
+            await ResearchMemory.store_result(
+                query=ri.query,
+                result={
+                    "title": f"Deep Research Report: {ri.name}",
+                    "url": f"valyu://deep_research/{deepresearch_id}",
+                    "content": report_markdown,
+                    "source_type": "deep_research",
+                    "relevance_score": 1.0,
+                },
+                embedding=embedding
+            )
+            await on_progress("reporting", "Deep research report successfully cached in semantic memory.")
+        except Exception as mem_err:
+            logger.error(f"Failed to cache deep research report: {mem_err}")
 
-    search_tasks = []
-    for engine in engines:
-        for q in sub_queries:
-            search_tasks.append(safe_run_search(engine, q))
+    except Exception as err:
+        logger.error(f"Valyu DeepResearch failed: {err}")
+        await on_progress("failed", f"Deep research failed: {err}")
+        raise err
 
-    search_results_list = await asyncio.gather(*search_tasks)
-    
-    all_results = []
-    for results in search_results_list:
-        if results:
-            all_results.extend(results)
-            
-    seen_urls = set()
-    deduplicated_results = []
-    for r in all_results:
-        url = r.get("url") or ""
-        url_clean = url.strip().lower()
-        if url_clean:
-            if url_clean not in seen_urls:
-                seen_urls.add(url_clean)
-                deduplicated_results.append(r)
-        else:
-            deduplicated_results.append(r)
-
-    if not deduplicated_results:
-        deduplicated_results.append({
-            "title": "Fallback Search Result",
-            "url": "local://kb",
-            "content": f"No results could be fetched from engines. Researching query: {ri.query}"
-        })
-
-    await save_state("gathering", f"Gathered {len(deduplicated_results)} unique results across engines {engines}.")
-
-    # Step 4: Synthesizing
-    await save_state("synthesizing", "Starting synthesizing step: comparing and analyzing findings.")
-    findings_str = ""
-    for i, r in enumerate(deduplicated_results, 1):
-        findings_str += f"Source {i}: {r.get('title')}\nURL: {r.get('url')}\nContent: {r.get('content')}\n\n"
-        
-    system_prompt = (
-        "You are an expert researcher synthesizing search results. Analyze the gathered search findings, extract all relevant facts, "
-        "data points, statistics, dates, and names. Compare different perspectives, resolve contradictions, and "
-        "synthesize them into a highly comprehensive, exhaustively detailed analysis outline. This outline must be very thorough "
-        "and multi-layered to support writing a long-form, high-density, fact-packed report."
-    )
-    human_prompt = f"Original Query: {ri.query}\nSearch Findings:\n{findings_str}"
-    response = await model.ainvoke([SystemMessage(content=system_prompt), HumanMessage(content=human_prompt)])
-    synthesis = response.content
-    await save_state("synthesizing", "Synthesis outline completed.")
-
-    # Step 5: Reporting
-    await save_state("reporting", "Starting reporting step: generating formatted markdown report.")
-    system_prompt = (
-        "You are a professional research report writer. Generate an extremely comprehensive, exhaustive, and detailed long-form markdown report "
-        "based on the synthesis outline and the original findings. The report MUST be at least double the length of a typical response, "
-        "offering a fully expanded, fact-dense analysis of the research query.\n\n"
-        "CRITICAL REQUIREMENTS:\n"
-        "1. NO hallucinations, speculation, or unsubstantiated claims. Every fact, statistic, and statement must be strictly derived from the original search findings.\n"
-        "2. NO filler words, fluff, or generic placeholders. Every sentence must contain high-density factual information.\n"
-        "3. Every paragraph must be thoroughly detailed. Avoid brief summaries or short lists. For each point in the outline, write multiple fully developed paragraphs explaining the technical details, names, dates, and metrics.\n"
-        "4. Include proper, extensive in-text citations referring to the sources (e.g., [Source 1], [Source 2] or [1], [2]) directly within the text wherever facts are stated.\n"
-        "5. Conclude with a complete bibliography/sources section listing the exact URLs and details of the original sources."
-    )
-    human_prompt = (
-        f"Original Query: {ri.query}\n"
-        f"Formatting Instructions: {ri.formatting_instructions or 'None'}\n"
-        f"Synthesis Outline:\n{synthesis}\n\n"
-        f"Original Sources:\n{findings_str}\n\n"
-        f"Generate a highly detailed, fact-packed report that is double the typical length (aim for at least 2000-3000 words), fully expanding on all items in the outline without generic fluff."
-    )
-    response = await model.ainvoke([SystemMessage(content=system_prompt), HumanMessage(content=human_prompt)])
-    report_markdown = response.content
-    
     # Save notebook_id if missing and customer is set
     notebook_id = ri.notebook_id
     if not notebook_id and ri.customer_id:
@@ -758,7 +686,7 @@ async def enhance_research_item(item_id: str, data: EnhanceRequest):
             content=directions + original_content,
             model_id=data.model_id or ri.model_id,
             default_type="chat",
-            max_tokens=8192
+            max_tokens=32000
         )
 
         system_prompt = (

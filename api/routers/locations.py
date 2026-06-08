@@ -217,6 +217,12 @@ async def delete_location(location_id: str):
             {"rec_id": rec_id}
         )
 
+        # 2.5. Delete entity_note edges to this location
+        await repo_query(
+            "DELETE entity_note WHERE out = $rec_id;",
+            {"rec_id": ensure_record_id(rec_id)}
+        )
+
         # 3. Delete the location record
         await repo_delete(rec_id)
 

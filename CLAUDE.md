@@ -60,6 +60,33 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Karpathy Rules (Mandatory)
+
+**Every change must satisfy all eight principles from [docs/PRD.md](docs/PRD.md):**
+
+| # | Principle | Enforcement |
+|---|---|---|
+| P1 | **Karpathy Rules** | Simple, readable code. No over-engineering. Use existing solutions. |
+| P2 | **Skills-First** | Use installed skills, MCPs, libraries, GitHub projects. NO custom code where existing solutions exist. |
+| P3 | **TDD** | No production code without a failing test first. |
+| P4 | **No Faking** | No stubs, fillers, placeholders, or mock data in production paths. Zero `TODO`, `FIXME`, or `placeholder` in committed code. |
+| P5 | **Full Observability** | ALL variables, configs, prompts, models, providers adjustable in admin UI. |
+| P6 | **Full Traceability** | Track all changes, audit all activities, version all documents. |
+| P7 | **No Drift** | Always reference plans, specs, PRD. Update docs with every change. |
+| P8 | **Docker Portable** | Everything runs in containers. Fully portable deployment. |
+
+**Compilation gate:** Run `npx tsc --noEmit` in `frontend/` before any commit. Zero errors required.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

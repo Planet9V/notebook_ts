@@ -13,8 +13,8 @@ import {
 } from '@/lib/types/models'
 
 export const modelsApi = {
-  list: async () => {
-    const response = await apiClient.get<Model[]>('/models')
+  list: async (params?: { type?: string; supports_json?: boolean }) => {
+    const response = await apiClient.get<Model[]>('/models', { params })
     return response.data
   },
 
