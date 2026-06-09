@@ -4,7 +4,7 @@ This task plan details the sequential development and verification of the remain
 
 ---
 
-## Current Track: google-workspace-exporter_20260609
+## Current Track: None
 
 ---
 
@@ -18,7 +18,7 @@ This task plan details the sequential development and verification of the remain
   - Phase 2: SVG Chart Layout & Channel Filter (Tasks 2.1 - 2.3)
 
 ### 📂 Track 2: `google-workspace-exporter_20260609` (Styleguide Exporter & Google Workspace Connectors)
-- **Status:** in_progress
+- **Status:** completed
 - **Overview**: Implement Google Drive/Docs/Sheets/Slides connectors, OAuth consent screens, refresh token encryption via Vault-paths, and custom style guides.
 - **Phases**:
   - Phase 1: Database Schema & OAuth Credentials Form (Tasks 1.1 - 1.2)
@@ -30,11 +30,11 @@ This task plan details the sequential development and verification of the remain
 ## 🧪 Verification Log
 | Track | Phase | Verification Command | Status | Details |
 |---|---|---|---|---|
-| `social-media-tracker` | Phase 1 | `npx tsc --noEmit` | [ ] | Pending |
-| `social-media-tracker` | Phase 2 | Manual page check & tests | [ ] | Pending |
-| `google-workspace-exporter` | Phase 1 | `pytest tests/test_config_api.py` | [ ] | Pending |
-| `google-workspace-exporter` | Phase 2 | `pytest tests/test_credentials_oauth.py` | [ ] | Pending |
-| `google-workspace-exporter` | Phase 3 | `pytest tests/test_google_workspace_exporter.py` | [ ] | Pending |
+| `social-media-tracker` | Phase 1 | `npx tsc --noEmit` | [x] | Passed |
+| `social-media-tracker` | Phase 2 | Manual page check & tests | [x] | Passed |
+| `google-workspace-exporter` | Phase 1 | `pytest tests/test_config_api.py` | [x] | Passed |
+| `google-workspace-exporter` | Phase 2 | `pytest tests/test_credentials_oauth.py` | [x] | Passed |
+| `google-workspace-exporter` | Phase 3 | `pytest tests/test_google_workspace_exporter.py` | [x] | Passed |
 
 ## ⚠️ Errors Encountered & Resolution
 | Error | Attempt | Resolution |
