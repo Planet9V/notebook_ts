@@ -1,0 +1,14 @@
+-- Migration 46: Add audio_sequence table and new fields to episode_profile
+DEFINE TABLE audio_sequence SCHEMAFULL;
+DEFINE FIELD name ON TABLE audio_sequence TYPE string;
+DEFINE FIELD description ON TABLE audio_sequence TYPE option<string>;
+DEFINE FIELD sequence_type ON TABLE audio_sequence TYPE string ASSERT $value IN ["intro", "outro"];
+DEFINE FIELD file_path ON TABLE audio_sequence TYPE option<string>;
+DEFINE FIELD audio_url ON TABLE audio_sequence TYPE option<string>;
+DEFINE FIELD created ON TABLE audio_sequence TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated ON TABLE audio_sequence TYPE datetime DEFAULT time::now();
+DEFINE INDEX idx_audio_sequence_name ON TABLE audio_sequence COLUMNS name UNIQUE;
+
+DEFINE FIELD target_duration ON TABLE episode_profile TYPE option<int>;
+DEFINE FIELD intro_sequence ON TABLE episode_profile TYPE option<record<audio_sequence>>;
+DEFINE FIELD outro_sequence ON TABLE episode_profile TYPE option<record<audio_sequence>>;
