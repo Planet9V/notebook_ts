@@ -3,18 +3,18 @@
 **Track ID:** google-workspace-exporter_20260609
 **Spec:** spec.md
 **Created:** 2026-06-09
-**Status:** [ ] Not Started
+**Status:** [~] In Progress
 
 ## Phase 1: Database Schema & OAuth Credentials Form
 Set up the SurrealQL credentials schema and the admin settings UI cards.
 
 ### Tasks
-- [ ] **Task 1.1**: Create SurrealQL migrations `37.surrealql` and `37_down.surrealql` to pre-seed default `google_workspace` credential records. Register in `async_migrate.py`.
-- [ ] **Task 1.2**: Update the publications settings page `frontend/src/app/(dashboard)/settings/publications/page.tsx` to display the Google Workspace configuration card (inputs for Client ID, Client Secret, Scopes, and Redirect URI).
+- [x] **Task 1.1**: Create SurrealQL migrations `37.surrealql` and `37_down.surrealql` to pre-seed default `google_workspace` credential records. Register in `async_migrate.py`.
+- [x] **Task 1.2**: Update the publications settings page `frontend/src/app/(dashboard)/settings/publications/page.tsx` to display the Google Workspace configuration card (inputs for Client ID, Client Secret, Scopes, and Redirect URI).
 
 ### Verification
-- [ ] Verify database migrations apply cleanly (`pytest tests/test_config_api.py`).
-- [ ] Verify credentials settings panel renders correctly in the browser.
+- [x] Verify database migrations apply cleanly (`pytest tests/test_config_api.py`).
+- [x] Verify credentials settings panel renders correctly in the browser.
 
 ## Phase 2: OAuth Callback & Token Exchange
 Implement the OAuth 2.0 flow callbacks, token exchanges, and key encryption.

@@ -4,7 +4,7 @@ This task plan details the sequential development and verification of the remain
 
 ---
 
-## Current Track: None
+## Current Track: google-workspace-exporter_20260609
 
 ---
 
@@ -18,7 +18,7 @@ This task plan details the sequential development and verification of the remain
   - Phase 2: SVG Chart Layout & Channel Filter (Tasks 2.1 - 2.3)
 
 ### 📂 Track 2: `google-workspace-exporter_20260609` (Styleguide Exporter & Google Workspace Connectors)
-- **Status:** not_started
+- **Status:** in_progress
 - **Overview**: Implement Google Drive/Docs/Sheets/Slides connectors, OAuth consent screens, refresh token encryption via Vault-paths, and custom style guides.
 - **Phases**:
   - Phase 1: Database Schema & OAuth Credentials Form (Tasks 1.1 - 1.2)
