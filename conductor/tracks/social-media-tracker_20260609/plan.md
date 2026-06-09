@@ -3,17 +3,17 @@
 **Track ID:** social-media-tracker_20260609
 **Spec:** spec.md
 **Created:** 2026-06-09
-**Status:** [ ] Not Started
+**Status:** [~] In Progress
 
 ## Phase 1: Frontend Type Mapping & API Client
 Add TypeScript types and API integrations for fetching historical reach metrics.
 
 ### Tasks
-- [ ] **Task 1.1**: Define `PublicationMetricsHistoryEntry` model in `frontend/src/lib/types/publications.ts`.
-- [ ] **Task 1.2**: Implement `getMetricsHistory` function in `frontend/src/lib/api/publications.ts` to call `/api/publications/metrics/history`.
+- [x] **Task 1.1**: Define `PublicationMetricsHistoryEntry` model in `frontend/src/lib/types/publications.ts`.
+- [x] **Task 1.2**: Implement `getMetricsHistory` function in `frontend/src/lib/api/publications.ts` to call `/api/publications/metrics/history`.
 
 ### Verification
-- [ ] Run `npx tsc --noEmit` in `frontend/` to verify type compilation.
+- [x] Run `npx tsc --noEmit` in `frontend/` to verify type compilation.
 
 ## Phase 2: SVG Chart Layout & Channel Filter
 Implement a highly aesthetic, custom SVG timeseries reach graph with filtering controls on the Publications dashboard page.

@@ -4,14 +4,14 @@ This task plan details the sequential development and verification of the remain
 
 ---
 
-## Current Track: None (Awaiting Phase 1 Approval)
+## Current Track: social-media-tracker_20260609
 
 ---
 
 ## 📋 Conductor Track Registry
 
 ### 📊 Track 1: `social-media-tracker_20260609` (Social Media Cron Tracker & Metrics Dashboard)
-- **Status:** not_started
+- **Status:** in_progress
 - **Overview**: Implement custom SVG reach line charts on the Publications dashboard page with dynamic channel filters.
 - **Phases**:
   - Phase 1: Frontend Type Mapping & API Client (Tasks 1.1 - 1.2)
