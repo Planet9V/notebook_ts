@@ -15,7 +15,7 @@ from open_notebook.exceptions import DatabaseOperationError, InvalidInputError
 
 class Notebook(ObjectModel):
     table_name: ClassVar[str] = "notebook"
-    nullable_fields: ClassVar[set[str]] = {"customer_id", "organization", "assigned_to", "close_date"}
+    nullable_fields: ClassVar[set[str]] = {"customer_id", "organization", "assigned_to", "close_date", "location_id"}
     name: str
     description: str
     archived: Optional[bool] = False
@@ -31,6 +31,7 @@ class Notebook(ObjectModel):
     assigned_to: Optional[str] = None
     close_date: Optional[str] = None
     pipeline_type: Optional[str] = "sales"
+    location_id: Optional[str] = None
 
     @field_validator("name")
     @classmethod

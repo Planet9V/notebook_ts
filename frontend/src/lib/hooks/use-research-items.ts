@@ -17,6 +17,8 @@ export function useResearchItems(
     project_id?: string
     stage?: string
     status?: string
+    location_id?: string
+    category?: string
   },
   options?: { enabled?: boolean }
 ) {

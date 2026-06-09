@@ -1,0 +1,8 @@
+-- Migration 47 Rollback: Remove fields and indexes
+REMOVE INDEX idx_ri_location ON TABLE research_item;
+REMOVE INDEX idx_ri_category ON TABLE research_item;
+REMOVE INDEX idx_nb_location ON TABLE notebook;
+
+REMOVE FIELD location_id ON TABLE research_item;
+REMOVE FIELD category ON TABLE research_item;
+REMOVE FIELD location_id ON TABLE notebook;

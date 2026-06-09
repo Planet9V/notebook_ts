@@ -50,6 +50,7 @@ dependencies = [
     "livekit-plugins-openai>=1.5.17",
     "livekit-plugins-silero>=1.5.17",
     "av>=17.1.0",
+    "docling>=2.0.0",
 ]
 
 [tool.setuptools]

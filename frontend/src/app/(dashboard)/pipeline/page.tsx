@@ -26,6 +26,7 @@ import {
 import { ViewToggle, type ViewMode } from '@/components/ui/view-toggle'
 import { DataTable } from '@/components/data-table'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 // Date fns
 import {
@@ -159,25 +160,56 @@ const PROJECT_STAGE_ICONS: Record<string, typeof Clock> = {
   closed: XCircle,
 }
 
-export default function PipelinePage() {
+export function PipelinePage({
+  embedded = false,
+  overrideTab,
+  locationId = null,
+  customerId = null,
+}: {
+  embedded?: boolean
+  overrideTab?: string
+  locationId?: string | null
+  customerId?: string | null
+} = {}) {
   return (
     <Suspense fallback={
       <div className="flex h-screen w-full items-center justify-center bg-background/50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>
-      <OperationsCenter />
+      <OperationsCenter
+        embedded={embedded}
+        overrideTab={overrideTab}
+        locationId={locationId}
+        customerId={customerId}
+      />
     </Suspense>
   )
 }
 
-function OperationsCenter() {
+export default PipelinePage
+
+function OperationsCenter({
+  embedded = false,
+  overrideTab,
+  locationId = null,
+  customerId = null,
+}: {
+  embedded?: boolean
+  overrideTab?: string
+  locationId?: string | null
+  customerId?: string | null
+} = {}) {
   const { t } = useTranslation()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const ShellWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (embedded) return <>{children}</>
+    return <AppShell>{children}</AppShell>
+  }
 
-  const rawTab = searchParams?.get('tab')
+  const rawTab = overrideTab || searchParams?.get('tab')
   const activeTab = (rawTab === 'sales' || rawTab === 'research' || rawTab === 'projects' || rawTab === 'publication')
     ? rawTab
     : 'sales'
@@ -186,8 +218,12 @@ function OperationsCenter() {
   const isSalesOrPublication = activeTab === 'sales' || activeTab === 'publication'
   
   const { data: notebooks, isLoading: isLoadingNotebooks, refetch: refetchNotebooks } = useNotebooks(
-    false,
-    { enabled: isSalesOrPublication }
+    {
+      archived: false,
+      location_id: locationId || undefined,
+      customer_id: customerId || undefined,
+    },
+    { enabled: isSalesOrPublication || (activeTab === 'projects' && !!locationId) }
   )
   const { data: scheduledPosts = [], refetch: refetchScheduledPosts } = usePublicationsCalendar(
     undefined,
@@ -197,14 +233,19 @@ function OperationsCenter() {
   const { data: users } = useUsers()
 
   const { data: researchItems = [], isLoading: isLoadingResearch, refetch: refetchResearch } = useResearchItems(
-    undefined,
+    {
+      customer_id: customerId || undefined,
+      location_id: locationId || undefined,
+    },
     { enabled: activeTab === 'research' }
   )
   const { data: customers = [] } = useCustomers({ enabled: activeTab === 'research' || activeTab === 'projects' })
   const { data: transformations = [] } = useTransformations({ enabled: activeTab === 'research' })
 
   const { data: projects = [], isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects(
-    undefined,
+    {
+      customer_id: customerId || undefined,
+    },
     { enabled: activeTab === 'projects' }
   )
 
@@ -398,8 +439,19 @@ function OperationsCenter() {
     if (projectPriorityFilter !== 'all') {
       result = result.filter((p) => p.priority === projectPriorityFilter)
     }
+    // Filter by customerId
+    if (customerId) {
+      result = result.filter((p) => p.customer_id === customerId)
+    }
+    // Filter by locationId by matching linked notebook
+    if (locationId && notebooks) {
+      const locationNotebookIds = new Set(
+        notebooks.filter((nb) => nb.location_id === locationId).map((nb) => nb.id)
+      )
+      result = result.filter((p) => p.notebook_id && locationNotebookIds.has(p.notebook_id))
+    }
     return result.filter((p) => p.status !== 'cancelled')
-  }, [projects, projectSearchQuery, projectPriorityFilter])
+  }, [projects, projectSearchQuery, projectPriorityFilter, customerId, locationId, notebooks])
 
   const projectStageGroups = useMemo(() => {
     const groups: Record<string, Project[]> = {}
@@ -418,12 +470,34 @@ function OperationsCenter() {
 
 
 
+  const headerGlowClass = useMemo(() => {
+    if (activeTab === 'research') {
+      const isRunning = (researchItems || []).some(i => i.stage === 'researching' || i.stage === 'analyzing')
+      return isRunning 
+        ? 'border-b-2 border-b-cyan-500 shadow-[0_1px_10px_rgba(6,182,212,0.15)] transition-all duration-500' 
+        : 'border-b border-sidebar-border/40 transition-all duration-500'
+    }
+    if (activeTab === 'projects') {
+      const hasCritical = (projects || []).some(p => p.priority === 'critical' && p.stage !== 'closed')
+      return hasCritical
+        ? 'border-b-2 border-b-rose-500 shadow-[0_1px_10px_rgba(244,63,94,0.15)] transition-all duration-500'
+        : 'border-b border-sidebar-border/40 transition-all duration-500'
+    }
+    if (activeTab === 'sales') {
+      const hasWon = (filteredNotebooks || []).some(nb => nb.stage === 'won')
+      return hasWon
+        ? 'border-b-2 border-b-emerald-500 shadow-[0_1px_10px_rgba(16,185,129,0.15)] transition-all duration-500'
+        : 'border-b border-sidebar-border/40 transition-all duration-500'
+    }
+    return 'border-b border-sidebar-border/40 transition-all duration-500'
+  }, [activeTab, researchItems, projects, filteredNotebooks])
+
   return (
-    <AppShell>
+    <ShellWrapper>
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
           {/* Unified Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-sidebar-border/40 pb-5">
+          <div className={cn("flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-5", headerGlowClass)}>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2">
                 {activeTab === 'sales' && 'Sales CRM'}
@@ -1109,7 +1183,7 @@ function OperationsCenter() {
         customers={customers}
         isLoading={createProjectMutation.isPending}
       />
-    </AppShell>
+    </ShellWrapper>
   )
 }
 

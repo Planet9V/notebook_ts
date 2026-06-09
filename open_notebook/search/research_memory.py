@@ -1,4 +1,5 @@
 import os
+from typing import Any, List, Optional
 
 import asyncpg
 from loguru import logger
@@ -21,9 +22,162 @@ class ResearchMemory:
                 "POSTGRES_DSN",
                 "postgresql://tetrel:tetrel_dev@localhost:5433/tetrel_research",
             )
-            cls._pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
-            logger.info("Research memory pool created")
+            pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
+            await cls._init_db(pool)
+            cls._pool = pool
+            logger.info("Research memory pool created and initialized")
         return cls._pool
+
+    @classmethod
+    async def _init_db(cls, pool: asyncpg.Pool):
+        """Initialize Postgres tables and indexes if they don't exist."""
+        async with pool.acquire() as conn:
+            # Create provenance table
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS provenance (
+                    id              SERIAL PRIMARY KEY,
+                    customer_id     VARCHAR(255) NOT NULL,
+                    location_id     VARCHAR(255),
+                    category        VARCHAR(255),
+                    file_name       VARCHAR(255) NOT NULL,
+                    file_hash       VARCHAR(64) UNIQUE NOT NULL,
+                    file_data       BYTEA NOT NULL,
+                    description     TEXT,
+                    apa_citation    TEXT,
+                    metadata        JSONB DEFAULT '{}',
+                    created_at      TIMESTAMPTZ DEFAULT NOW()
+                );
+                """
+            )
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_customer ON provenance(customer_id);")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_location ON provenance(location_id);")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_category ON provenance(category);")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_hash ON provenance(file_hash);")
+            logger.info("Postgres provenance table initialized")
+
+    @classmethod
+    async def store_provenance_record(
+        cls,
+        customer_id: str,
+        location_id: Optional[str],
+        category: Optional[str],
+        file_name: str,
+        file_hash: str,
+        file_data: bytes,
+        description: Optional[str] = None,
+        apa_citation: Optional[str] = None,
+        metadata: Optional[dict] = None,
+    ) -> int:
+        """Store a new provenance record and return its ID. If hash conflicts, returns the existing record's ID."""
+        import json
+        pool = await cls.get_pool()
+        # Check conflict first
+        existing_id = await pool.fetchval(
+            "SELECT id FROM provenance WHERE file_hash = $1", file_hash
+        )
+        if existing_id:
+            logger.info(f"Provenance record with hash {file_hash} already exists with ID {existing_id}")
+            return existing_id
+
+        # Insert new
+        val = await pool.fetchval(
+            """
+            INSERT INTO provenance 
+                (customer_id, location_id, category, file_name, file_hash, file_data, description, apa_citation, metadata, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+            RETURNING id
+            """,
+            customer_id,
+            location_id,
+            category,
+            file_name,
+            file_hash,
+            file_data,
+            description,
+            apa_citation,
+            json.dumps(metadata) if metadata else '{}',
+        )
+        logger.info(f"Stored provenance record for {file_name} with ID {val}")
+        return val
+
+    @classmethod
+    async def get_provenance_by_id(cls, provenance_id: int) -> Optional[dict]:
+        """Fetch provenance metadata by ID."""
+        pool = await cls.get_pool()
+        row = await pool.fetchrow(
+            """
+            SELECT id, customer_id, location_id, category, file_name, file_hash, description, apa_citation, metadata, created_at
+            FROM provenance
+            WHERE id = $1
+            """,
+            provenance_id,
+        )
+        if row:
+            res = dict(row)
+            # Parse metadata JSON
+            if isinstance(res.get("metadata"), str):
+                try:
+                    import json
+                    res["metadata"] = json.loads(res["metadata"])
+                except Exception:
+                    pass
+            return res
+        return None
+
+    @classmethod
+    async def get_provenance_data(cls, provenance_id: int) -> Optional[bytes]:
+        """Fetch the original file bytes by ID."""
+        pool = await cls.get_pool()
+        return await pool.fetchval(
+            "SELECT file_data FROM provenance WHERE id = $1",
+            provenance_id,
+        )
+
+    @classmethod
+    async def list_provenance(
+        cls,
+        customer_id: Optional[str] = None,
+        location_id: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> list[dict]:
+        """List provenance metadata with optional filters."""
+        pool = await cls.get_pool()
+        query = """
+            SELECT id, customer_id, location_id, category, file_name, file_hash, description, apa_citation, metadata, created_at
+            FROM provenance
+            WHERE 1=1
+        """
+        params = []
+        param_idx = 1
+
+        if customer_id:
+            query += f" AND customer_id = ${param_idx}"
+            params.append(customer_id)
+            param_idx += 1
+        if location_id:
+            query += f" AND location_id = ${param_idx}"
+            params.append(location_id)
+            param_idx += 1
+        if category:
+            query += f" AND category = ${param_idx}"
+            params.append(category)
+            param_idx += 1
+
+        query += " ORDER BY created_at DESC"
+        rows = await pool.fetch(query, *params)
+        
+        results = []
+        for r in rows:
+            res = dict(r)
+            if isinstance(res.get("metadata"), str):
+                try:
+                    import json
+                    res["metadata"] = json.loads(res["metadata"])
+                except Exception:
+                    pass
+            results.append(res)
+        return results
 
     @classmethod
     async def store_result(

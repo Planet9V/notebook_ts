@@ -63,6 +63,9 @@ class NotebookCreate(BaseModel):
     pipeline_type: Optional[str] = Field(
         "sales", description="Pipeline category workflow"
     )
+    location_id: Optional[str] = Field(
+        None, description="Optional Location/Facility ID this notebook belongs to"
+    )
 
 
 
@@ -104,6 +107,9 @@ class NotebookUpdate(BaseModel):
     pipeline_type: Optional[str] = Field(
         None, description="Pipeline category workflow"
     )
+    location_id: Optional[str] = Field(
+        None, description="Optional Location/Facility ID this notebook belongs to"
+    )
 
 
 
@@ -128,6 +134,7 @@ class NotebookResponse(BaseModel):
     assigned_to: Optional[str] = None
     close_date: Optional[str] = None
     pipeline_type: str = "sales"
+    location_id: Optional[str] = None
 
 
 # Asset models
@@ -1832,6 +1839,8 @@ class ResearchItemCreate(BaseModel):
     is_deep_research: Optional[bool] = Field(False, description="Whether to run deep research emulation workflow")
     deep_research_state: Optional[str] = Field("", description="Current deep research step/state")
     deep_research_events: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Deep research execution events log")
+    location_id: Optional[str] = Field(None, description="Linked location/facility ID")
+    category: Optional[str] = Field(None, description="Category of research")
 
 
 class ResearchItemUpdate(BaseModel):
@@ -1861,6 +1870,8 @@ class ResearchItemUpdate(BaseModel):
     is_deep_research: Optional[bool] = Field(None, description="Whether to run deep research emulation workflow")
     deep_research_state: Optional[str] = Field(None, description="Current deep research step/state")
     deep_research_events: Optional[List[Dict[str, Any]]] = Field(None, description="Deep research execution events log")
+    location_id: Optional[str] = Field(None, description="Linked location/facility ID")
+    category: Optional[str] = Field(None, description="Category of research")
 
 
 class ResearchItemResponse(BaseModel):
@@ -1895,6 +1906,8 @@ class ResearchItemResponse(BaseModel):
     is_deep_research: Optional[bool] = False
     deep_research_state: Optional[str] = ""
     deep_research_events: Optional[List[Dict[str, Any]]] = []
+    location_id: Optional[str] = None
+    category: Optional[str] = None
 
 
 class LinkRequest(BaseModel):

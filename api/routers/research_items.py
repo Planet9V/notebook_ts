@@ -60,6 +60,8 @@ def _build_ri_response(ri: ResearchItem) -> ResearchItemResponse:
         is_deep_research=ri.is_deep_research or False,
         deep_research_state=ri.deep_research_state or "",
         deep_research_events=ri.deep_research_events or [],
+        location_id=ri.location_id,
+        category=ri.category,
     )
 
 
@@ -69,10 +71,14 @@ async def list_research_items(
     project_id: Optional[str] = Query(None, description="Filter by project ID"),
     stage: Optional[str] = Query(None, description="Filter by stage"),
     status: Optional[str] = Query(None, description="Filter by status"),
+    location_id: Optional[str] = Query(None, description="Filter by location ID"),
+    category: Optional[str] = Query(None, description="Filter by category"),
 ):
     """List all research items with optional filtering."""
     try:
-        if customer_id:
+        if location_id:
+            items = await ResearchItem.get_by_location(location_id)
+        elif customer_id:
             items = await ResearchItem.get_by_customer(customer_id)
         elif project_id:
             items = await ResearchItem.get_by_project(project_id)
@@ -83,6 +89,8 @@ async def list_research_items(
 
         if status:
             items = [i for i in items if i.status == status]
+        if category:
+            items = [i for i in items if i.category == category]
 
         return [_build_ri_response(i) for i in items]
     except Exception as e:
@@ -94,6 +102,11 @@ async def list_research_items(
 async def create_research_item(data: ResearchItemCreate):
     """Create a new research item."""
     try:
+        # Cross-customer validation if both location_id and customer_id are provided
+        if data.location_id and data.customer_id:
+            from api.routers.notebooks import validate_location_customer
+            await validate_location_customer(data.location_id, data.customer_id)
+
         ri = ResearchItem(
             name=data.name,
             query=data.query,
@@ -114,6 +127,8 @@ async def create_research_item(data: ResearchItemCreate):
             is_deep_research=data.is_deep_research or False,
             deep_research_state=data.deep_research_state or "",
             deep_research_events=data.deep_research_events or [],
+            location_id=data.location_id,
+            category=data.category,
         )
 
         # Sync engine from engines[] if provided
@@ -243,6 +258,13 @@ async def update_research_item(item_id: str, data: ResearchItemUpdate):
     try:
         ri = await ResearchItem.get(item_id)
         update_data = data.model_dump(exclude_unset=True)
+
+        # Cross-customer validation if both location_id and customer_id are provided
+        target_location_id = update_data.get("location_id", ri.location_id)
+        target_customer_id = update_data.get("customer_id", ri.customer_id)
+        if target_location_id and target_customer_id:
+            from api.routers.notebooks import validate_location_customer
+            await validate_location_customer(target_location_id, target_customer_id)
 
         # Check if stage is transitioning to completed (e.g. from drag & drop)
         is_transitioning_to_completed = False

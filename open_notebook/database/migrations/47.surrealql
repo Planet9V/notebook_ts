@@ -1,0 +1,8 @@
+-- Migration 47: Add location_id and category fields for Project Delivery scoping
+DEFINE FIELD IF NOT EXISTS location_id ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS category ON TABLE research_item TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS location_id ON TABLE notebook TYPE option<string>;
+
+DEFINE INDEX IF NOT EXISTS idx_ri_location ON TABLE research_item FIELDS location_id;
+DEFINE INDEX IF NOT EXISTS idx_ri_category ON TABLE research_item FIELDS category;
+DEFINE INDEX IF NOT EXISTS idx_nb_location ON TABLE notebook FIELDS location_id;

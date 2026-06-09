@@ -6,10 +6,17 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 import { getApiErrorKey } from '@/lib/utils/error-handler'
 import { CreateNotebookRequest, UpdateNotebookRequest } from '@/lib/types/api'
 
-export function useNotebooks(archived?: boolean, options?: { enabled?: boolean }) {
+export function useNotebooks(
+  filtersOrArchived?: boolean | { archived?: boolean; location_id?: string; customer_id?: string },
+  options?: { enabled?: boolean }
+) {
+  const filters = typeof filtersOrArchived === 'object'
+    ? filtersOrArchived
+    : { archived: filtersOrArchived }
+
   return useQuery({
-    queryKey: [...QUERY_KEYS.notebooks, { archived }],
-    queryFn: () => notebooksApi.list({ archived, order_by: 'updated desc' }),
+    queryKey: [...QUERY_KEYS.notebooks, filters],
+    queryFn: () => notebooksApi.list({ ...filters, order_by: 'updated desc' }),
     ...options,
   })
 }

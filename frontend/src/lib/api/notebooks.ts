@@ -8,7 +8,7 @@ import {
 } from '@/lib/types/api'
 
 export const notebooksApi = {
-  list: async (params?: { archived?: boolean; order_by?: string }) => {
+  list: async (params?: { archived?: boolean; order_by?: string; location_id?: string; customer_id?: string }) => {
     const response = await apiClient.get<NotebookResponse[]>('/notebooks', { params })
     return response.data
   },

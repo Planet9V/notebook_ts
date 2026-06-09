@@ -13,6 +13,8 @@ export const researchItemApi = {
     project_id?: string
     stage?: string
     status?: string
+    location_id?: string
+    category?: string
   }): Promise<ResearchItem[]> => {
     const response = await apiClient.get<ResearchItem[]>('/research-items', { params })
     return response.data

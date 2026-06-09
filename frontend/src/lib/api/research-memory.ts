@@ -38,6 +38,19 @@ export interface ResearchMemorySearchRequest {
   source_type?: string
 }
 
+export interface ProvenanceResponse {
+  id: number
+  customer_id: string
+  location_id: string | null
+  category: string | null
+  file_name: string
+  file_hash: string
+  description: string | null
+  apa_citation: string | null
+  metadata: Record<string, any>
+  created_at: string
+}
+
 export const researchMemoryApi = {
   stats: async (): Promise<ResearchMemoryStats> => {
     const response = await apiClient.get<ResearchMemoryStats>('/research-memory/stats')
@@ -55,6 +68,20 @@ export const researchMemoryApi = {
     source_type?: string
   }): Promise<ResearchMemoryBrowseResponse> => {
     const response = await apiClient.get<ResearchMemoryBrowseResponse>('/research-memory/browse', { params })
+    return response.data
+  },
+
+  listProvenance: async (params?: {
+    customer_id?: string
+    location_id?: string
+    category?: string
+  }): Promise<ProvenanceResponse[]> => {
+    const response = await apiClient.get<ProvenanceResponse[]>('/research-memory/provenance', { params })
+    return response.data
+  },
+
+  uploadProvenance: async (formData: FormData): Promise<ProvenanceResponse> => {
+    const response = await apiClient.post<ProvenanceResponse>('/research-memory/provenance', formData)
     return response.data
   },
 }

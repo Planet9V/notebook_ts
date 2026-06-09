@@ -19,6 +19,8 @@ import apiClient from '@/lib/api/client'
 import { CSETNetworkCanvas } from '../../notebooks/components/CSETNetworkCanvas'
 import { ContactsPanel } from '@/components/contacts/ContactsPanel'
 import { LocationsPanel } from '@/components/locations/LocationsPanel'
+import { DeliveryTree } from '@/components/delivery/DeliveryTree'
+import { AttachDocumentModal } from '@/components/delivery/AttachDocumentModal'
 import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useBreadcrumbLabel } from '@/lib/hooks/use-breadcrumb-label'
 import { useLocations } from '@/lib/hooks/use-locations'
@@ -87,6 +89,11 @@ export default function CustomerDossierPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [activeTab, setActiveTab] = useState<'profile' | 'contacts' | 'locations' | 'projects' | 'threats' | 'compliance' | 'education' | 'activity' | 'notes'>('profile')
   const [highlightedContactId, setHighlightedContactId] = useState<string | null>(null)
+
+  // Document upload modal states
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false)
+  const [attachCustomerId, setAttachCustomerId] = useState('')
+  const [attachLocationId, setAttachLocationId] = useState<string | null>(null)
 
   const handleNavigateToContacts = (contactId?: string) => {
     if (contactId) {
@@ -684,11 +691,25 @@ export default function CustomerDossierPage() {
 
             {/* Locations Tab */}
             {activeTab === 'locations' && (
-              <div className="font-mono text-xs">
-                <LocationsPanel 
-                  customerId={customerId} 
-                  onNavigateToContacts={handleNavigateToContacts}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="md:col-span-1 min-h-[400px]">
+                  <DeliveryTree
+                    singleCustomerId={customerId}
+                    activeLocationId={selectedLocationId === 'none' ? null : selectedLocationId}
+                    onSelectLocation={(locId) => setSelectedLocationId(locId || 'none')}
+                    onAttachDocument={(custId, locId) => {
+                      setAttachCustomerId(custId)
+                      setAttachLocationId(locId)
+                      setIsAttachModalOpen(true)
+                    }}
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <LocationsPanel 
+                    customerId={customerId} 
+                    onNavigateToContacts={handleNavigateToContacts}
+                  />
+                </div>
               </div>
             )}
 
@@ -824,6 +845,19 @@ export default function CustomerDossierPage() {
 
         </div>
       </div>
+      {/* Attach Document Modal */}
+      {attachCustomerId && (
+        <AttachDocumentModal
+          open={isAttachModalOpen}
+          onClose={() => {
+            setIsAttachModalOpen(false)
+            setAttachCustomerId('')
+            setAttachLocationId(null)
+          }}
+          customerId={attachCustomerId}
+          locationId={attachLocationId}
+        />
+      )}
     </AppShell>
   )
 }

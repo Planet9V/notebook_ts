@@ -217,6 +217,18 @@ async def delete_location(location_id: str):
             {"rec_id": rec_id}
         )
 
+        # 2.3. Unlink notebooks linked to this location
+        await repo_query(
+            "UPDATE notebook SET location_id = NONE WHERE location_id = $rec_id;",
+            {"rec_id": rec_id}
+        )
+
+        # 2.4. Unlink research items linked to this location
+        await repo_query(
+            "UPDATE research_item SET location_id = NONE WHERE location_id = $rec_id;",
+            {"rec_id": rec_id}
+        )
+
         # 2.5. Delete entity_note edges to this location
         await repo_query(
             "DELETE entity_note WHERE out = $rec_id;",

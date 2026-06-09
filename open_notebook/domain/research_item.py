@@ -49,6 +49,8 @@ class ResearchItem(ObjectModel):
         "is_deep_research",
         "deep_research_state",
         "deep_research_events",
+        "location_id",
+        "category",
     }
 
     # Required fields
@@ -63,6 +65,8 @@ class ResearchItem(ObjectModel):
     project_id: Optional[str] = None  # FK to project
     notebook_id: Optional[str] = None  # FK to notebook workspace
     transformation_id: Optional[str] = None  # FK to GTM Research template
+    location_id: Optional[str] = None  # FK to location/facility
+    category: Optional[str] = None  # Category of research
 
     # Workflow fields
     stage: Optional[str] = "queued"  # queued|researching|analyzing|completed|archived
@@ -158,6 +162,16 @@ class ResearchItem(ObjectModel):
             "SELECT * FROM research_item WHERE project_id = $project_id "
             "ORDER BY created DESC",
             {"project_id": project_id},
+        )
+        return [cls(**r) for r in results]
+
+    @classmethod
+    async def get_by_location(cls, location_id: str) -> list["ResearchItem"]:
+        """Get all research items for a specific location/facility."""
+        results = await repo_query(
+            "SELECT * FROM research_item WHERE location_id = $location_id "
+            "ORDER BY created DESC",
+            {"location_id": location_id},
         )
         return [cls(**r) for r in results]
 
