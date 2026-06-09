@@ -3,7 +3,7 @@
 **Track ID:** social-media-tracker_20260609
 **Spec:** spec.md
 **Created:** 2026-06-09
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ## Phase 1: Frontend Type Mapping & API Client
 Add TypeScript types and API integrations for fetching historical reach metrics.
@@ -19,9 +19,9 @@ Add TypeScript types and API integrations for fetching historical reach metrics.
 Implement a highly aesthetic, custom SVG timeseries reach graph with filtering controls on the Publications dashboard page.
 
 ### Tasks
-- [ ] **Task 2.1**: Update `frontend/src/app/(dashboard)/publications/page.tsx` to fetch metrics history.
-- [ ] **Task 2.2**: Build a custom SVG line graph component supporting area gradients, grid lines, and interactive hover tooltips.
-- [ ] **Task 2.3**: Implement the dropdown channel filter component to toggle metrics by social network.
+- [x] **Task 2.1**: Update `frontend/src/app/(dashboard)/publications/page.tsx` to fetch metrics history.
+- [x] **Task 2.2**: Build a custom SVG line graph component supporting area gradients, grid lines, and interactive hover tooltips.
+- [x] **Task 2.3**: Implement the dropdown channel filter component to toggle metrics by social network.
 
 ### Verification
-- [ ] Verify that the Publications page loads in the browser, SVG plots lines correctly, and selecting different filters updates the SVG path nodes.
+- [x] Verify that the Publications page loads in the browser, SVG plots lines correctly, and selecting different filters updates the SVG path nodes.
