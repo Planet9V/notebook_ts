@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bento Operations Console - Tetrel Notebook</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              violet: '#8b5cf6',
+              amber: '#f59e0b',
+              blue: '#3b82f6',
+              slate: '#64748b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg-base: #020617;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --color-primary: #06b6d4;
+      --color-emerald: #10b981;
+      --color-rose: #f43f5e;
+      --color-violet: #8b5cf6;
+      --color-amber: #f59e0b;
+      --color-blue: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: #f1f5f9;
+      overflow-x: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.02) 1px, transparent 0),
+        linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 0),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 0);
+      background-size: 24px 24px, 48px 48px, 48px 48px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Glassmorphism card elements */
+    .cyber-glass-card {
+      background: rgba(9, 15, 32, 0.45);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-color);
+      box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.6),
+        inset 1px 1px 0 0 rgba(255, 255, 255, 0.03);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .cyber-glass-card:hover {
+      border-color: rgba(6, 182, 212, 0.2);
+      box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.7),
+        0 0 16px rgba(6, 182, 212, 0.05),
+        inset 1px 1px 0 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .pill-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pill-btn:hover, .pill-btn.active {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .pill-btn.active {
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Circular Progress Ring */
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    /* Persona Workspaces transitions */
+    .cyber-glass-card {
+      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                  filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-color 0.3s ease,
+                  box-shadow 0.3s ease;
+    }
+
+    .card-dimmed {
+      opacity: 0.25;
+      filter: blur(1px) grayscale(50%);
+      transform: scale(0.98);
+      pointer-events: none;
+    }
+
+    .card-highlighted {
+      border-color: rgba(6, 182, 212, 0.5) !important;
+      box-shadow: 
+        0 0 24px rgba(6, 182, 212, 0.15),
+        0 12px 40px 0 rgba(0, 0, 0, 0.8),
+        inset 1px 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+      transform: scale(1.01);
+    }
+
+    /* Status-derived Glowing Borders & Shadows */
+    .card-healthy-glow {
+      border-color: rgba(6, 182, 212, 0.25) !important;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.05), inset 1px 1px 0 0 rgba(255, 255, 255, 0.03) !important;
+    }
+    .card-healthy-glow:hover {
+      border-color: rgba(6, 182, 212, 0.5) !important;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.12), 0 12px 40px 0 rgba(0, 0, 0, 0.7), inset 1px 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .card-warning-glow {
+      border-color: rgba(239, 68, 68, 0.25) !important;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.05), inset 1px 1px 0 0 rgba(255, 255, 255, 0.03) !important;
+    }
+    .card-warning-glow:hover {
+      border-color: rgba(239, 68, 68, 0.5) !important;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.12), 0 12px 40px 0 rgba(0, 0, 0, 0.7), inset 1px 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Accessibility focus indicators */
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid rgba(6, 182, 212, 0.6) !important;
+      outline-offset: 2px !important;
+    }
+
+    .ai-spotlight-bar {
+      background: rgba(9, 15, 32, 0.45);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-color);
+      box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.6),
+        inset 1px 1px 0 0 rgba(255, 255, 255, 0.03);
+    }
+  </style>
+</head>
+<body class="select-none text-slate-200">
+
+  <div class="grid-bg"></div>
+
+  <!-- HEADER -->
+  <header class="relative z-50 flex items-center justify-between px-6 py-4 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+    <div class="flex items-center gap-3">
+      <div class="h-8 w-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <span class="font-display font-extrabold text-base tracking-wider uppercase bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">Operations Dashboard</span>
+        <span class="ml-2 px-1.5 py-0.5 rounded text-[8px] bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-widest font-mono">v4.0.0</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <!-- SRE Status Indictor -->
+      <div class="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-full border border-white/5 font-mono text-[10px] text-slate-400">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400" id="sre-pulse-outer"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" id="sre-pulse-inner"></span>
+        </span>
+        <span id="sre-loop-status">SRE Status: baseline monitoring</span>
+        <span class="text-slate-600">|</span>
+        <span id="sre-timer-label">next check: 30.0s</span>
+      </div>
+
+      <button class="pill-btn active" id="role-selector" onclick="cycleRole()">
+        <i data-lucide="user" class="w-3 h-3"></i> Mode: Administrator (Sales Consultant)
+      </button>
+      <button class="pill-btn" onclick="resetCamera()">
+        <i data-lucide="refresh-cw" class="w-3 h-3"></i> Recenter Map
+      </button>
+      <button class="pill-btn" onclick="triggerManualAudit()">
+        <i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i> Run CSET Audit
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 overflow-y-auto p-6 relative z-10">
+    <!-- AI OMNI-AGENT COMMAND BAR (Spotlight style) -->
+    <div class="max-w-[1600px] mx-auto mb-6 relative z-30">
+      <div class="ai-spotlight-bar rounded-2xl p-4 flex flex-col gap-3 border border-cyan-500/10">
+        <div class="flex items-center gap-3">
+          <div class="p-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/20 text-cyan-400">
+            <i data-lucide="sparkles" class="w-4 h-4 animate-pulse"></i>
+          </div>
+          <div class="flex-1 relative">
+            <input type="text" id="ai-command-input" placeholder="Ask AI Copilot (e.g., /sales, /research Rare Earth, /marketing, /sre)..." 
+                   class="w-full bg-slate-950/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40 font-mono">
+            <div class="absolute right-3 top-2.5 flex items-center gap-1 text-[9px] font-mono text-slate-500 bg-white/5 border border-white/5 px-1.5 py-0.5 rounded-md">
+              <span>Ctrl</span><span>+</span><span>K</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Suggestions row -->
+        <div class="flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-400">
+          <span class="text-slate-500">SUGGESTIONS:</span>
+          <button class="px-2 py-0.5 rounded bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/20 hover:text-cyan-400 transition" onclick="triggerCommand('/sales')" title="Focus Sales Workspace & run CSET compliance audit">/sales</button>
+          <button class="px-2 py-0.5 rounded bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/20 hover:text-cyan-400 transition" onclick="triggerCommand('/research Critical Materials')" title="Focus Researcher Workspace & execute pgvector search">/research</button>
+          <button class="px-2 py-0.5 rounded bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/20 hover:text-cyan-400 transition" onclick="triggerCommand('/marketing')" title="Focus Marketing Workspace & start WebRTC stream">/marketing</button>
+          <button class="px-2 py-0.5 rounded bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/20 hover:text-cyan-400 transition" onclick="triggerCommand('/sre')" title="Focus Project Delivery Workspace & heal database crash">/sre</button>
+        </div>
+
+        <!-- AI thoughts output stream -->
+        <div class="hidden bg-slate-950/70 border border-white/5 rounded-xl p-3 font-mono text-[10px] text-cyan-300 min-h-[40px] max-h-[80px] overflow-y-auto select-text" id="ai-command-output">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 4-Column Bento Grid Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[1600px] mx-auto">
+      
+      <!-- CARD 1: DEEP RESEARCH & SEARCH (Col-span-2) -->
+      <div id="card-research" class="cyber-glass-card card-healthy-glow rounded-2xl p-5 md:col-span-2 flex flex-col gap-4 min-h-[280px]">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-display font-bold text-xs uppercase tracking-wider text-slate-200">AI Search & Deep Research Console</h3>
+                <span class="px-1.5 py-0.5 rounded text-[7px] bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-extrabold uppercase tracking-widest font-mono shrink-0">Researcher</span>
+              </div>
+              <p class="text-[9px] text-slate-500 font-mono">Researcher Persona • Option 1 • Context-routed queries</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-slate-500/10 border border-slate-500/20 text-slate-400" id="research-status">Idle</span>
+        </div>
+
+        <div class="flex gap-2">
+          <input type="text" id="search-input" placeholder="Enter research query (e.g. Rare Earth sectors, CFATS Gaps)..." 
+                 class="flex-1 bg-slate-950/60 border border-white/5 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/40 font-sans">
+          <select id="search-engine" class="bg-slate-950/60 border border-white/5 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-500/40 font-mono">
+            <option value="all">Universal (All)</option>
+            <option value="compliance">Compliance (SEC/Legal)</option>
+            <option value="academic">Academic (PubMed/ArXiv)</option>
+            <option value="financial">Financial (FRED/SEC)</option>
+            <option value="biomedical">Biomedical (Clinical)</option>
+          </select>
+        </div>
+
+        <div class="flex gap-3 text-[10px] font-mono text-slate-400">
+          <span class="text-slate-500">DEPTH:</span>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" name="research-depth" value="quick" checked class="accent-cyan-400"> Quick
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" name="research-depth" value="standard" class="accent-cyan-400"> Standard
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" name="research-depth" value="deep" class="accent-cyan-400"> Deep
+          </label>
+        </div>
+
+        <div class="flex-1 bg-slate-950/70 border border-white/5 rounded-xl p-3 font-mono text-[10px] text-slate-500 overflow-y-auto flex flex-col gap-1 select-text h-[100px]" id="research-agent-thoughts">
+          <div class="text-slate-600">&gt;_ Agent thought streams will render here...</div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="w-full bg-slate-900 rounded-full h-1.5 mr-4 max-w-[200px] hidden" id="research-progress-bar-container">
+            <div class="bg-cyan-500 h-1.5 rounded-full transition-all duration-300" id="research-progress-bar" style="width: 0%"></div>
+          </div>
+          <button class="pill-btn hover:border-cyan-500/40 hover:text-cyan-400 ml-auto" id="btn-run-research" onclick="triggerDeepResearch()">
+            <i data-lucide="play" class="w-3 h-3 text-cyan-400"></i> Run Deep Research
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 2: REAL-TIME VOICE ASSISTANT (Col-span-1) -->
+      <div id="card-voice" class="cyber-glass-card card-warning-glow rounded-2xl p-5 flex flex-col gap-4 min-h-[280px]">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
+              <i data-lucide="mic" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-display font-bold text-xs uppercase tracking-wider text-slate-200">WebRTC Voice AI & Podcast Creator</h3>
+                <span class="px-1.5 py-0.5 rounded text-[7px] bg-violet-500/10 border border-violet-500/20 text-violet-400 font-extrabold uppercase tracking-widest font-mono shrink-0">Marketing</span>
+              </div>
+              <p class="text-[9px] text-slate-500 font-mono">Marketing & Social Media Persona • Option 3</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-rose-500/15 border border-rose-500/20 text-rose-400" id="voice-status">Offline</span>
+        </div>
+
+        <!-- Pulse Avatar Visualizer -->
+        <div class="flex flex-col items-center justify-center py-2 relative flex-1">
+          <div class="h-16 w-16 rounded-full border border-violet-500/30 flex items-center justify-center bg-violet-950/20 shadow-[0_0_15px_rgba(139,92,246,0.1)] relative" id="voice-avatar-ring">
+            <span class="absolute inset-0 rounded-full border border-violet-400/40 animate-ping opacity-0" id="voice-avatar-ping"></span>
+            <i data-lucide="mic" class="w-6 h-6 text-violet-400" id="voice-avatar-icon"></i>
+          </div>
+          <span class="text-[10px] text-slate-500 font-mono mt-3" id="voice-latency">Latency: -- ms</span>
+        </div>
+
+        <!-- Mini Transcript stream -->
+        <div class="bg-slate-950/70 border border-white/5 rounded-xl p-2.5 font-mono text-[9px] text-slate-500 h-[60px] overflow-y-auto" id="voice-transcript">
+          <div class="text-slate-700 italic">No active transcription...</div>
+        </div>
+
+        <div class="flex justify-between items-center gap-2">
+          <button class="pill-btn flex-1 justify-center py-1.5 hover:border-violet-500/40 hover:text-violet-400" id="btn-toggle-voice" onclick="toggleVoiceConnection()">
+            <i data-lucide="power" class="w-3.5 h-3.5"></i> Connect WebRTC
+          </button>
+          <button class="pill-btn hover:border-rose-500/40 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed" id="btn-mute-voice" disabled onclick="toggleVoiceMute()">
+            <i data-lucide="mic-off" class="w-3.5 h-3.5" id="voice-mute-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 3: pgvector SEMANTIC CACHE (Col-span-1) -->
+      <div id="card-cache" class="cyber-glass-card card-healthy-glow rounded-2xl p-5 flex flex-col gap-4 min-h-[280px]">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <i data-lucide="database" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-display font-bold text-xs uppercase tracking-wider text-slate-200">ResearchMemory Stats</h3>
+                <span class="px-1.5 py-0.5 rounded text-[7px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold uppercase tracking-widest font-mono shrink-0">Researcher</span>
+              </div>
+              <p class="text-[9px] text-slate-500 font-mono">Researcher Persona • Option 2 pgvector cache</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 font-mono">Active</span>
+        </div>
+
+        <!-- Metrics display -->
+        <div class="flex-1 flex flex-col justify-around py-1 font-mono">
+          <!-- Cache Hit Rate Gauge -->
+          <div class="flex items-center justify-between border-b border-white/5 py-2">
+            <span class="text-[10px] text-slate-400">Cache Hit Rate</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-emerald-400" id="stat-hit-rate">87.5%</span>
+              <div class="w-16 bg-slate-900 rounded-full h-1.5">
+                <div class="bg-emerald-500 h-1.5 rounded-full" id="stat-hit-rate-bar" style="width: 87.5%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between border-b border-white/5 py-2">
+            <span class="text-[10px] text-slate-400">Total Vectors Indexed</span>
+            <span class="text-xs font-bold text-white" id="stat-vector-count">1,492</span>
+          </div>
+
+          <div class="flex items-center justify-between border-b border-white/5 py-2">
+            <span class="text-[10px] text-slate-400">Saved API Costs</span>
+            <span class="text-xs font-bold text-emerald-400" id="stat-saved-costs">$184.25</span>
+          </div>
+
+          <div class="flex items-center justify-between py-2">
+            <span class="text-[10px] text-slate-400">Cache Pool Size</span>
+            <span class="text-xs font-bold text-white" id="stat-pool-size">34.2 MB</span>
+          </div>
+        </div>
+
+        <button class="pill-btn hover:border-rose-500/30 hover:text-rose-400 justify-center w-full py-1.5" onclick="clearSemanticCache()">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear Cache
+        </button>
+      </div>
+
+      <!-- CARD 4: SALES CRM & CONTRACT GATES (Col-span-2) -->
+      <div id="card-sales" class="cyber-glass-card card-warning-glow rounded-2xl p-5 md:col-span-2 flex flex-col gap-4 min-h-[260px]">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-display font-bold text-xs uppercase tracking-wider text-slate-200">Sales CRM & Contract Gates</h3>
+                <span class="px-1.5 py-0.5 rounded text-[7px] bg-rose-500/10 border border-rose-500/20 text-rose-400 font-extrabold uppercase tracking-widest font-mono shrink-0">Sales</span>
+              </div>
+              <p class="text-[9px] text-slate-500 font-mono">Sales Persona • Security gates required for SOW sign-off</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-rose-500/15 border border-rose-500/20 text-rose-400" id="compliance-badge">Warning</span>
+            <span class="text-xs font-bold font-mono text-rose-400" id="compliance-percentage">66%</span>
+          </div>
+        </div>
+
+        <!-- Multi-pane Split: Score Ring + Interactive Checklists -->
+        <div class="flex flex-col sm:flex-direction-row sm:flex-row gap-5 flex-1 items-center">
+          
+          <!-- Score Ring -->
+          <div class="relative flex items-center justify-center shrink-0 w-24 h-24">
+            <svg class="progress-ring" width="96" height="96">
+              <circle class="text-slate-800" stroke-width="6" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"/>
+              <circle class="progress-ring__circle text-rose-500" id="compliance-svg-circle" stroke-width="6" stroke-dasharray="251.2" stroke-dashoffset="85.4" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"/>
+            </svg>
+            <span class="absolute font-display font-extrabold text-sm text-white" id="compliance-center-label">66%</span>
+          </div>
+
+          <!-- Interactive Checklist -->
+          <div class="flex-1 w-full flex flex-col gap-2 font-mono text-[10px]" id="compliance-checklist-container">
+            <label class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 select-none">
+              <input type="checkbox" id="chk-boundary" checked class="accent-cyan-400" onchange="toggleChecklist('boundary', this.checked)">
+              <span class="text-slate-300">Gate 1: Boundary Protection (CISA Sect 12.1)</span>
+              <span class="ml-auto text-[8px] font-bold text-emerald-400 uppercase tracking-widest">Healthy</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 select-none">
+              <input type="checkbox" id="chk-auth" checked class="accent-cyan-400" onchange="toggleChecklist('auth', this.checked)">
+              <span class="text-slate-300">Gate 2: Identity & Authentication Rules</span>
+              <span class="ml-auto text-[8px] font-bold text-emerald-400 uppercase tracking-widest">Healthy</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 select-none">
+              <input type="checkbox" id="chk-physical" class="accent-cyan-400" onchange="toggleChecklist('physical', this.checked)">
+              <span class="text-slate-300">Gate 3: Physical Security Intrusion Controls</span>
+              <span class="ml-auto text-[8px] font-bold text-rose-400 uppercase tracking-widest" id="chk-physical-badge">Missing</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-1">
+          <button class="pill-btn hover:border-cyan-500/40 hover:text-cyan-400 py-1.5" onclick="triggerAutoAudit()">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-cyan-400"></i> Auto Audit
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 5: DELIVERY TELEMETRY & CONTAINER HEALTH (Col-span-2) -->
+      <div id="card-telemetry" class="cyber-glass-card card-healthy-glow rounded-2xl p-5 md:col-span-2 flex flex-col gap-4 min-h-[260px]">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-display font-bold text-xs uppercase tracking-wider text-slate-200">Delivery Telemetry & Container Health</h3>
+                <span class="px-1.5 py-0.5 rounded text-[7px] bg-blue-500/10 border border-blue-500/20 text-blue-400 font-extrabold uppercase tracking-widest font-mono shrink-0">Delivery</span>
+              </div>
+              <p class="text-[9px] text-slate-500 font-mono">Project Delivery Team Persona • Container stats</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/20 text-emerald-400" id="containers-overall-badge">All Healthy</span>
+        </div>
+
+        <!-- Telemetry lists -->
+        <div class="flex-1 flex flex-col justify-between font-mono text-[9px] gap-2">
+          <!-- Postgres -->
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
+            <div class="flex items-center gap-2 min-w-[100px]">
+              <span class="relative flex h-1.5 w-1.5">
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" id="container-postgres-indicator"></span>
+              </span>
+              <span class="text-slate-300 font-bold">postgres (pgvector)</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span>CPU: <b id="container-postgres-cpu">4.2%</b></span>
+              <span>MEM: <b id="container-postgres-mem">148MB</b></span>
+            </div>
+          </div>
+          <!-- SurrealDB -->
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
+            <div class="flex items-center gap-2 min-w-[100px]">
+              <span class="relative flex h-1.5 w-1.5">
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" id="container-surrealdb-indicator"></span>
+              </span>
+              <span class="text-slate-300 font-bold">surrealdb (graph)</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span>CPU: <b id="container-surrealdb-cpu">1.8%</b></span>
+              <span>MEM: <b id="container-surrealdb-mem">64MB</b></span>
+            </div>
+          </div>
+          <!-- LiveKit -->
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
+            <div class="flex items-center gap-2 min-w-[100px]">
+              <span class="relative flex h-1.5 w-1.5">
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" id="container-livekit-indicator"></span>
+              </span>
+              <span class="text-slate-300 font-bold">livekit-sfu</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span>CPU: <b id="container-livekit-cpu">0.5%</b></span>
+              <span>MEM: <b id="container-livekit-mem">42MB</b></span>
+            </div>
+          </div>
+          <!-- Kokoro -->
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
+            <div class="flex items-center gap-2 min-w-[100px]">
+              <span class="relative flex h-1.5 w-1.5">
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" id="container-kokoro-indicator"></span>
+              </span>
+              <span class="text-slate-300 font-bold">kokoro-tts</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span>CPU: <b id="container-kokoro-cpu">0.0%</b></span>
+              <span>MEM: <b id="container-kokoro-mem">850MB</b></span>
+            </div>
+          </div>
+          <!-- Whisper -->
+          <div class="flex items-center justify-between pb-1">
+            <div class="flex items-center gap-2 min-w-[100px]">
+              <span class="relative flex h-1.5 w-1.5">
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" id="container-whisper-indicator"></span>
+              </span>
+              <span class="text-slate-300 font-bold">whisper-stt</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span>CPU: <b id="container-whisper-cpu">0.0%</b></span>
+              <span>MEM: <b id="container-whisper-mem">1.2GB</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2.5 justify-end">
+          <button class="pill-btn hover:border-rose-500/40 hover:text-rose-400 py-1.5" onclick="injectDatabaseCrash()">
+            <i data-lucide="bomb" class="w-3.5 h-3.5 text-rose-500"></i> Simulate DB Crash
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 6: OPERATIONS TERMINAL (Col-span-4) -->
+      <div id="card-terminal" class="cyber-glass-card card-healthy-glow rounded-2xl p-5 md:col-span-4 flex flex-col gap-3 h-64">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2.5 gap-2">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+              <i data-lucide="terminal" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-display font-bold text-xs uppercase tracking-wider text-slate-200">Operations & Execution Log Streamer</h3>
+                <span class="px-1.5 py-0.5 rounded text-[7px] bg-slate-500/10 border border-slate-500/20 text-slate-400 font-extrabold uppercase tracking-widest font-mono shrink-0">Observability</span>
+              </div>
+              <p class="text-[9px] text-slate-500 font-mono">Project Delivery Team Persona • Database-driven observability • Thread-safe Loguru sink</p>
+            </div>
+          </div>
+
+          <!-- Log level Tabs -->
+          <div class="flex items-center gap-2 font-mono text-[9px]">
+            <button class="px-2 py-1 rounded bg-white/10 text-white border border-white/10 log-tab" data-level="ALL" onclick="logQueue.filter('ALL')">ALL</button>
+            <button class="px-2 py-1 rounded text-slate-400 hover:text-white log-tab" data-level="INFO" onclick="logQueue.filter('INFO')">INFO</button>
+            <button class="px-2 py-1 rounded text-slate-400 hover:text-white log-tab" data-level="SUCCESS" onclick="logQueue.filter('SUCCESS')">SUCCESS</button>
+            <button class="px-2 py-1 rounded text-slate-400 hover:text-white log-tab" data-level="WARN" onclick="logQueue.filter('WARN')">WARN</button>
+            <button class="px-2 py-1 rounded text-slate-400 hover:text-white log-tab" data-level="ERROR" onclick="logQueue.filter('ERROR')">ERROR</button>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 items-center">
+          <input type="text" id="logSearch" placeholder="Filter logs..." 
+                 class="w-full sm:w-64 bg-slate-950/60 border border-white/5 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/40 font-mono">
+          <label class="flex items-center gap-2 font-mono text-[9px] text-slate-400 select-none cursor-pointer">
+            <input type="checkbox" id="logAutoScroll" checked class="accent-cyan-400"> Auto-scroll
+          </label>
+          <button class="pill-btn py-1 ml-auto" onclick="logQueue.clear()">
+            <i data-lucide="trash-2" class="w-3 h-3"></i> Clear Logs
+          </button>
+        </div>
+
+        <!-- Raw Log Console Container -->
+        <div class="flex-1 bg-slate-950/70 border border-white/5 rounded-xl p-3 font-mono text-xs overflow-y-auto flex flex-col gap-1 select-text" id="logStream">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Default checklist
+    const checklist = [
+      { id: 'boundary', text: 'Boundary Protection (CISA Sect 12.1)', done: true },
+      { id: 'auth', text: 'Identity & Authentication Rules', done: true },
+      { id: 'physical', text: 'Physical Security Intrusion Controls', done: false }
+    ];
+
+    // Default containers
+    const containers = {
+      postgres: { health: 'healthy', cpu: '4.2%', mem: '148MB' },
+      surrealdb: { health: 'healthy', cpu: '1.8%', mem: '64MB' },
+      livekit: { health: 'healthy', cpu: '0.5%', mem: '42MB' },
+      kokoro: { health: 'healthy', cpu: '0.0%', mem: '850MB' },
+      whisper: { health: 'healthy', cpu: '0.0%', mem: '1.2GB' }
+    };
+
+    let researchActive = false;
+    let voiceConnected = false;
+    let voiceMuted = false;
+    let complianceScore = 66;
+    let cacheHitRate = 87.5;
+    let cacheSize = 34.2;
+    let savedCost = 184.25;
+    let vectorCount = 1492;
+    let userRole = 'Administrator';
+    let voiceInterval = null;
+
+    // Expose variables to window for play-wright tests
+    window.researchActive = researchActive;
+    window.voiceConnected = voiceConnected;
+    window.voiceMuted = voiceMuted;
+    window.complianceScore = complianceScore;
+    window.cacheHitRate = cacheHitRate;
+    window.savedCost = savedCost;
+    window.vectorCount = vectorCount;
+    window.checklist = checklist;
+    window.containers = containers;
+    window.physicsPaused = true; // Compatibility stub
+
+    // Logger implementation
+    const logQueue = {
+      logs: [],
+      currentFilter: 'ALL',
+      searchQuery: '',
+      autoScroll: true,
+      
+      add: function(tag, message, severity = 'info') {
+        const log = {
+          timestamp: new Date().toLocaleTimeString(),
+          tag,
+          message,
+          severity
+        };
+        this.logs.push(log);
+        if (this.logs.length > 150) this.logs.shift();
+        this.render();
+      },
+
+      filter: function(level) {
+        this.currentFilter = level;
+        const tabs = document.querySelectorAll('.log-tab');
+        tabs.forEach(tab => {
+          if (tab.dataset.level === level) {
+            tab.classList.add('bg-white/10', 'text-white', 'border-white/10');
+            tab.classList.remove('text-slate-400');
+          } else {
+            tab.classList.remove('bg-white/10', 'text-white', 'border-white/10');
+            tab.classList.add('text-slate-400');
+          }
+        });
+        this.render();
+      },
+
+      clear: function() {
+        this.logs = [];
+        this.render();
+      },
+
+      render: function() {
+        const stream = document.getElementById('logStream');
+        if (!stream) return;
+
+        let html = '';
+        const query = this.searchQuery;
+        const filtered = this.logs.filter(log => {
+          const matchesLevel = this.currentFilter === 'ALL' || log.severity.toUpperCase() === this.currentFilter;
+          const matchesSearch = log.message.toLowerCase().includes(query) || log.tag.toLowerCase().includes(query);
+          return matchesLevel && matchesSearch;
+        });
+
+        if (filtered.length === 0) {
+          html = `<div class="text-slate-600 italic">No operations logged...</div>`;
+        } else {
+          filtered.forEach(log => {
+            let colorClass = 'text-slate-300';
+            let tagBg = 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
+            
+            if (log.severity === 'info') {
+              colorClass = 'text-cyan-300';
+              tagBg = 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+            } else if (log.severity === 'success') {
+              colorClass = 'text-emerald-300';
+              tagBg = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            } else if (log.severity === 'error') {
+              colorClass = 'text-rose-300';
+              tagBg = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+            } else if (log.severity === 'warning') {
+              colorClass = 'text-amber-300';
+              tagBg = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+            }
+            
+            html += `
+              <div class="flex items-start gap-3 py-0.5 border-b border-white/5">
+                <span class="text-slate-500 shrink-0">[${log.timestamp}]</span>
+                <span class="px-1 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 ${tagBg}">${log.tag}</span>
+                <span class="${colorClass}">${log.message}</span>
+              </div>
+            `;
+          });
+        }
+
+        stream.innerHTML = html;
+        if (this.autoScroll) {
+          stream.scrollTop = stream.scrollHeight;
+        }
+      }
+    };
+    window.logQueue = logQueue;
+
+    // Initialize listeners
+    document.getElementById('logSearch').addEventListener('input', (e) => {
+      logQueue.searchQuery = e.target.value.toLowerCase();
+      logQueue.render();
+    });
+    document.getElementById('logAutoScroll').addEventListener('change', (e) => {
+      logQueue.autoScroll = e.target.checked;
+    });
+
+    // Populate baseline logs
+    logQueue.add('RESEARCH_MEMORY', 'pgvector postgres connection pool ready.', 'info');
+    logQueue.add('SUPERVISORD', 'All 6 Docker container blocks running healthy.', 'success');
+
+    // UI Updates
+    const rolesList = [
+      { mode: 'Administrator', name: 'Sales Consultant' },
+      { mode: 'Operator', name: 'Researcher' },
+      { mode: 'Administrator', name: 'Project Delivery Lead' },
+      { mode: 'Operator', name: 'Marketing Manager' }
+    ];
+    let currentRoleIdx = 0;
+
+    function cycleRole() {
+      const btn = document.getElementById('role-selector');
+      currentRoleIdx = (currentRoleIdx + 1) % rolesList.length;
+      const role = rolesList[currentRoleIdx];
+      userRole = role.mode;
+      btn.innerHTML = `<i data-lucide="user" class="w-3 h-3"></i> Mode: ${role.mode} (${role.name})`;
+      lucide.createIcons();
+      logQueue.add('USER_MGMT', `User switched role to ${role.mode} (${role.name})`, 'info');
+    }
+
+    function resetCamera() {
+      // Stub
+      logQueue.add('CAMERA', 'Recenter camera action triggered.', 'info');
+    }
+
+    // Dynamic Compliance Score Update
+    function updateComplianceUI() {
+      const pctLabel = document.getElementById('compliance-percentage');
+      const centerLabel = document.getElementById('compliance-center-label');
+      const badge = document.getElementById('compliance-badge');
+      const circle = document.getElementById('compliance-svg-circle');
+      const card = document.getElementById('card-sales');
+
+      pctLabel.innerText = `${complianceScore}%`;
+      centerLabel.innerText = `${complianceScore}%`;
+
+      // Update circle dashoffset (radius = 40, circumference = 251.2)
+      const circumference = 2 * Math.PI * 40;
+      const offset = circumference - (complianceScore / 100) * circumference;
+      circle.style.strokeDashoffset = offset;
+
+      if (complianceScore >= 95) {
+        badge.innerText = 'Healthy';
+        badge.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/20 text-emerald-400';
+        circle.className.baseVal = 'progress-ring__circle text-emerald-500';
+        if (card) {
+          card.classList.remove('card-warning-glow');
+          card.classList.add('card-healthy-glow');
+        }
+      } else if (complianceScore >= 70) {
+        badge.innerText = 'Compliant';
+        badge.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-cyan-500/15 border border-cyan-500/20 text-cyan-400';
+        circle.className.baseVal = 'progress-ring__circle text-cyan-500';
+        if (card) {
+          card.classList.remove('card-warning-glow');
+          card.classList.add('card-healthy-glow');
+        }
+      } else {
+        badge.innerText = 'Warning';
+        badge.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-rose-500/15 border border-rose-500/20 text-rose-400';
+        circle.className.baseVal = 'progress-ring__circle text-rose-500';
+        if (card) {
+          card.classList.remove('card-healthy-glow');
+          card.classList.add('card-warning-glow');
+        }
+      }
+      window.complianceScore = complianceScore;
+    }
+
+    function toggleChecklist(id, checked) {
+      const idx = checklist.findIndex(item => item.id === id);
+      if (idx !== -1) {
+        checklist[idx].done = checked;
+      }
+      
+      // Update badge labels
+      if (id === 'physical') {
+        const badge = document.getElementById('chk-physical-badge');
+        if (checked) {
+          badge.innerText = 'Healthy';
+          badge.className = 'ml-auto text-[8px] font-bold text-emerald-400 uppercase tracking-widest';
+        } else {
+          badge.innerText = 'Missing';
+          badge.className = 'ml-auto text-[8px] font-bold text-rose-400 uppercase tracking-widest';
+        }
+      }
+
+      // Calculate score based on checklist
+      const checkedCount = checklist.filter(i => i.done).length;
+      if (checkedCount === 3) {
+        complianceScore = 100;
+      } else if (checkedCount === 2) {
+        complianceScore = 66;
+      } else if (checkedCount === 1) {
+        complianceScore = 33;
+      } else {
+        complianceScore = 0;
+      }
+      
+      updateComplianceUI();
+      logQueue.add('CSET_AUDIT', `Checklist option '${id}' updated to ${checked ? 'done' : 'undone'}. Compliance: ${complianceScore}%`, 'info');
+    }
+
+    function triggerManualAudit() {
+      logQueue.add('AUDIT', 'Triggering manual compliance review...', 'info');
+      setTimeout(() => {
+        logQueue.add('AUDIT', 'CSET scan of local network assets completed.', 'success');
+      }, 500);
+    }
+
+    function triggerAutoAudit() {
+      logQueue.add('AUDIT', 'Running automated self-audit...', 'info');
+      
+      const boundary = document.getElementById('chk-boundary');
+      const auth = document.getElementById('chk-auth');
+      const physical = document.getElementById('chk-physical');
+
+      setTimeout(() => {
+        boundary.checked = true;
+        toggleChecklist('boundary', true);
+        logQueue.add('AUDIT_STEP', 'Validated perimeter gateway firewall (CFATS 12.1) [OK]', 'success');
+      }, 300);
+
+      setTimeout(() => {
+        auth.checked = true;
+        toggleChecklist('auth', true);
+        logQueue.add('AUDIT_STEP', 'Verified active SSL certificates and key rotation [OK]', 'success');
+      }, 600);
+
+      setTimeout(() => {
+        physical.checked = true;
+        toggleChecklist('physical', true);
+        logQueue.add('AUDIT_STEP', 'Validated server rack lock sensor integration [OK]', 'success');
+        logQueue.add('AUDIT_COMPLETE', 'Full auto-audit complete. Posture: 100% HEALTHY', 'success');
+      }, 900);
+    }
+
+    // Options 1 Simulator: Deep Research
+    let researchTimer = null;
+    function triggerDeepResearch() {
+      if (researchActive) return;
+
+      const query = document.getElementById('search-input').value.trim() || 'Rare Earth metals refinery supply chains';
+      document.getElementById('search-input').value = query;
+
+      researchActive = true;
+      window.researchActive = true;
+      document.getElementById('research-status').innerText = 'Active';
+      document.getElementById('research-status').className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-cyan-500/15 border border-cyan-500/20 text-cyan-400';
+      document.getElementById('btn-run-research').disabled = true;
+      document.getElementById('btn-run-research').className = 'pill-btn opacity-40 cursor-not-allowed ml-auto';
+      
+      const thoughts = document.getElementById('research-agent-thoughts');
+      const progContainer = document.getElementById('research-progress-bar-container');
+      const progBar = document.getElementById('research-progress-bar');
+      
+      progContainer.classList.remove('hidden');
+      progBar.style.width = '0%';
+      thoughts.innerHTML = `<div class="text-cyan-400 font-bold">&gt; Initializing deep research pipeline for: "${query}"</div>`;
+
+      const steps = [
+        { pct: 15, text: 'Querying Valyu context search router (engine: academic)...', type: 'info' },
+        { pct: 30, text: 'Valyu cache miss on query. Fetching external ArXiv and PubMed sources...', type: 'info' },
+        { pct: 45, text: 'Processing 12 research papers. Extracted 48 snippets...', type: 'success' },
+        { pct: 60, text: 'Indexing vectors into Postgres pgvector. Generating 1536-dimensional embeddings...', type: 'info' },
+        { pct: 75, text: 'Calculating Reciprocal Rank Fusion (RRF) scores to merge FTS and semantic rankings...', type: 'info' },
+        { pct: 90, text: 'Generating summary report using OpenRouter model (model: deepseek-v3)...', type: 'success' },
+        { pct: 100, text: 'Deep research finished. Report compiled successfully. Cached 12 documents.', type: 'complete' }
+      ];
+
+      let currentStep = 0;
+      
+      researchTimer = setInterval(() => {
+        if (currentStep >= steps.length) {
+          clearInterval(researchTimer);
+          researchActive = false;
+          window.researchActive = false;
+          
+          document.getElementById('research-status').innerText = 'Idle';
+          document.getElementById('research-status').className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-slate-500/10 border border-slate-500/20 text-slate-400';
+          
+          document.getElementById('btn-run-research').disabled = false;
+          document.getElementById('btn-run-research').className = 'pill-btn hover:border-cyan-500/40 hover:text-cyan-400 ml-auto';
+          
+          progContainer.classList.add('hidden');
+          
+          // Increment pgvector cache metrics
+          vectorCount += 12;
+          savedCost += 1.80;
+          cacheHitRate = 88.2;
+          cacheSize += 0.4;
+          
+          document.getElementById('stat-vector-count').innerText = vectorCount.toLocaleString();
+          document.getElementById('stat-saved-costs').innerText = `$${savedCost.toFixed(2)}`;
+          document.getElementById('stat-hit-rate').innerText = `${cacheHitRate}%`;
+          document.getElementById('stat-hit-rate-bar').style.width = `${cacheHitRate}%`;
+          document.getElementById('stat-pool-size').innerText = `${cacheSize.toFixed(1)} MB`;
+
+          window.vectorCount = vectorCount;
+          window.savedCost = savedCost;
+          window.cacheHitRate = cacheHitRate;
+
+          logQueue.add('DEEP_RESEARCH', `Research compiled for "${query}". 12 docs added to pgvector cache.`, 'success');
+          return;
+        }
+
+        const step = steps[currentStep];
+        progBar.style.width = `${step.pct}%`;
+        
+        let colorClass = 'text-slate-400';
+        if (step.type === 'success') colorClass = 'text-emerald-400';
+        if (step.type === 'complete') colorClass = 'text-cyan-400 font-bold';
+        
+        thoughts.innerHTML += `<div class="${colorClass}">&gt; [${step.pct}%] ${step.text}</div>`;
+        thoughts.scrollTop = thoughts.scrollHeight;
+        
+        logQueue.add('DEEP_RESEARCH_WORKER', step.text, step.type === 'complete' ? 'success' : 'info');
+        currentStep++;
+      }, 1200);
+    }
+
+    // Option 3 Simulator: WebRTC Voice AI
+    function toggleVoiceConnection() {
+      const status = document.getElementById('voice-status');
+      const btn = document.getElementById('btn-toggle-voice');
+      const muteBtn = document.getElementById('btn-mute-voice');
+      const avatarPing = document.getElementById('voice-avatar-ping');
+      const avatarRing = document.getElementById('voice-avatar-ring');
+      const latencyLabel = document.getElementById('voice-latency');
+      const transcript = document.getElementById('voice-transcript');
+      const card = document.getElementById('card-voice');
+
+      if (!voiceConnected) {
+        // Connecting
+        status.innerText = 'Connecting...';
+        status.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/15 border border-amber-500/20 text-amber-400';
+        btn.disabled = true;
+        btn.innerText = 'Connecting...';
+        logQueue.add('WEBRTC_CLIENT', 'Opening LiveKit SFU WebRTC room session...', 'info');
+
+        setTimeout(() => {
+          voiceConnected = true;
+          window.voiceConnected = true;
+          status.innerText = 'Connected';
+          status.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/20 text-emerald-400';
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="power" class="w-3.5 h-3.5"></i> Disconnect`;
+          muteBtn.disabled = false;
+          avatarPing.classList.remove('opacity-0');
+          avatarRing.classList.add('border-violet-400', 'shadow-[0_0_25px_rgba(139,92,246,0.3)]');
+          latencyLabel.innerText = 'Latency: 42 ms';
+          transcript.innerHTML = `<div class="text-violet-400 font-bold">[ASSISTANT]: Hello, Operator. I am connected via WebRTC. Ask me anything.</div>`;
+          lucide.createIcons();
+          
+          if (card) {
+            card.classList.remove('card-warning-glow');
+            card.classList.add('card-healthy-glow');
+          }
+          
+          logQueue.add('WEBRTC_CLIENT', 'LiveKit room connected. STT (Whisper) / TTS (Kokoro) pipelines ready.', 'success');
+
+          // Trigger speaking intervals
+          simulateSpeakingVisuals();
+        }, 1000);
+      } else {
+        // Disconnecting
+        clearInterval(voiceInterval);
+        voiceConnected = false;
+        window.voiceConnected = false;
+        status.innerText = 'Offline';
+        status.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-rose-500/15 border border-rose-500/20 text-rose-400';
+        btn.innerHTML = `<i data-lucide="power" class="w-3.5 h-3.5"></i> Connect WebRTC`;
+        muteBtn.disabled = true;
+        avatarPing.classList.add('opacity-0');
+        avatarRing.classList.remove('border-violet-400', 'shadow-[0_0_25px_rgba(139,92,246,0.3)]');
+        latencyLabel.innerText = 'Latency: -- ms';
+        transcript.innerHTML = `<div class="text-slate-700 italic">No active transcription...</div>`;
+        
+        if (card) {
+          card.classList.remove('card-healthy-glow');
+          card.classList.add('card-warning-glow');
+        }
+        
+        logQueue.add('WEBRTC_CLIENT', 'Closed WebRTC audio stream channels.', 'info');
+      }
+    }
+
+    function toggleVoiceMute() {
+      voiceMuted = !voiceMuted;
+      window.voiceMuted = voiceMuted;
+      const muteIcon = document.getElementById('voice-mute-icon');
+      const muteBtn = document.getElementById('btn-mute-voice');
+      const transcript = document.getElementById('voice-transcript');
+
+      if (voiceMuted) {
+        muteIcon.setAttribute('data-lucide', 'mic');
+        muteBtn.className = 'pill-btn bg-rose-500/20 border-rose-500/40 text-rose-400';
+        logQueue.add('WEBRTC_CLIENT', 'Microphone muted by administrator.', 'warning');
+        transcript.innerHTML += `<div class="text-slate-600">[MUTED]</div>`;
+      } else {
+        muteIcon.setAttribute('data-lucide', 'mic-off');
+        muteBtn.className = 'pill-btn hover:border-rose-500/40 hover:text-rose-400';
+        logQueue.add('WEBRTC_CLIENT', 'Microphone unmuted.', 'info');
+      }
+      lucide.createIcons();
+    }
+
+    function simulateSpeakingVisuals() {
+      const avatarPing = document.getElementById('voice-avatar-ping');
+      const transcript = document.getElementById('voice-transcript');
+      
+      const conversation = [
+        { speaker: 'USER', text: 'Check the status of pgvector cache pool.' },
+        { speaker: 'ASSISTANT', text: 'The postgres pgvector memory pool size is 34.2 MB with 1492 vector rows.' },
+        { speaker: 'USER', text: 'Run the CSET compliance audit.' },
+        { speaker: 'ASSISTANT', text: 'Initiating physical security check. All locks verified.' }
+      ];
+      
+      let chatIdx = 0;
+
+      voiceInterval = setInterval(() => {
+        if (voiceMuted) return;
+
+        // Visual pulsing (triggering CSS keyframe ping effect)
+        avatarPing.style.animation = 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite';
+        
+        if (chatIdx < conversation.length) {
+          const entry = conversation[chatIdx];
+          const color = entry.speaker === 'USER' ? 'text-slate-300' : 'text-violet-400 font-bold';
+          transcript.innerHTML += `<div class="${color}">[${entry.speaker}]: ${entry.text}</div>`;
+          transcript.scrollTop = transcript.scrollHeight;
+
+          logQueue.add('WEBRTC_SPEECH', `[${entry.speaker}] ${entry.text}`, 'info');
+          chatIdx++;
+        } else {
+          // Loop conversation
+          chatIdx = 0;
+        }
+
+        // Quiet visualizer after a second
+        setTimeout(() => {
+          avatarPing.style.animation = 'none';
+        }, 1500);
+
+      }, 5000);
+    }
+
+    function clearSemanticCache() {
+      logQueue.add('RESEARCH_MEMORY', 'Clearing pgvector research cache pool...', 'warning');
+      setTimeout(() => {
+        cacheHitRate = 0.0;
+        vectorCount = 0;
+        savedCost = 0.00;
+        cacheSize = 0.0;
+        
+        document.getElementById('stat-vector-count').innerText = '0';
+        document.getElementById('stat-saved-costs').innerText = '$0.00';
+        document.getElementById('stat-hit-rate').innerText = '0.0%';
+        document.getElementById('stat-hit-rate-bar').style.width = '0%';
+        document.getElementById('stat-pool-size').innerText = '0.0 MB';
+
+        window.vectorCount = vectorCount;
+        window.savedCost = savedCost;
+        window.cacheHitRate = cacheHitRate;
+
+        logQueue.add('RESEARCH_MEMORY', 'Postgres pgvector table truncated. Cache index cleared.', 'success');
+      }, 500);
+    }
+
+    // SRE Simulator: Crash and auto-healing
+    function injectDatabaseCrash() {
+      logQueue.add('SUPERVISORD', 'Simulating database container failure...', 'warning');
+      
+      // Update container gauges
+      const pgInd = document.getElementById('container-postgres-indicator');
+      const pgCpu = document.getElementById('container-postgres-cpu');
+      const pgMem = document.getElementById('container-postgres-mem');
+      const overallBadge = document.getElementById('containers-overall-badge');
+      const card = document.getElementById('card-telemetry');
+
+      pgInd.className = 'relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500 animate-pulse';
+      pgCpu.innerText = '0.0%';
+      pgMem.innerText = '0MB';
+      
+      overallBadge.innerText = 'Degraded';
+      overallBadge.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-rose-500/15 border border-rose-500/20 text-rose-400';
+
+      if (card) {
+        card.classList.remove('card-healthy-glow');
+        card.classList.add('card-warning-glow');
+      }
+
+      containers.postgres.health = 'offline';
+      window.containers = containers;
+
+      logQueue.add('POSTGRES', 'FATAL: database connection lost (socket hung)', 'error');
+      logQueue.add('SRE_MONITOR', 'WARNING: postgres container unhealthy. Initiating healing loop...', 'warning');
+
+      document.getElementById('sre-loop-status').innerText = 'SRE Status: Database self-healing...';
+      document.getElementById('sre-pulse-outer').className = 'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-amber-400';
+      document.getElementById('sre-pulse-inner').className = 'relative inline-flex rounded-full h-2 w-2 bg-amber-500';
+
+      // SRE Self-healing loop sequence
+      setTimeout(() => {
+        logQueue.add('SRE_HEALER', 'Checking postgres container exit codes... [Exit 137 - OOM]', 'info');
+      }, 1000);
+
+      setTimeout(() => {
+        logQueue.add('SRE_HEALER', 'Restarting postgres container daemon block...', 'warning');
+      }, 2000);
+
+      setTimeout(() => {
+        logQueue.add('POSTGRES', 'Database recovery: database system was not properly shut down; automatic recovery in progress.', 'warning');
+      }, 3500);
+
+      setTimeout(() => {
+        logQueue.add('POSTGRES', 'Database recovery: redo starts at 0/1A94020, redo done at 0/1A94140.', 'info');
+        logQueue.add('POSTGRES', 'Database system is ready to accept connections.', 'success');
+      }, 4800);
+
+      setTimeout(() => {
+        // Recover UI states
+        pgInd.className = 'relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500';
+        pgCpu.innerText = '3.8%';
+        pgMem.innerText = '142MB';
+        overallBadge.innerText = 'All Healthy';
+        overallBadge.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/20 text-emerald-400';
+
+        if (card) {
+          card.classList.remove('card-warning-glow');
+          card.classList.add('card-healthy-glow');
+        }
+
+        containers.postgres.health = 'healthy';
+        window.containers = containers;
+
+        document.getElementById('sre-loop-status').innerText = 'SRE Status: baseline monitoring';
+        document.getElementById('sre-pulse-outer').className = 'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400';
+        document.getElementById('sre-pulse-inner').className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
+
+        logQueue.add('SRE_MONITOR', 'SUCCESS: Database recovered. All 6 containers active.', 'success');
+      }, 6000);
+    }
+
+    // AI Omni-Agent Command Bar Logic
+    const cmdInput = document.getElementById('ai-command-input');
+    const cmdOutput = document.getElementById('ai-command-output');
+    
+    // Keyboard shortcut to focus command input: ⌘K or Ctrl+K
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        cmdInput.focus();
+        cmdInput.select();
+      }
+    });
+
+    // Handle command input keypress
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const value = cmdInput.value.trim();
+        if (value) {
+          triggerCommand(value);
+        }
+      }
+    });
+
+    function showAIThoughts(text, delay = 30) {
+      cmdOutput.classList.remove('hidden');
+      cmdOutput.innerHTML = '';
+      let index = 0;
+      
+      // Clear any existing typing interval on the element
+      if (cmdOutput.typingInterval) {
+        clearInterval(cmdOutput.typingInterval);
+      }
+
+      cmdOutput.typingInterval = setInterval(() => {
+        if (index < text.length) {
+          cmdOutput.innerHTML += text.charAt(index);
+          cmdOutput.scrollTop = cmdOutput.scrollHeight;
+          index++;
+        } else {
+          clearInterval(cmdOutput.typingInterval);
+        }
+      }, delay);
+    }
+
+    function setPersonaFocus(activeCardIds) {
+      const cards = ['card-research', 'card-voice', 'card-cache', 'card-sales', 'card-telemetry', 'card-terminal'];
+      cards.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (activeCardIds.includes(id)) {
+            el.classList.remove('card-dimmed');
+            el.classList.add('card-highlighted');
+          } else {
+            el.classList.add('card-dimmed');
+            el.classList.remove('card-highlighted');
+          }
+        }
+      });
+    }
+
+    function clearPersonaFocus() {
+      const cards = ['card-research', 'card-voice', 'card-cache', 'card-sales', 'card-telemetry', 'card-terminal'];
+      cards.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('card-dimmed', 'card-highlighted');
+        }
+      });
+    }
+
+    function triggerCommand(rawCommand) {
+      cmdInput.value = rawCommand;
+      const cmd = rawCommand.toLowerCase().trim();
+
+      if (cmd.startsWith('/sales')) {
+        // Sales Persona Focus
+        setPersonaFocus(['card-sales']);
+        showAIThoughts('>_ AI Copilot: Directing task workspace to Sales Consultant. Compliance Checklist CSET scan and contract gates assessment initialized. Validating CFATS border controls and authorization schemes...', 20);
+        
+        // Trigger CRM auto audit simulation
+        triggerAutoAudit();
+
+        // Release focus after some time
+        setTimeout(() => {
+          clearPersonaFocus();
+        }, 5000);
+
+      } else if (cmd.startsWith('/research')) {
+        // Researcher Persona Focus
+        setPersonaFocus(['card-research', 'card-cache']);
+        const query = rawCommand.substring(9).trim() || 'Rare Earth metals supply chain volatility';
+        document.getElementById('search-input').value = query;
+        showAIThoughts(`>_ AI Copilot: Directing task workspace to Researcher. Initializing semantic queries on pgvector ResearchMemory. Running Deep Research workflow for query: "${query}"...`, 20);
+        
+        // Run deep research
+        triggerDeepResearch();
+
+        setTimeout(() => {
+          clearPersonaFocus();
+        }, 10000);
+
+      } else if (cmd.startsWith('/marketing')) {
+        // Marketing Persona Focus
+        setPersonaFocus(['card-voice']);
+        showAIThoughts('>_ AI Copilot: Directing task workspace to Marketing & Social Media Manager. Establishing WebRTC SFU channel room. Initializing Speech-to-Text (Whisper) and Kokoro voice synthesis scripts...', 20);
+        
+        // Connect WebRTC Voice AI
+        if (!voiceConnected) {
+          toggleVoiceConnection();
+        }
+
+        setTimeout(() => {
+          clearPersonaFocus();
+        }, 8000);
+
+      } else if (cmd.startsWith('/sre') || cmd.startsWith('/sre-healing')) {
+        // Project Delivery SRE Focus
+        setPersonaFocus(['card-telemetry', 'card-terminal']);
+        showAIThoughts('>_ AI Copilot: Directing task workspace to Project Delivery Team. Running Postgres pgvector diagnostic check. Warning: Simulating critical database OOM container crash...', 20);
+        
+        // Trigger DB crash & self healing
+        injectDatabaseCrash();
+
+        setTimeout(() => {
+          clearPersonaFocus();
+        }, 8000);
+
+      } else {
+        // General text query fallback
+        showAIThoughts(`>_ AI Copilot: Searching notebook database for "${rawCommand}"... Found 3 relevant references. Routing query context dynamically. Please try a slash command like /sales or /research to focus on a persona workspace.`, 25);
+      }
+    }
+    window.triggerCommand = triggerCommand;
+  </script>
+</body>
+</html>
