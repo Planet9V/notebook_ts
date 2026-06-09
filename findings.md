@@ -1,57 +1,41 @@
 # Findings & Decisions: Social Media Cron Tracker & Google Workspace Exporter
 
-This document tracks configuration variables, technical findings, and design decisions for **Sub-Plan A** and **Sub-Plan B**.
+This document tracks technical findings, design decisions, and architectural specifications for the remaining development tracks.
 
 ---
 
-## 1. Google Workspace Variables & Configuration
-The system allows admins to manage all environment-level and integration-level variables dynamically via the Web Admin panel. These variables are stored in the `credential:google_docs` record in the database:
+## 1. Architectural Decisions (Backend Architect & AI Agent Alignment)
 
-| Configuration Variable | Database Property | UI Control Element | Description |
-|------------------------|-------------------|---------------------|-------------|
-| Client ID | `client_id` | Input field | Google API Console OAuth 2.0 client credential identifier. |
-| Client Secret | `client_secret` | Password/Text field | Google API Console OAuth 2.0 secret (stored encrypted). |
-| Redirect URI | `redirect_uri` | Read-only input | OAuth redirect callback handler (default: `/api/credentials/oauth/callback`). |
-| Authorized Scopes | `scopes` | Select / Multi-checkbox | Authorized scopes (e.g. `documents`, `spreadsheets`, `presentations`, `drive.file`). |
-| Refresh Token | `refresh_token` | Status message | Stored OAuth refresh token used to request new access tokens. |
+### 1.1 Secure Credentials & Token Management
+*   **Decoupled Secret Storage**: All Google OAuth credentials (e.g. `client_secret` and `refresh_token`) will not be stored in clear text or encrypted text directly in the database. Instead, they will write reference paths to HashiCorp Vault (e.g. `secret/data/google_workspace#refresh_token`) to prevent persistent storage database compromises.
+*   **Token Refresh & Rotation**: The backend service will exchange the refresh token for a fresh access token prior to executing any export pipeline. Access tokens will have a maximum lifetime of 3600 seconds.
 
----
-
-## 2. Technical Findings
-
-### 2.1 Publications Performance Charts (Task A.4)
-- **Status**: Backend timeseries metrics endpoints `GET /api/publications/metrics/history` and manual tracking trigger `POST /api/publications/metrics/track-due` are fully functional and pass all integration tests.
-- **Frontend Charting**: Since there is no Recharts or Tremor library in `package.json`, we will render a custom, highly styled SVG line/bar graph inside `frontend/src/app/(dashboard)/publications/page.tsx`.
-- **SVG Styling Details**: We will use smooth gradients (fade-in areas), precise path coordinate calculations, and grid lines. The chart will support a channel filter ("All Channels", "LinkedIn", "Twitter", "Email") to toggle timeseries visibility.
-
-### 2.2 Google OAuth Authentication Flow (Tasks B.2 - B.3)
-1. **Consent Screen Redirect**: The frontend initiates authorization by redirecting to Google's consent screen. Client ID and Scopes are retrieved dynamically from `credential:google_docs`.
-2. **Callback Handler**: Google redirects the browser to `GET /api/credentials/oauth/callback?code=...`.
-3. **Token Exchange**: The backend exchanges the code for access and refresh tokens using `httpx.post("https://oauth2.googleapis.com/token", data=...)`.
-4. **Encryption**: The refresh token is encrypted using the server's master key (`OPEN_NOTEBOOK_ENCRYPTION_KEY`) before saving in SurrealDB, matching the existing `api_key` encryption model in `Credential._prepare_save_data`.
-
-### 2.3 Styleguide DOCX Compiler (Task B.4)
-- **Current State**: `compile_markdown_to_docx` in `api/routers/notebooks.py` uses hardcoded Calibri fonts and `#ef4444` colors.
-- **Styleguide Mapping**: We will update the compiler to load the chosen `StyleGuide` record. It will dynamically apply the style guide's fields:
-  - Font Families (`title_font`, `body_font`)
-  - Typography Sizes (`title_size`, `heading_size`, etc.)
-  - Color Brand Schemes (`primary_color`, `secondary_color`, `accent_color`)
-  - Page margins (`margin_top`, `margin_bottom`, `margin_left`, `margin_right`)
-
-### 2.4 Google Docs, Slides & Sheets Exporters (Tasks B.5 - B.6)
-- **Google Docs Exporter (`POST /notebooks/export/gdocs`)**: Exchanges the refresh token for a fresh access token, uses `googleapiclient.discovery` to build a Docs document, and formats sections and tables natively.
-- **Google Slides Exporter (`POST /notebooks/export/gslides`)**: Fetches all `asset` records linked to the notebook (which are the drawn nodes from the React Flow canvas) and draws matching boxes, labels, and text on a new slides deck.
-- **Google Sheets Exporter (`POST /notebooks/export/gsheets`)**: Compiles all assessment/quiz scorecard responses for the notebook and dumps them into a structured checklist spreadsheet.
+### 1.2 AI Agent Tool Call Integration
+To allow autonomous AI agents to run exporters and tracking triggers cleanly:
+*   **Well-documented Schemas**: Register all routes as valid tool specifications inside the `skill_registry` table in SurrealDB, providing explicit parameter descriptions and example payloads.
+*   **Silent Failures Guard**: If a Google API call fails, the exporter must not crash the thread. It must return a structured JSON response specifying the error details and recovery hints so that the invoking agent can self-heal or request manual intervention.
 
 ---
 
-## 3. Technical Decisions
+## 2. Frontend & UX Specifications (Frontend Developer, UI/UX Pro Max, UX Audit)
 
-| Decision | Rationale |
-|----------|-----------|
-| Custom SVG Line Chart | Avoids adding third-party library bloat and possible dependency version clashes (Next.js 16/React 19 compatibility). |
-| Secure Callback Route | Re-uses the existing `/api/credentials` encryption framework for OAuth tokens to prevent sensitive secrets from leaking. |
-| Google Client Library | Leverages the official Google Client python libraries to ensure robust API calls and minimize custom request logic. |
+### 2.1 Custom SVG Reach Graphs (WCAG AA Compliant)
+*   **Aesthetics (Steve Jobs Approved)**: Rendered in Next.js 15 Client Components using custom inline SVGs. Custom themes will use high-end color palettes (Cyan/Teal gradients on dark slate backgrounds) with interactive path tooltips.
+*   **Accessibility**:
+    *   **Color Contrast**: The timeseries line graph colors must maintain at least a `4.5:1` contrast ratio against the slate background.
+    *   **Focus Rings**: Navigating through the metrics timeseries graph nodes via keyboard must show visible, high-contrast cyan focus outlines (`focus:ring-2 focus:ring-cyan-500`).
+    *   **Non-Color Indicators**: Line paths will use distinct stroke-dasharrays (dashed, dotted, solid) so that colorblind users can differentiate between Views, Clicks, and Interactions.
+    *   **Screen Reader Support**: Provide an alternate HTML table representation (`role="table"`) containing the raw metrics values for screen reader compatibility.
+
+### 2.2 touch & Reachability
+*   **Touch Targets**: All filtering dropdowns, selectors, and calendar cells must maintain a minimum touch target size of `44x44px` on mobile viewports.
+*   **Reachability**: Position the primary channel toggle dropdowns within easy reach of the thumb on mobile screens (reach-friendly bottom sheets or middle-grid placements).
+*   **User Control**: Implement a confirmation step prior to initiating OAuth redirects, giving users the freedom to cancel the flow before leaving the page.
 
 ---
-*Update this file after any discovery is made.*
+
+## 3. Conductor Integration & Verification
+
+All development tasks follow the strict TDD rules configured in the `workflow.md`:
+*   **TDD Execution**: Every task begins by writing a failing test in `tests/test_publications_tracker.py` or `tests/test_google_workspace_exporter.py` before any application code is added.
+*   **Verification Gate**: After all tasks in a phase are complete, type-safety is validated using `npx tsc --noEmit` and all automated tests are run before obtaining approval to continue.
