@@ -1,0 +1,5 @@
+-- Migration 46 Rollback: Remove fields and table
+REMOVE FIELD target_duration ON TABLE episode_profile;
+REMOVE FIELD intro_sequence ON TABLE episode_profile;
+REMOVE FIELD outro_sequence ON TABLE episode_profile;
+REMOVE TABLE audio_sequence;
