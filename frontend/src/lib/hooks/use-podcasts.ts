@@ -14,6 +14,7 @@ import {
   PodcastGenerationRequest,
   groupEpisodesByStatus,
   speakerUsageMap,
+  AudioSequence,
 } from '@/lib/types/podcasts'
 
 export function useLanguages() {
@@ -516,4 +517,30 @@ export function useTriggerScheduledEpisode() {
     },
   })
 }
+
+export function useAudioSequences() {
+  return useQuery({
+    queryKey: ['audioSequences'],
+    queryFn: async () => [] as AudioSequence[],
+  })
+}
+
+export function useUploadAudioSequence() {
+  return useMutation({
+    mutationFn: async (payload: any) => ({}) as any,
+  })
+}
+
+export function useGenerateAudioSequence() {
+  return useMutation({
+    mutationFn: async (payload: any) => ({}) as any,
+  })
+}
+
+export function useDeleteAudioSequence() {
+  return useMutation({
+    mutationFn: async (id: string) => ({}) as any,
+  })
+}
+
 

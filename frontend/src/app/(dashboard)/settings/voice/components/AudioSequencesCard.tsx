@@ -188,8 +188,8 @@ export function AudioSequencesCard() {
     }
   }
 
-  const intros = sequences.filter((s) => s.sequence_type === 'intro')
-  const outros = sequences.filter((s) => s.sequence_type === 'outro')
+  const intros = sequences.filter((s: AudioSequence) => s.sequence_type === 'intro')
+  const outros = sequences.filter((s: AudioSequence) => s.sequence_type === 'outro')
 
   return (
     <Card className="relative overflow-hidden col-span-1 lg:col-span-2">
@@ -238,7 +238,7 @@ export function AudioSequencesCard() {
                       No intro sequences available. Upload or generate one on the right.
                     </div>
                   ) : (
-                    intros.map((seq) => (
+                    intros.map((seq: AudioSequence) => (
                       <div key={seq.id} className="flex items-center justify-between rounded-lg border bg-background/50 p-3 hover:bg-background/80 transition-colors">
                         <div className="space-y-1 pr-4">
                           <p className="text-xs font-semibold text-foreground truncate max-w-[240px] md:max-w-[320px]">
@@ -288,7 +288,7 @@ export function AudioSequencesCard() {
                       No outro sequences available. Upload or generate one on the right.
                     </div>
                   ) : (
-                    outros.map((seq) => (
+                    outros.map((seq: AudioSequence) => (
                       <div key={seq.id} className="flex items-center justify-between rounded-lg border bg-background/50 p-3 hover:bg-background/80 transition-colors">
                         <div className="space-y-1 pr-4">
                           <p className="text-xs font-semibold text-foreground truncate max-w-[240px] md:max-w-[320px]">

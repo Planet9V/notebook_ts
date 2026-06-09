@@ -29,8 +29,8 @@ import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useTranslation } from '@/lib/hooks/use-translation'
 
 // Embedded Workspace page imports
-import { PipelinePage } from '@/app/(dashboard)/pipeline/page'
-import { CustomerLedgerPage } from '@/app/(dashboard)/customer-ledger/page'
+import PipelinePage from '@/app/(dashboard)/pipeline/page'
+import CustomerLedgerPage from '@/app/(dashboard)/customer-ledger/page'
 import { DeliveryTree } from '@/components/delivery/DeliveryTree'
 import { AttachDocumentModal } from '@/components/delivery/AttachDocumentModal'
 

@@ -13,7 +13,7 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 import { useEpisodeProfiles, useSpeakerProfiles } from '@/lib/hooks/use-podcasts'
 import { needsModelSetup } from '@/lib/types/podcasts'
 
-export default function PodcastsPage() {
+export default function PodcastsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'episodes' | 'templates' | 'scheduler'>('episodes')
 
@@ -28,65 +28,69 @@ export default function PodcastsPage() {
     return episodeProfiles.some(needsModelSetup) || speakerProfiles.some(needsModelSetup)
   }, [episodeProfiles, speakerProfiles])
 
-  return (
-    <AppShell>
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-6 space-y-6">
-          <header className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">{t('podcasts.listTitle')}</h1>
-            <p className="text-muted-foreground">
-              {t('podcasts.listDesc')}
-            </p>
-          </header>
+  const content = (
+    <div className="flex-1 overflow-y-auto">
+      <div className="px-6 py-6 space-y-6">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{t('podcasts.listTitle')}</h1>
+          <p className="text-muted-foreground">
+            {t('podcasts.listDesc')}
+          </p>
+        </header>
 
-          {hasUnconfiguredProfiles ? (
-            <Alert className="bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>{t('podcasts.setupRequired')}</AlertTitle>
-              <AlertDescription>
-                {t('podcasts.setupRequiredDesc')}
-              </AlertDescription>
-            </Alert>
-          ) : null}
+        {hasUnconfiguredProfiles ? (
+          <Alert className="bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{t('podcasts.setupRequired')}</AlertTitle>
+            <AlertDescription>
+              {t('podcasts.setupRequiredDesc')}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'episodes' | 'templates' | 'scheduler')}
-            className="space-y-6"
-          >
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('podcasts.chooseAView')}</p>
-              <TabsList aria-label={t('common.accessibility.podcastViews')} className="w-full max-w-md">
-                <TabsTrigger value="episodes">
-                  <Mic className="h-4 w-4" />
-                  {t('podcasts.episodesTab')}
-                </TabsTrigger>
-                <TabsTrigger value="templates">
-                  <LayoutTemplate className="h-4 w-4" />
-                  {t('podcasts.templatesTab')}
-                </TabsTrigger>
-                <TabsTrigger value="scheduler">
-                  <Calendar className="h-4 w-4" />
-                  {t('podcasts.schedulerTab', 'Scheduler')}
-                </TabsTrigger>
-              </TabsList>
-            </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'episodes' | 'templates' | 'scheduler')}
+          className="space-y-6"
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('podcasts.chooseAView')}</p>
+            <TabsList aria-label={t('common.accessibility.podcastViews')} className="w-full max-w-md">
+              <TabsTrigger value="episodes">
+                <Mic className="h-4 w-4" />
+                {t('podcasts.episodesTab')}
+              </TabsTrigger>
+              <TabsTrigger value="templates">
+                <LayoutTemplate className="h-4 w-4" />
+                {t('podcasts.templatesTab')}
+              </TabsTrigger>
+              <TabsTrigger value="scheduler">
+                <Calendar className="h-4 w-4" />
+                {t('podcasts.schedulerTab', 'Scheduler')}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-            <TabsContent value="episodes">
-              <EpisodesTab />
-            </TabsContent>
+          <TabsContent value="episodes">
+            <EpisodesTab />
+          </TabsContent>
 
-            <TabsContent value="templates">
-              <TemplatesTab />
-            </TabsContent>
+          <TabsContent value="templates">
+            <TemplatesTab />
+          </TabsContent>
 
-            <TabsContent value="scheduler">
-              <SchedulerTab />
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="scheduler">
+            <SchedulerTab />
+          </TabsContent>
+        </Tabs>
       </div>
-    </AppShell>
+    </div>
   )
+
+  if (embedded) {
+    return content
+  }
+
+  return <AppShell>{content}</AppShell>
 }
 

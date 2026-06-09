@@ -157,3 +157,7 @@ node_modules/
 scratch/
 .loki/
 graphify-out/
+agentdb.rvf
+agentdb.rvf.lock
+.claude-flow/
+.swarm/

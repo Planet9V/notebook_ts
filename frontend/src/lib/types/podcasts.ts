@@ -182,3 +182,14 @@ export interface ScheduledEpisodeInput {
   status: 'active' | 'paused' | 'completed' | 'failed'
 }
 
+export interface AudioSequence {
+  id: string
+  name: string
+  description?: string | null
+  sequence_type: 'intro' | 'outro'
+  file_path?: string | null
+  audio_url?: string | null
+  created?: string
+  updated?: string
+}
+

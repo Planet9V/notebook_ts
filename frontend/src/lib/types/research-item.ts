@@ -7,6 +7,8 @@ export interface ResearchItem {
   project_id: string | null
   notebook_id: string | null
   transformation_id: string | null
+  location_id?: string | null
+  category?: string | null
   stage: string
   status: string
   engine: string
@@ -38,6 +40,8 @@ export interface CreateResearchItemRequest {
   project_id?: string | null
   notebook_id?: string | null
   transformation_id?: string | null
+  location_id?: string | null
+  category?: string | null
   stage?: string
   engine?: string
   engines?: string[]
@@ -61,6 +65,8 @@ export interface UpdateResearchItemRequest {
   project_id?: string | null
   notebook_id?: string | null
   transformation_id?: string | null
+  location_id?: string | null
+  category?: string | null
   stage?: string
   status?: string
   engine?: string

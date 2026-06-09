@@ -57,6 +57,7 @@ from api.routers import (
     voice,
     voice_rag,
     voice_sessions,
+    voice_tools,
     skills,
     mcp,
     publications,
@@ -504,6 +505,7 @@ app.include_router(containers.router, prefix="/api", tags=["containers"])
 app.include_router(platform.router, prefix="/api", tags=["platform"])
 app.include_router(voice_rag.router, prefix="/api", tags=["voice-rag"])
 app.include_router(voice_sessions.router, prefix="/api", tags=["voice-sessions"])
+app.include_router(voice_tools.router, prefix="/api", tags=["voice-tools"])
 app.include_router(agents.router, prefix="/api", tags=["agents"])
 app.include_router(skills.router, prefix="/api", tags=["skills"])
 app.include_router(mcp.router, prefix="/api", tags=["mcp"])
