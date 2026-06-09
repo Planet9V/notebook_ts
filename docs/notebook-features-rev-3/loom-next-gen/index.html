@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Loom: Next-Gen Topological Operations Map</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              violet: '#8b5cf6',
+              amber: '#f59e0b',
+              blue: '#3b82f6',
+              slate: '#64748b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg-base: #020617;
+      --border-color: rgba(255, 255, 255, 0.08);
+      
+      --color-primary: #06b6d4;
+      --color-emerald: #10b981;
+      --color-rose: #f43f5e;
+      --color-violet: #8b5cf6;
+      --color-amber: #f59e0b;
+      --color-blue: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: #f1f5f9;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0),
+        linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 0),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 0);
+      background-size: 24px 24px, 48px 48px, 48px 48px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Glassmorphism elements */
+    .cyber-glass {
+      background: rgba(9, 15, 32, 0.45);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-color);
+      box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.7),
+        inset 1px 1px 0 0 rgba(255, 255, 255, 0.05),
+        inset -1px -1px 0 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .cyber-glass-sidebar {
+      background: linear-gradient(135deg, rgba(9, 15, 32, 0.65), rgba(15, 23, 42, 0.45));
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-left: 1px solid var(--border-color);
+      box-shadow: 
+        -10px 0 30px rgba(0, 0, 0, 0.6),
+        inset 1px 0 0 0 rgba(255, 255, 255, 0.05),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .pill-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pill-btn:hover, .pill-btn.active {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .pill-btn.active {
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+    }
+
+    .action-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  </style>
+</head>
+<body class="select-none">
+
+  <div class="grid-bg"></div>
+
+  <!-- HEADER -->
+  <header class="relative z-50 flex items-center justify-between px-6 py-4 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+    <div class="flex items-center gap-3">
+      <div class="h-8 w-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+        <i data-lucide="network" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <span class="font-display font-extrabold text-base tracking-wider uppercase bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">The Loom Next-Gen</span>
+        <span class="ml-2 px-1.5 py-0.5 rounded text-[8px] bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-widest font-mono">v3.0.0</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <!-- SRE Loop Indicator -->
+      <div class="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-full border border-white/5 font-mono text-[10px] text-slate-400">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" id="sre-pulse-outer" style="background-color: var(--color-emerald);"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2" id="sre-pulse-inner" style="background-color: var(--color-emerald);"></span>
+        </span>
+        <span id="sre-loop-status">SRE Status: baseline monitoring</span>
+        <span class="text-slate-600">|</span>
+        <span id="sre-timer-label">next check: 30.0s</span>
+      </div>
+
+      <button class="pill-btn active" id="role-selector" onclick="cycleRole()">
+        <i data-lucide="user" class="w-3 h-3"></i> Mode: Administrator
+      </button>
+      <button class="pill-btn" onclick="resetCamera()">
+        <i data-lucide="refresh-cw" class="w-3 h-3"></i> Recenter Map
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 relative flex overflow-hidden">
+    
+    <!-- Canvas container -->
+    <div id="canvas-container" class="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing">
+      <canvas id="loomCanvas"></canvas>
+    </div>
+
+    <!-- FLOATING LEFT PANEL: CONTROLS -->
+    <div class="cyber-glass absolute top-6 left-6 w-80 p-5 flex flex-col gap-4 z-10" id="control-panel">
+      <div class="flex items-center justify-between border-b border-white/5 pb-3">
+        <div>
+          <div class="font-display font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> Cybernetic Process Rigs
+          </div>
+          <p class="text-[10px] text-slate-500 mt-0.5">Simulate manual operational scenarios</p>
+        </div>
+      </div>
+
+      <div class="action-card" onclick="simulateResearchRun()">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="font-semibold text-[11px] text-white flex items-center gap-1.5">
+            <i data-lucide="search" class="text-cyan-400 w-3.5 h-3.5"></i> Run Deep Research
+          </span>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-cyan-500/10 border border-cyan-500/20 text-cyan-400" id="btn-research-status">Idle</span>
+        </div>
+        <p class="text-[9px] text-slate-500 leading-normal">Trigger autonomous Valyu background research node on target sector.</p>
+      </div>
+
+      <div class="action-card" onclick="simulateComplianceQuiz()">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="font-semibold text-[11px] text-white flex items-center gap-1.5">
+            <i data-lucide="shield" class="text-rose-400 w-3.5 h-3.5"></i> Audit Facility Asset
+          </span>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" id="btn-compliance-status">Healthy</span>
+        </div>
+        <p class="text-[9px] text-slate-500 leading-normal">Simulate CSET compliance audit answers on refinery threat flow node.</p>
+      </div>
+
+      <div class="action-card" onclick="triggerImmediateSreDiagnostic()">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="font-semibold text-[11px] text-white flex items-center gap-1.5">
+            <i data-lucide="terminal" class="text-blue-400 w-3.5 h-3.5"></i> Run SRE Diagnostics
+          </span>
+          <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 text-blue-400" id="btn-sre-status">Active</span>
+        </div>
+        <p class="text-[9px] text-slate-500 leading-normal">Inject a database crash simulation and trigger the automated healing pipeline immediately.</p>
+      </div>
+    </div>
+
+    <!-- TOP-CENTER FLOATING SPAWNING PANEL -->
+    <div class="cyber-glass absolute top-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full flex items-center gap-4 z-10" id="spawner-panel">
+      <span class="font-display font-bold text-[10px] text-slate-500 uppercase tracking-widest">Spawn Node:</span>
+      <div class="h-4 w-[1px] bg-white/10"></div>
+      <button class="pill-btn hover:border-amber-500/30 hover:text-amber-400" onclick="spawnNode('sales')">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-amber-500"></i> Client Lead
+      </button>
+      <button class="pill-btn hover:border-cyan-500/30 hover:text-cyan-400" onclick="spawnNode('research')">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-cyan-500"></i> Research Topic
+      </button>
+      <button class="pill-btn hover:border-rose-500/30 hover:text-rose-400" onclick="spawnNode('compliance')">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-rose-500"></i> Compliance Quiz
+      </button>
+      <button class="pill-btn hover:border-blue-500/30 hover:text-blue-400" onclick="spawnNode('ops')">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-blue-500"></i> SRE Agent
+      </button>
+    </div>
+
+    <!-- BOTTOM FLOATING HUD SIMULATION & CAMERA CONTROLS (Positioned above logger) -->
+    <div class="absolute bottom-48 left-6 right-6 flex items-center justify-between z-10 pointer-events-none">
+      
+      <!-- Camera HUD (Left) -->
+      <div class="cyber-glass px-4 py-2 rounded-full flex items-center gap-2 pointer-events-auto">
+        <button class="pill-btn !p-2" onclick="adjustZoom(1.2)" title="Zoom In">
+          <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+        </button>
+        <button class="pill-btn !p-2" onclick="adjustZoom(0.8)" title="Zoom Out">
+          <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+        </button>
+        <div class="h-4 w-[1px] bg-white/5 mx-1"></div>
+        <button class="pill-btn px-3 py-1" onclick="resetCamera()" title="Recenter Camera">
+          <i data-lucide="maximize-2" class="w-3 h-3"></i> Recenter
+        </button>
+      </div>
+
+      <!-- Simulation Controller (Center-Right) -->
+      <div class="cyber-glass px-5 py-2.5 rounded-full flex items-center gap-6 pointer-events-auto">
+        <!-- Play / Pause -->
+        <button class="pill-btn px-4 py-1.5 active" id="sim-play-pause-btn" onclick="toggleSimulationState()">
+          <i data-lucide="pause" class="w-3.5 h-3.5" id="sim-play-icon"></i>
+          <span id="sim-play-label">RUNNING</span>
+        </button>
+
+        <div class="h-4 w-[1px] bg-white/10"></div>
+
+        <!-- Speed Throttle slider -->
+        <div class="flex items-center gap-2.5 font-mono text-[9px] text-slate-500">
+          <span>SPEED:</span>
+          <input type="range" id="sim-speed-slider" min="0.25" max="3" step="0.25" value="1" 
+                 oninput="adjustSimSpeed(this.value)" 
+                 class="w-20 accent-cyan-400 bg-white/10 rounded-lg h-1 appearance-none cursor-pointer outline-none">
+          <span id="sim-speed-val" class="text-cyan-400 font-bold min-width-[32px]">1.00x</span>
+        </div>
+
+        <div class="h-4 w-[1px] bg-white/10"></div>
+
+        <!-- Filter Checkboxes -->
+        <div class="flex items-center gap-3 font-mono text-[9px] text-slate-400">
+          <span class="text-slate-500">FILTERS:</span>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="filter-research" checked onchange="toggleFilter('research', this.checked)" class="accent-cyan-400"> Research
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="filter-sales" checked onchange="toggleFilter('sales', this.checked)" class="accent-amber-400"> Sales
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="filter-compliance" checked onchange="toggleFilter('compliance', this.checked)" class="accent-rose-400"> Compliance
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="filter-ops" checked onchange="toggleFilter('ops', this.checked)" class="accent-blue-500 text-blue-500 border-blue-500/30"> SRE Ops
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="filter-database" checked onchange="toggleFilter('database', this.checked)" class="accent-blue-400"> Database
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SLIDE-IN PROPERTY INSPECTOR -->
+    <div class="cyber-glass-sidebar absolute top-0 right-0 w-96 bottom-0 z-40 flex flex-col p-6 translate-x-full transition-transform duration-300 ease-out" id="inspector-panel">
+      <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+        <div>
+          <div class="font-display font-extrabold text-sm uppercase tracking-wider text-white" id="ins-title">Node Inspector</div>
+          <p class="text-[10px] text-slate-500 mt-1" id="ins-subtitle">Select a node to view attributes</p>
+        </div>
+        <button class="pill-btn !p-1.5 rounded-lg hover:bg-white/10" onclick="closeInspector()">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <div id="inspector-content" class="flex-1 overflow-y-auto pr-1 flex flex-col gap-5 text-xs">
+        <!-- Filled dynamically based on node type -->
+        <div class="flex flex-col items-center justify-center h-full text-slate-600 gap-2">
+          <i data-lucide="info" class="w-8 h-8 opacity-40"></i>
+          <p class="font-medium text-center">Click any node in the map to open the glassmorphic metadata inspector.</p>
+          <p class="text-[10px] text-slate-700 text-center px-4">Hold Shift and drag from node perimeter to connect topological links.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANEL: SYSTEM LOGGING TERMINAL -->
+    <div class="cyber-glass absolute bottom-6 left-6 right-6 h-40 p-4 flex flex-col gap-3 z-10" id="logs-panel">
+      
+      <!-- Logger Header & Controls -->
+      <div class="flex items-center justify-between border-b border-white/5 pb-2">
+        <div class="flex items-center gap-2 text-slate-300">
+          <i data-lucide="terminal" class="w-4 h-4 text-slate-500"></i>
+          <span class="font-display font-bold text-xs uppercase tracking-wider">Operations Terminal (system_log)</span>
+          <span class="px-1.5 py-0.5 rounded text-[8px] bg-slate-500/10 border border-slate-500/20 text-slate-400 font-bold uppercase tracking-wider font-mono">thread-safe loguru sink</span>
+        </div>
+        
+        <!-- Filter severity and Search -->
+        <div class="flex items-center gap-4">
+          <!-- Severity tabs -->
+          <div class="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/5 text-[9px] font-semibold">
+            <button class="px-2.5 py-1 rounded text-white bg-white/10 log-tab" data-level="ALL" onclick="logQueue.filter('ALL')">ALL</button>
+            <button class="px-2.5 py-1 rounded text-slate-400 log-tab" data-level="INFO" onclick="logQueue.filter('INFO')">INFO</button>
+            <button class="px-2.5 py-1 rounded text-slate-400 log-tab" data-level="SUCCESS" onclick="logQueue.filter('SUCCESS')">SUCCESS</button>
+            <button class="px-2.5 py-1 rounded text-slate-400 log-tab" data-level="WARNING" onclick="logQueue.filter('WARNING')">WARN</button>
+            <button class="px-2.5 py-1 rounded text-slate-400 log-tab" data-level="ERROR" onclick="logQueue.filter('ERROR')">ERROR</button>
+          </div>
+          
+          <!-- Search box -->
+          <input type="text" id="logSearch" placeholder="Search logs..." class="bg-black/50 border border-white/5 rounded px-2 py-1 text-[10px] w-40 text-white placeholder-slate-600 outline-none focus:border-white/10 font-mono">
+          
+          <!-- Auto-scroll & Clear -->
+          <div class="flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="logAutoScroll" checked class="accent-cyan-400"> Auto-scroll
+            </label>
+            <button onclick="logQueue.clear()" class="hover:text-white transition">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log stream scroll container -->
+      <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-1 text-[11px] font-mono leading-relaxed" id="logStream">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </main>
+
+  <!-- BUSINESS LOGIC -->
+  <script>
+    // System variables
+    const canvas = document.getElementById('loomCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    let width = canvas.width = container.clientWidth;
+    let height = canvas.height = container.clientHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = container.clientWidth;
+      height = canvas.height = container.clientHeight;
+    });
+
+    // Default graph configuration
+    const nodes = [
+      { id: 1, label: 'Research: Rare Earths', type: 'research', x: 200, y: 150, radius: 45, status: 'healthy', value: 'Valyu SDK API • 4 sources parsed', vx: 0, vy: 0 },
+      { id: 2, label: 'Podcast Synthesizer', type: 'create', x: 450, y: 150, radius: 45, status: 'healthy', value: 'Kokoro TTS • 2 speaker profiles loaded', vx: 0, vy: 0 },
+      { id: 3, label: 'Social Scheduler', type: 'publish', x: 700, y: 150, radius: 45, status: 'healthy', value: 'LinkedIn/Twitter SMTP Queue • 3 ready', vx: 0, vy: 0 },
+      { id: 4, label: 'Pipeline: Acme Corp', type: 'sales', x: 200, y: 350, radius: 45, status: 'healthy', value: 'Proposal Stage • $45,000 Deal size', vx: 0, vy: 0 },
+      { id: 5, label: 'Refinery Asset Node', type: 'compliance', x: 450, y: 350, radius: 45, status: 'healthy', value: 'CISA Sector 12 • 89% CSET Score', vx: 0, vy: 0 },
+      { id: 6, label: 'SRE Agent Monitor', type: 'ops', x: 700, y: 350, radius: 45, status: 'healthy', value: 'LiveKit / Postgres Audit • OK', vx: 0, vy: 0 },
+      { id: 7, label: 'Operational Database', type: 'database', x: 920, y: 350, radius: 45, status: 'healthy', value: 'SurrealDB Connection Pool • Active', vx: 0, vy: 0 }
+    ];
+
+    const connections = [
+      { from: 1, to: 2, label: 'Ingest source transcript', particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }], fade: false, alpha: 1.0, temp: false },
+      { from: 2, to: 3, label: 'Deliver compiled MP3', particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }], fade: false, alpha: 1.0, temp: false },
+      { from: 4, to: 5, label: 'Map CSET Audit program', particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }], fade: false, alpha: 1.0, temp: false },
+      { from: 5, to: 6, label: 'Monitor connection health', particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }], fade: false, alpha: 1.0, temp: false },
+      { from: 6, to: 7, label: 'Audit DB connection pool', particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }], fade: false, alpha: 1.0, temp: false },
+      { from: 1, to: 4, label: 'Feed prospect briefing', particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }], fade: false, alpha: 1.0, temp: false }
+    ];
+
+    // Interactivity state
+    let draggedNode = null;
+    let selectedNode = null;
+    let connectingSourceNode = null;
+    let connectHoverNode = null;
+    let mouseWorldPos = { x: 0, y: 0 };
+
+    let zoom = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let startPanX = 0;
+    let startPanY = 0;
+
+    let physicsPaused = false;
+    let simulationSpeed = 1.0;
+    let activeFilters = {
+      research: true,
+      create: true,
+      publish: true,
+      sales: true,
+      compliance: true,
+      ops: true,
+      database: true
+    };
+
+    // Node styles
+    const COLORS = {
+      research: { stroke: '#06b6d4', glow: 'rgba(6, 182, 212, 0.4)', iconColor: '#06b6d4', label: 'Research' },
+      create: { stroke: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.4)', iconColor: '#a78bfa', label: 'Creation' },
+      publish: { stroke: '#10b981', glow: 'rgba(16, 185, 129, 0.4)', iconColor: '#10b981', label: 'Publisher' },
+      sales: { stroke: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)', iconColor: '#f59e0b', label: 'Sales Pipeline' },
+      compliance: { stroke: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)', iconColor: '#f43f5e', label: 'Compliance Quiz' },
+      ops: { stroke: '#3b82f6', glow: 'rgba(59, 130, 246, 0.4)', iconColor: '#3b82f6', label: 'SRE Agent' },
+      database: { stroke: '#10b981', glow: 'rgba(16, 185, 129, 0.4)', iconColor: '#10b981', label: 'Database' }
+    };
+
+    const UNICODE_ICONS = {
+      research: '🔍',
+      create: '🎙️',
+      publish: '📤',
+      sales: '💼',
+      compliance: '🛡️',
+      ops: '⚙️',
+      database: '🗄️'
+    };
+
+    // Checklist States
+    const csetChecklist = [
+      { id: 'boundary', text: 'Boundary Protection (CISA Sect 12.1)', done: true },
+      { id: 'auth', text: 'Identity & Authentication Rules', done: true },
+      { id: 'physical', text: 'Physical Security Controls', done: false }
+    ];
+
+    const salesChecklist = [
+      { id: 'qualify', text: 'Qualify Prospect & Site Mapping', done: true },
+      { id: 'gaps', text: 'Map Infrastructure CSET Gaps', done: true },
+      { id: 'proposal', text: 'Draft Proposal & Custom SRE SLA', done: false },
+      { id: 'sign', text: 'Sign Sales Contract', done: false }
+    ];
+
+    const researchChecklist = [
+      { text: 'Identify rare earth sector keywords', done: true },
+      { text: 'Parse scientific journal feed', done: true },
+      { text: 'Extract semantic knowledge graph', done: true },
+      { text: 'Index chunks inside pgvector cache', done: false }
+    ];
+
+    let dealValue = 45000;
+    let nextNodeId = 10;
+
+    // Coordinate space transformations
+    function worldToScreen(wx, wy) {
+      return {
+        x: wx * zoom + panX,
+        y: wy * zoom + panY
+      };
+    }
+
+    function screenToWorld(sx, sy) {
+      return {
+        x: (sx - panX) / zoom,
+        y: (sy - panY) / zoom
+      };
+    }
+
+    // Logger implementation
+    const logQueue = {
+      logs: [],
+      currentFilter: 'ALL',
+      searchQuery: '',
+      autoScroll: true,
+      stream: null,
+      searchInput: null,
+      autoScrollCheck: null,
+      
+      init: function() {
+        this.stream = document.getElementById('logStream');
+        this.searchInput = document.getElementById('logSearch');
+        this.autoScrollCheck = document.getElementById('logAutoScroll');
+        
+        this.searchInput.addEventListener('input', (e) => {
+          this.searchQuery = e.target.value.toLowerCase();
+          this.render();
+        });
+        
+        this.autoScrollCheck.addEventListener('change', (e) => {
+          this.autoScroll = e.target.checked;
+          if (this.autoScroll) this.scrollToBottom();
+        });
+      },
+      
+      add: function(tag, message, severity = 'info') {
+        const log = {
+          timestamp: new Date().toLocaleTimeString(),
+          tag,
+          message,
+          severity
+        };
+        this.logs.push(log);
+        if (this.logs.length > 200) this.logs.shift();
+        this.render();
+      },
+      
+      filter: function(level) {
+        this.currentFilter = level;
+        const tabs = document.querySelectorAll('.log-tab');
+        tabs.forEach(tab => {
+          if (tab.dataset.level === level) {
+            tab.classList.add('bg-white/10', 'text-white');
+            tab.classList.remove('text-slate-400');
+          } else {
+            tab.classList.remove('bg-white/10', 'text-white');
+            tab.classList.add('text-slate-400');
+          }
+        });
+        this.render();
+      },
+      
+      clear: function() {
+        this.logs = [];
+        this.render();
+      },
+      
+      render: function() {
+        if (!this.stream) return;
+        
+        let html = '';
+        const filtered = this.logs.filter(log => {
+          const matchesLevel = this.currentFilter === 'ALL' || log.severity.toUpperCase() === this.currentFilter;
+          const matchesSearch = log.message.toLowerCase().includes(this.searchQuery) || log.tag.toLowerCase().includes(this.searchQuery);
+          return matchesLevel && matchesSearch;
+        });
+        
+        filtered.forEach(log => {
+          let colorClass = 'text-slate-300';
+          let tagBg = 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
+          
+          if (log.severity === 'info') {
+            colorClass = 'text-cyan-300';
+            tagBg = 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+          } else if (log.severity === 'success') {
+            colorClass = 'text-emerald-300';
+            tagBg = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          } else if (log.severity === 'error') {
+            colorClass = 'text-rose-300';
+            tagBg = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          } else if (log.severity === 'warning') {
+            colorClass = 'text-amber-300';
+            tagBg = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+          }
+          
+          html += `
+            <div class="flex items-start gap-3 py-1 font-mono text-xs border-b border-white/5">
+              <span class="text-slate-500 shrink-0 font-medium">[${log.timestamp}]</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 ${tagBg}">${log.tag}</span>
+              <span class="${colorClass} leading-relaxed break-all">${log.message}</span>
+            </div>
+          `;
+        });
+        
+        this.stream.innerHTML = html;
+        if (this.autoScroll) this.scrollToBottom();
+      },
+      
+      scrollToBottom: function() {
+        requestAnimationFrame(() => {
+          this.stream.scrollTop = this.stream.scrollHeight;
+        });
+      }
+    };
+
+    function logEvent(tag, message, severity = 'info') {
+      logQueue.add(tag, message, severity);
+    }
+
+    // Dynamic Connection State Evaluator
+    function getConnectionState(conn, fromNode, toNode) {
+      if (conn.status === 'error' || fromNode.status === 'error' || toNode.status === 'error') {
+        return 'error';
+      }
+      if (fromNode.status === 'processing' || toNode.status === 'processing') {
+        return 'active';
+      }
+      return 'healthy';
+    }
+
+    // SRE Healing State Machine (R5)
+    const sreLoop = {
+      state: 'IDLE', // IDLE, FAULT_INJECTION, AGENT_DIAGNOSING, HOTFIX_PIPELINE, PR_SPAWNING, INTEGRATION_TEST, HEALING_EXEC, STATE_CLEANUP
+      timer: 0,
+      countdown: 30, // seconds until next run
+      currentDuration: 0,
+      targetNodeId: 7, // Database Node
+      prNodeId: null,
+      
+      tick: function(dt) {
+        if (physicsPaused) return;
+        const speed = simulationSpeed;
+        
+        if (this.state === 'IDLE') {
+          this.countdown -= dt * speed;
+          if (this.countdown <= 0) {
+            this.triggerFault();
+          }
+        } else {
+          this.timer += dt * speed;
+          if (this.timer >= this.currentDuration) {
+            this.nextState();
+          }
+        }
+      },
+      
+      triggerFault: function() {
+        this.state = 'FAULT_INJECTION';
+        this.timer = 0;
+        this.currentDuration = 3;
+        
+        const dbNode = nodes.find(n => n.id === this.targetNodeId);
+        if (dbNode) {
+          dbNode.status = 'error';
+          // auto highlight the db node to notify user
+          selectedNode = dbNode;
+          openInspector(dbNode);
+        }
+        logEvent('DATABASE', 'CRITICAL ERROR: Connection pool limit exceeded (100/100 connections limit reached) on operational database.', 'error');
+      },
+      
+      nextState: function() {
+        this.timer = 0;
+        switch(this.state) {
+          case 'FAULT_INJECTION':
+            this.state = 'AGENT_DIAGNOSING';
+            this.currentDuration = 4;
+            const sreNode = nodes.find(n => n.id === 6); // SRE Agent
+            if (sreNode) sreNode.status = 'processing';
+            logEvent('SRE_MONITOR', 'Sensed database crash failure. Initiating automated container diagnostics...', 'warning');
+            break;
+            
+          case 'AGENT_DIAGNOSING':
+            this.state = 'HOTFIX_PIPELINE';
+            this.currentDuration = 4;
+            logEvent('SRE_AGENT', 'Scanning container heap & SurrealDB metrics. Identified pool limit leakage. Spinning local hotfix branch...', 'info');
+            break;
+            
+          case 'HOTFIX_PIPELINE':
+            this.state = 'PR_SPAWNING';
+            this.currentDuration = 6;
+            
+            // Spawn Git PR Node physically on canvas at midpoint between SRE (Node 6) and DB (Node 7)
+            const nSre = nodes.find(n => n.id === 6);
+            const nDb = nodes.find(n => n.id === this.targetNodeId);
+            if (nSre && nDb) {
+              const prX = (nSre.x + nDb.x) / 2;
+              const prY = (nSre.y + nDb.y) / 2 - 80; // place slightly above midpoint
+              
+              const prNode = {
+                id: 999,
+                label: 'Git PR #1406',
+                type: 'create', // violet
+                x: prX,
+                y: prY,
+                vx: 0,
+                vy: 0,
+                radius: 40,
+                status: 'processing',
+                value: 'SRE Hotfix: Rebuild Postgres/Surreal connection pool with aggressive recycling policies.',
+                fade: false,
+                alpha: 1.0
+              };
+              nodes.push(prNode);
+              this.prNodeId = 999;
+              
+              // Create temporary physics links SRE -> PR -> DB
+              connections.push({
+                id: 'pr-conn-1',
+                from: 6,
+                to: 999,
+                label: 'Commit files',
+                particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }],
+                fade: false,
+                alpha: 1.0,
+                temp: true
+              });
+              connections.push({
+                id: 'pr-conn-2',
+                from: 999,
+                to: this.targetNodeId,
+                label: 'Run tests',
+                particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }],
+                fade: false,
+                alpha: 1.0,
+                temp: true
+              });
+              
+              logEvent('SRE_AGENT', 'Opened Local PR #1406 targeting main. Running system integrity checks.', 'info');
+              
+              // Set selection focus to the new PR Node
+              selectedNode = prNode;
+              openInspector(prNode);
+            }
+            break;
+            
+          case 'PR_SPAWNING':
+            this.state = 'INTEGRATION_TEST';
+            this.currentDuration = 5;
+            logEvent('PYTEST', 'Running test suite tests/test_db_pool.py in Docker sandbox container...', 'info');
+            break;
+            
+          case 'INTEGRATION_TEST':
+            this.state = 'HEALING_EXEC';
+            this.currentDuration = 4;
+            logEvent('PYTEST', 'test_db_pool.py::test_pool_recycling PASSED', 'success');
+            logEvent('PYTEST', 'test_db_pool.py::test_max_overflow_bounds PASSED', 'success');
+            logEvent('SRE_AGENT', 'All validation tests passed. Hotfix PR approved. Initializing merge & deployment.', 'success');
+            
+            const dbNodeToHeal = nodes.find(n => n.id === this.targetNodeId);
+            if (dbNodeToHeal) dbNodeToHeal.status = 'processing';
+            
+            const prNodeToMerge = nodes.find(n => n.id === 999);
+            if (prNodeToMerge) prNodeToMerge.status = 'healthy';
+            break;
+            
+          case 'HEALING_EXEC':
+            this.state = 'STATE_CLEANUP';
+            this.currentDuration = 4;
+            
+            // Fade out the PR node and temporary links
+            const prNodeToFade = nodes.find(n => n.id === 999);
+            if (prNodeToFade) prNodeToFade.fade = true;
+            
+            connections.forEach(c => {
+              if (c.temp) c.fade = true;
+            });
+            
+            const dbNodeHealed = nodes.find(n => n.id === this.targetNodeId);
+            if (dbNodeHealed) {
+              dbNodeHealed.status = 'healthy';
+              dbNodeHealed.value = 'SurrealDB Connection Pool • Active • Pool recycled';
+            }
+            
+            const sreAgentNode = nodes.find(n => n.id === 6);
+            if (sreAgentNode) sreAgentNode.status = 'healthy';
+            
+            logEvent('DATABASE', 'Database container connection pool recycled. Pool usage cleared to 0/100 active connections.', 'success');
+            logEvent('SYSTEM', 'Container stack restored to healthy baseline.', 'success');
+            break;
+            
+          case 'STATE_CLEANUP':
+            this.state = 'IDLE';
+            this.countdown = 30.0;
+            
+            // Remove the temporary elements from array
+            const prIdx = nodes.findIndex(n => n.id === 999);
+            if (prIdx !== -1) nodes.splice(prIdx, 1);
+            
+            const conn1Idx = connections.findIndex(c => c.id === 'pr-conn-1');
+            if (conn1Idx !== -1) connections.splice(conn1Idx, 1);
+            
+            const conn2Idx = connections.findIndex(c => c.id === 'pr-conn-2');
+            if (conn2Idx !== -1) connections.splice(conn2Idx, 1);
+            
+            this.prNodeId = null;
+            
+            if (selectedNode && selectedNode.id === 999) {
+              selectedNode = null;
+              closeInspector();
+            }
+            break;
+        }
+        
+        // Refresh open inspector state if currently focused on SRE/DB/PR
+        if (selectedNode) {
+          openInspector(selectedNode);
+        }
+      }
+    };
+
+
+
+    // HTML HUD Refresher
+    function updateHudDisplays() {
+      // SRE Status pill in header
+      const label = document.getElementById('sre-loop-status');
+      const timer = document.getElementById('sre-timer-label');
+      const pOuter = document.getElementById('sre-pulse-outer');
+      const pInner = document.getElementById('sre-pulse-inner');
+      
+      if (sreLoop.state === 'IDLE') {
+        label.innerText = `SRE Status: baseline monitoring`;
+        timer.innerText = `next check: ${Math.max(0, sreLoop.countdown).toFixed(1)}s`;
+        
+        pOuter.style.backgroundColor = 'var(--color-emerald)';
+        pInner.style.backgroundColor = 'var(--color-emerald)';
+      } else {
+        label.innerText = `SRE Healing: ${sreLoop.state}`;
+        const remaining = Math.max(0, sreLoop.currentDuration - sreLoop.timer);
+        timer.innerText = `phase time: ${remaining.toFixed(1)}s`;
+        
+        if (sreLoop.state === 'FAULT_INJECTION') {
+          pOuter.style.backgroundColor = 'var(--color-rose)';
+          pInner.style.backgroundColor = 'var(--color-rose)';
+        } else if (sreLoop.state === 'AGENT_DIAGNOSING' || sreLoop.state === 'HOTFIX_PIPELINE' || sreLoop.state === 'PR_SPAWNING' || sreLoop.state === 'INTEGRATION_TEST') {
+          pOuter.style.backgroundColor = 'var(--color-blue)';
+          pInner.style.backgroundColor = 'var(--color-blue)';
+        } else {
+          pOuter.style.backgroundColor = 'var(--color-emerald)';
+          pInner.style.backgroundColor = 'var(--color-emerald)';
+        }
+      }
+    }
+
+    // Force-directed physics calculation (R1)
+    function updatePhysics(dt) {
+      if (physicsPaused) return;
+      
+      const speed = simulationSpeed;
+      const timeStep = dt * speed;
+      
+      // 1. Reset force accumulators
+      nodes.forEach(node => {
+        node.fx = 0;
+        node.fy = 0;
+      });
+      
+      // 2. Repulsion Forces (Coulomb's Law, between all nodes)
+      const kRep = 50000;
+      const epsilon = 100;
+      for (let i = 0; i < nodes.length; i++) {
+        const nodeA = nodes[i];
+        if (!activeFilters[nodeA.type] && nodeA.id !== 999) continue;
+        
+        for (let j = i + 1; j < nodes.length; j++) {
+          const nodeB = nodes[j];
+          if (!activeFilters[nodeB.type] && nodeB.id !== 999) continue;
+          
+          const dx = nodeA.x - nodeB.x;
+          const dy = nodeA.y - nodeB.y;
+          const distSq = dx * dx + dy * dy + epsilon;
+          const dist = Math.sqrt(distSq);
+          
+          const force = kRep / distSq;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          
+          nodeA.fx += fx;
+          nodeA.fy += fy;
+          nodeB.fx -= fx;
+          nodeB.fy -= fy;
+        }
+      }
+      
+      // 3. Attraction Forces (Hooke's Law springs, along connection lines)
+      const kAtt = 0.05;
+      const restLength = 160;
+      connections.forEach(conn => {
+        const nodeA = nodes.find(n => n.id === conn.from);
+        const nodeB = nodes.find(n => n.id === conn.to);
+        if (!nodeA || !nodeB) return;
+        
+        if (!activeFilters[nodeA.type] && nodeA.id !== 999) return;
+        if (!activeFilters[nodeB.type] && nodeB.id !== 999) return;
+        
+        const dx = nodeB.x - nodeA.x;
+        const dy = nodeB.y - nodeA.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+        
+        const force = kAtt * (dist - restLength);
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        
+        nodeA.fx += fx;
+        nodeA.fy += fy;
+        nodeB.fx -= fx;
+        nodeB.fy -= fy;
+      });
+      
+      // 4. Centering Gravity Pull
+      const kGrav = 0.01;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      nodes.forEach(node => {
+        if (!activeFilters[node.type] && node.id !== 999) return;
+        if (node === draggedNode) return;
+        
+        const dx = centerX - node.x;
+        const dy = centerY - node.y;
+        
+        node.fx += dx * kGrav;
+        node.fy += dy * kGrav;
+      });
+      
+      // 5. Integration Step
+      const damping = 0.90;
+      nodes.forEach(node => {
+        if (node === draggedNode) {
+          node.vx = 0;
+          node.vy = 0;
+          return;
+        }
+        if (!activeFilters[node.type] && node.id !== 999) return;
+        
+        node.vx = (node.vx + node.fx * timeStep) * damping;
+        node.vy = (node.vy + node.fy * timeStep) * damping;
+        
+        const maxVelocity = 300;
+        node.vx = Math.max(-maxVelocity, Math.min(maxVelocity, node.vx));
+        node.vy = Math.max(-maxVelocity, Math.min(maxVelocity, node.vy));
+        
+        node.x += node.vx * timeStep;
+        node.y += node.vy * timeStep;
+      });
+
+      // 6. Update connection particles
+      connections.forEach(conn => {
+        if (!conn.particles) return;
+        const fromNode = nodes.find(n => n.id === conn.from);
+        const toNode = nodes.find(n => n.id === conn.to);
+        if (!fromNode || !toNode) return;
+        
+        const state = getConnectionState(conn, fromNode, toNode);
+        let pSpeed = 0.008;
+        if (state === 'active') pSpeed = 0.02;
+        else if (state === 'error') pSpeed = 0.001;
+        
+        conn.particles.forEach(p => {
+          p.t += pSpeed * 60 * timeStep;
+          if (p.t >= 1.0) p.t = p.t % 1.0;
+        });
+      });
+    }
+
+    // Bezier curve coordinate evaluation
+    function getCubicBezierPoint(p0, p1, p2, p3, t) {
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const mt3 = mt2 * mt;
+      const t2 = t * t;
+      const t3 = t2 * t;
+
+      return {
+        x: mt3 * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
+        y: mt3 * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y
+      };
+    }
+
+    // Canvas Draw Frame Loop
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(zoom, zoom);
+
+      // 1. Draw Connection Lines (R2)
+      connections.forEach(conn => {
+        const fromNode = nodes.find(n => n.id === conn.from);
+        const toNode = nodes.find(n => n.id === conn.to);
+        if (!fromNode || !toNode) return;
+        
+        if (!activeFilters[fromNode.type] && fromNode.id !== 999) return;
+        if (!activeFilters[toNode.type] && toNode.id !== 999) return;
+        
+        const p0 = { x: fromNode.x, y: fromNode.y };
+        const p3 = { x: toNode.x, y: toNode.y };
+        const dx = toNode.x - fromNode.x;
+        
+        // Cubic bezier control points (projected horizontally)
+        const p1 = { x: fromNode.x + dx * 0.4, y: fromNode.y };
+        const p2 = { x: toNode.x - dx * 0.4, y: toNode.y };
+        
+        const state = getConnectionState(conn, fromNode, toNode);
+        const connAlpha = conn.alpha !== undefined ? conn.alpha : 1.0;
+        
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+        
+        if (state === 'error') {
+          // pulsing dashed red line
+          ctx.setLineDash([6, 6]);
+          ctx.lineDashOffset = -Date.now() * 0.05 * simulationSpeed;
+          ctx.strokeStyle = `rgba(244, 63, 94, ${0.4 * connAlpha})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else if (state === 'active') {
+          // glowing cyan active pipe
+          ctx.strokeStyle = `rgba(59, 130, 246, ${0.4 * connAlpha})`;
+          ctx.lineWidth = 3.5;
+          ctx.stroke();
+        } else {
+          // healthy green solid line
+          ctx.strokeStyle = `rgba(16, 185, 129, ${0.25 * connAlpha})`;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }
+        
+        // Draw neon packets/particles
+        if (conn.particles) {
+          conn.particles.forEach(p => {
+            const pt = getCubicBezierPoint(p0, p1, p2, p3, p.t);
+            
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, state === 'error' ? 2 : 3.5, 0, Math.PI * 2);
+            
+            let pColor = '#10b981';
+            if (state === 'active') pColor = '#3b82f6';
+            else if (state === 'error') pColor = '#f43f5e';
+            
+            ctx.fillStyle = pColor;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = pColor;
+            
+            ctx.globalAlpha = connAlpha;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
+          });
+        }
+      });
+
+      // 2. Draw Temporary drag-to-connect line
+      if (connectingSourceNode) {
+        ctx.beginPath();
+        ctx.moveTo(connectingSourceNode.x, connectingSourceNode.y);
+        ctx.lineTo(mouseWorldPos.x, mouseWorldPos.y);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // 3. Draw snapping hover ring indicator
+      if (connectHoverNode) {
+        ctx.beginPath();
+        ctx.arc(connectHoverNode.x, connectHoverNode.y, connectHoverNode.radius + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
+      // 4. Draw Nodes
+      nodes.forEach(node => {
+        if (!activeFilters[node.type] && node.id !== 999) return;
+        
+        const config = COLORS[node.type];
+        const nodeAlpha = node.alpha !== undefined ? node.alpha : 1.0;
+        
+        ctx.save();
+        ctx.globalAlpha = nodeAlpha;
+        
+        // Node background
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(9, 15, 32, 0.95)';
+        ctx.fill();
+        
+        // Node border styles
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = config.stroke;
+        
+        if (node.status === 'processing') {
+          // Pulsing blue shadow
+          const pulse = 8 + Math.sin(Date.now() * 0.008) * 4;
+          ctx.shadowBlur = pulse;
+          ctx.shadowColor = config.stroke;
+        } else if (node.status === 'error') {
+          // Dynamic red warning shadow
+          const pulse = 10 + Math.sin(Date.now() * 0.01) * 5;
+          ctx.shadowBlur = pulse;
+          ctx.shadowColor = 'rgba(244, 63, 94, 0.9)';
+          ctx.strokeStyle = '#f43f5e';
+        } else {
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = config.glow;
+        }
+        
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset shadow
+        
+        // Selection outline
+        if (selectedNode && selectedNode.id === node.id) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius + 7, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 2]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        
+        // Internal Icon glyph (unicode centered)
+        ctx.font = '20px "Inter", sans-serif';
+        ctx.fillStyle = config.stroke;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(UNICODE_ICONS[node.type] || '⚙️', node.x, node.y - 2);
+        
+        // Label Text
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = 'bold 10px "Fira Code", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(node.label, node.x, node.y + node.radius + 14);
+        
+        // Type Badge Subtitle
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 7px "Inter", sans-serif';
+        ctx.fillText(config.label.toUpperCase(), node.x, node.y + node.radius + 24);
+        
+        ctx.restore();
+      });
+
+      ctx.restore();
+    }
+
+    // Interactive mouse controls
+    container.addEventListener('dragstart', (e) => e.preventDefault());
+    container.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      const worldPos = screenToWorld(mouseX, mouseY);
+      
+      // Collision check
+      let hitNode = null;
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        const node = nodes[i];
+        if (!activeFilters[node.type] && node.id !== 999) continue;
+        
+        const dx = worldPos.x - node.x;
+        const dy = worldPos.y - node.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= node.radius) {
+          hitNode = node;
+          break;
+        }
+      }
+      
+      if (hitNode) {
+        const dx = worldPos.x - hitNode.x;
+        const dy = worldPos.y - hitNode.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Drag-to-connect vs move node: Shift modifier OR outer ring perimeter click
+        const isOuterBorder = dist >= hitNode.radius * 0.7 && dist <= hitNode.radius;
+        if (e.shiftKey || isOuterBorder) {
+          connectingSourceNode = hitNode;
+          mouseWorldPos = worldPos;
+        } else {
+          draggedNode = hitNode;
+        }
+        selectedNode = hitNode;
+        openInspector(hitNode);
+      } else {
+        isPanning = true;
+        startPanX = e.clientX - panX;
+        startPanY = e.clientY - panY;
+      }
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      const worldPos = screenToWorld(mouseX, mouseY);
+      mouseWorldPos = worldPos;
+      
+      if (draggedNode) {
+        draggedNode.x = worldPos.x;
+        draggedNode.y = worldPos.y;
+        draggedNode.vx = 0;
+        draggedNode.vy = 0;
+      } else if (connectingSourceNode) {
+        // check snapping hover target node
+        let hoverNode = null;
+        for (const node of nodes) {
+          if (node.id === connectingSourceNode.id) continue;
+          if (!activeFilters[node.type] && node.id !== 999) continue;
+          
+          const dx = worldPos.x - node.x;
+          const dy = worldPos.y - node.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= node.radius) {
+            hoverNode = node;
+            break;
+          }
+        }
+        connectHoverNode = hoverNode;
+      } else if (isPanning) {
+        panX = e.clientX - startPanX;
+        panY = e.clientY - startPanY;
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (connectingSourceNode) {
+        if (connectHoverNode) {
+          const exists = connections.some(c => 
+            (c.from === connectingSourceNode.id && c.to === connectHoverNode.id) ||
+            (c.from === connectHoverNode.id && c.to === connectingSourceNode.id)
+          );
+          if (!exists) {
+            addConnection(connectingSourceNode.id, connectHoverNode.id);
+          } else {
+            logEvent('TOPOLOGY', 'Link pipe already exists between these coordinates.', 'warning');
+          }
+        }
+        connectingSourceNode = null;
+        connectHoverNode = null;
+      }
+      draggedNode = null;
+      isPanning = false;
+    });
+
+    // Zoom mousewheel listener
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      const zoomFactor = 1.1;
+      const oldZoom = zoom;
+      let newZoom = zoom;
+      
+      if (e.deltaY < 0) {
+        newZoom = Math.min(zoom * zoomFactor, 4.0);
+      } else {
+        newZoom = Math.max(zoom / zoomFactor, 0.15);
+      }
+      
+      if (newZoom !== oldZoom) {
+        panX = mouseX - (mouseX - panX) * (newZoom / oldZoom);
+        panY = mouseY - (mouseY - panY) * (newZoom / oldZoom);
+        zoom = newZoom;
+      }
+    }, { passive: false });
+
+    // Establish dynamic connection pipe
+    function addConnection(from, to, label = 'Dynamic link') {
+      if (from === to) return;
+      const exists = connections.some(c => 
+        (c.from === from && c.to === to) ||
+        (c.from === to && c.to === from)
+      );
+      if (exists) return;
+
+      const newConn = {
+        from,
+        to,
+        label,
+        particles: [{ t: 0.0 }, { t: 0.33 }, { t: 0.66 }],
+        fade: false,
+        alpha: 1.0,
+        temp: false
+      };
+      connections.push(newConn);
+      
+      const nFrom = nodes.find(n => n.id === from);
+      const nTo = nodes.find(n => n.id === to);
+      logEvent('TOPOLOGY', `Created vector link pipe from [${nFrom.label}] to [${nTo.label}].`, 'info');
+    }
+
+    // Role switcher
+    let currentRoleIdx = 0;
+    const roles = ['Administrator', 'Sales Representative', 'Operations Engineer', 'Social Media Manager'];
+    function cycleRole() {
+      currentRoleIdx = (currentRoleIdx + 1) % roles.length;
+      document.getElementById('role-selector').innerHTML = `<i data-lucide="user" class="w-3 h-3"></i> Mode: ${roles[currentRoleIdx]}`;
+      lucide.createIcons();
+      logEvent('SYSTEM', `Swapped administrator profile perspective to: ${roles[currentRoleIdx]}.`, 'info');
+    }
+
+    function resetCamera() {
+      panX = 0;
+      panY = 0;
+      zoom = 1.0;
+      activeFilters = { research: true, create: true, publish: true, sales: true, compliance: true, ops: true, database: true };
+      document.getElementById('filter-research').checked = true;
+      document.getElementById('filter-sales').checked = true;
+      document.getElementById('filter-compliance').checked = true;
+      document.getElementById('filter-ops').checked = true;
+      document.getElementById('filter-database').checked = true;
+      logEvent('SYSTEM', 'View coordinates and zoom factor returned to system standard.', 'info');
+    }
+
+    function adjustZoom(factor) {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const oldZoom = zoom;
+      const newZoom = Math.max(0.15, Math.min(4.0, zoom * factor));
+      
+      if (newZoom !== oldZoom) {
+        panX = centerX - (centerX - panX) * (newZoom / oldZoom);
+        panY = centerY - (centerY - panY) * (newZoom / oldZoom);
+        zoom = newZoom;
+      }
+    }
+
+    // Spawner Dock Node logic (R4)
+    function spawnNode(type) {
+      if (nodes.length >= 30) {
+        logEvent('SYSTEM', 'Node spawn rejected: maximum density threshold reached (30 nodes).', 'warning');
+        return;
+      }
+      if (nextNodeId === 999) {
+        nextNodeId = 1000;
+      }
+      const screenCenterX = width / 2;
+      const screenCenterY = height / 2;
+      
+      // Center of viewport translated to world coordinates
+      const worldCenter = screenToWorld(screenCenterX, screenCenterY);
+      
+      // Jitter offset to prevent nodes from overlapping perfectly
+      const jitterX = (Math.random() - 0.5) * 60;
+      const jitterY = (Math.random() - 0.5) * 60;
+      
+      let label = 'Spawned Node';
+      let value = '';
+      
+      switch(type) {
+        case 'sales':
+          label = `Lead Prospect ${nextNodeId}`;
+          value = 'Proposal Stage • $25,000 forecasted';
+          break;
+        case 'research':
+          label = `Topic Deep Research ${nextNodeId}`;
+          value = 'Valyu SDK Ingest • 0 sources parsed';
+          break;
+        case 'compliance':
+          label = `Compliance Audit Facility ${nextNodeId}`;
+          value = 'CISA Sector 12 • Audit Required';
+          break;
+        case 'ops':
+          label = `SRE Agent ${nextNodeId}`;
+          value = 'Ready to receive crash diagnostic signals';
+          break;
+      }
+      
+      const newNode = {
+        id: nextNodeId++,
+        label: label,
+        type: type,
+        x: worldCenter.x + jitterX,
+        y: worldCenter.y + jitterY,
+        vx: 0,
+        vy: 0,
+        radius: 45,
+        status: 'healthy',
+        value: value
+      };
+      
+      nodes.push(newNode);
+      
+      // Automatically connect to the nearest node to prevent escaping
+      const nearest = findCompatibleTargetNode(newNode);
+      if (nearest) {
+        addConnection(nearest.id, newNode.id, 'Linked segment');
+      }
+      
+      logEvent('SPAWNER', `Placed new ${type.toUpperCase()} node [${label}] onto canvas coordinate vectors.`, 'info');
+      
+      // focus the spawned node
+      selectedNode = newNode;
+      openInspector(newNode);
+    }
+
+    function findCompatibleTargetNode(newNode) {
+      let closestNode = null;
+      let minDist = Infinity;
+      nodes.forEach(node => {
+        if (node.id === newNode.id) return;
+        if (!activeFilters[node.type] && node.id !== 999) return;
+        
+        const dx = node.x - newNode.x;
+        const dy = node.y - newNode.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist) {
+          minDist = dist;
+          closestNode = node;
+        }
+      });
+      return closestNode;
+    }
+
+    // Simulation controls R4
+    function toggleSimulationState() {
+      physicsPaused = !physicsPaused;
+      const btn = document.getElementById('sim-play-pause-btn');
+      
+      if (physicsPaused) {
+        btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5" id="sim-play-icon"></i> <span id="sim-play-label">PAUSED</span>`;
+        btn.classList.remove('active');
+        logEvent('MAP_CONTROLLER', 'Force-directed simulation physics suspended.', 'warning');
+      } else {
+        btn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5" id="sim-play-icon"></i> <span id="sim-play-label">RUNNING</span>`;
+        btn.classList.add('active');
+        logEvent('MAP_CONTROLLER', 'Force-directed simulation physics resume.', 'info');
+      }
+      lucide.createIcons();
+    }
+
+    function adjustSimSpeed(val) {
+      simulationSpeed = parseFloat(val);
+      document.getElementById('sim-speed-val').innerText = `${simulationSpeed.toFixed(2)}x`;
+    }
+
+    function toggleFilter(category, isChecked) {
+      activeFilters[category] = isChecked;
+      if (category === 'research') {
+        activeFilters['create'] = isChecked;
+        activeFilters['publish'] = isChecked;
+      }
+      logEvent('MAP_CONTROLLER', `Category filter [${category.toUpperCase()}] status changed to: ${isChecked ? 'VISIBLE' : 'HIDDEN'}`, 'info');
+      
+      if (selectedNode && !isChecked) {
+        if (selectedNode.type === category || (category === 'research' && (selectedNode.type === 'create' || selectedNode.type === 'publish'))) {
+          closeInspector();
+        }
+      }
+    }
+
+    function getCsetRingHtml(score) {
+      const radius = 36;
+      const circumference = 2 * Math.PI * radius;
+      const strokeDashoffset = circumference - (score / 100) * circumference;
+      
+      let strokeColor = 'text-rose-500';
+      let glowColor = 'rgba(244, 63, 94, 0.2)';
+      if (score >= 90) {
+        strokeColor = 'text-emerald-500';
+        glowColor = 'rgba(16, 185, 129, 0.2)';
+      } else if (score >= 70) {
+        strokeColor = 'text-amber-500';
+        glowColor = 'rgba(245, 158, 11, 0.2)';
+      }
+      
+      return `
+        <div class="flex items-center gap-4 mb-4 bg-white/2 p-3 rounded-xl border border-white/5">
+          <div class="relative flex items-center justify-center h-20 w-20">
+            <svg viewBox="0 0 80 80" class="w-full h-full transform -rotate-90">
+              <circle cx="40" cy="40" r="${radius}" class="text-slate-800" stroke-width="6" stroke="currentColor" fill="transparent" />
+              <circle cx="40" cy="40" r="${radius}" class="${strokeColor} transition-all duration-500" stroke-width="6" stroke-dasharray="${circumference}" stroke-dashoffset="${strokeDashoffset}" stroke-linecap="round" stroke="currentColor" fill="transparent" style="filter: drop-shadow(0 0 4px ${glowColor});" />
+            </svg>
+            <span class="absolute text-sm font-display font-extrabold text-white">${score}%</span>
+          </div>
+          <div>
+            <h4 class="font-display font-bold text-sm text-white">Compliance Score</h4>
+            <p class="text-xs text-slate-400">Target score is 90% or higher.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Property Inspector Panel render (R3)
+    const inspector = document.getElementById('inspector-panel');
+    const insTitle = document.getElementById('ins-title');
+    const insSubtitle = document.getElementById('ins-subtitle');
+    const insContent = document.getElementById('inspector-content');
+
+    function openInspector(node) {
+      selectedNode = node;
+      inspector.classList.remove('translate-x-full');
+      insTitle.innerText = node.label;
+      
+      let statusColor = 'text-emerald-400';
+      if (node.status === 'error') statusColor = 'text-rose-400';
+      else if (node.status === 'processing') statusColor = 'text-cyan-400';
+      
+      insSubtitle.innerHTML = `Type: <span class="font-semibold text-white">${node.type.toUpperCase()}</span> • Status: <span class="font-mono font-bold ${statusColor}">${node.status.toUpperCase()}</span>`;
+      
+      // Context aware metadata injection
+      let html = '';
+      
+      if (node.id === 999) {
+        // Spawned PR Node
+        html = `
+          <div class="border-b border-white/5 pb-3">
+            <strong class="text-slate-400 block mb-1">PR Description:</strong>
+            <p class="text-slate-300 font-mono text-[11px] leading-relaxed bg-black/30 p-2 border border-white/5 rounded">${node.value}</p>
+          </div>
+          <div class="border-b border-white/5 pb-3">
+            <strong class="text-slate-400 block mb-1">State Machine Phase:</strong>
+            <span class="px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-blue-500/10 border border-blue-500/20 text-blue-400">${sreLoop.state}</span>
+          </div>
+          <div class="mt-2">
+            <button onclick="approvePullRequest()" class="w-full flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold py-2 rounded-lg transition">
+              <i data-lucide="check-circle" class="w-4 h-4"></i> Approve & Merge PR
+            </button>
+          </div>
+        `;
+      } else if (node.type === 'compliance') {
+        // CSET Compliance Gauge & Checklists
+        const doneCount = csetChecklist.filter(item => item.done).length;
+        const score = Math.round((doneCount / csetChecklist.length) * 100);
+        
+        html = `
+          ${getCsetRingHtml(score)}
+          
+          <div class="mt-2">
+            <strong class="text-slate-400 block mb-2 font-display uppercase text-[10px] tracking-wider">Audit Checklist</strong>
+            <div class="flex flex-col gap-2">
+              ${csetChecklist.map((item, idx) => `
+                <label class="flex items-center justify-between bg-white/2 p-2.5 rounded-lg border border-white/5 hover:bg-white/5 cursor-pointer transition">
+                  <span class="text-slate-300">${item.text}</span>
+                  <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleComplianceCheck(${idx})" class="accent-rose-500 h-4 w-4 rounded" />
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <button onclick="auditFacilityFully()" class="w-full flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold py-2 rounded-lg transition">
+              <i data-lucide="shield-check" class="w-4 h-4"></i> Run Automatic CSET Audit
+            </button>
+          </div>
+        `;
+      } else if (node.type === 'sales') {
+        // Sales Pipeline checklist
+        html = `
+          <div class="bg-amber-500/5 border border-amber-500/10 p-3 rounded-lg mb-2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] text-slate-400 font-mono">DEAL VALUE (USD)</span>
+              <span class="px-2 py-0.5 rounded text-[8px] bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold uppercase tracking-wider">PROPOSAL STAGE</span>
+            </div>
+            <input type="number" id="sales-deal-input" value="${dealValue}" class="bg-black/40 border border-white/10 text-white font-display text-lg font-bold w-full px-2 py-1 rounded outline-none focus:border-amber-500/40" onchange="updateDealValue(this.value)" />
+          </div>
+
+          <div class="mt-2">
+            <strong class="text-slate-400 block mb-2 font-display uppercase text-[10px] tracking-wider">Pipeline Checklist</strong>
+            <div class="flex flex-col gap-2">
+              ${salesChecklist.map((item, idx) => `
+                <label class="flex items-center justify-between bg-white/2 p-2.5 rounded-lg border border-white/5 hover:bg-white/5 cursor-pointer transition">
+                  <span class="text-slate-300 ${item.done ? 'line-through text-slate-500' : ''}">${item.text}</span>
+                  <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleSalesCheck(${idx})" class="accent-amber-500 h-4 w-4 rounded" />
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <button onclick="approveSalesContract()" class="w-full flex items-center justify-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold py-2 rounded-lg transition">
+              <i data-lucide="file-signature" class="w-4 h-4"></i> Sign & Close Sales Deal
+            </button>
+          </div>
+        `;
+      } else if (node.type === 'create') {
+        // Podcast Node
+        html = `
+          <div class="border-b border-white/5 pb-3">
+            <strong class="text-slate-400 block mb-1">Details:</strong>
+            <p class="text-slate-300">${node.value}</p>
+          </div>
+          <div class="mt-2">
+            <button onclick="triggerPodcastDeployment()" class="w-full flex items-center justify-center gap-2 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-400 font-bold py-2 rounded-lg transition">
+              <i data-lucide="play" class="w-4 h-4"></i> Deploy Podcast Pipeline
+            </button>
+          </div>
+        `;
+      } else if (node.type === 'research') {
+        // Research node
+        html = `
+          <div class="border-b border-white/5 pb-3">
+            <strong class="text-slate-400 block mb-1">Details:</strong>
+            <p class="text-slate-300">${node.value}</p>
+          </div>
+          
+          <div class="mt-2">
+            <strong class="text-slate-400 block mb-2 font-display uppercase text-[10px] tracking-wider">Research Checklist</strong>
+            <div class="flex flex-col gap-2">
+              ${researchChecklist.map((item, idx) => `
+                <div class="flex items-center justify-between bg-white/2 p-2.5 rounded-lg border border-white/5">
+                  <span class="text-slate-300 ${item.done ? 'line-through text-slate-500' : ''}">${item.text}</span>
+                  <i data-lucide="${item.done ? 'check-circle' : 'circle'}" class="w-4 h-4 ${item.done ? 'text-cyan-400' : 'text-slate-600'}"></i>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <button onclick="simulateResearchRun()" class="w-full flex items-center justify-center gap-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-bold py-2 rounded-lg transition">
+              <i data-lucide="search" class="w-4 h-4"></i> Run Deep Research
+            </button>
+          </div>
+        `;
+      } else {
+        // Default representation
+        html = `
+          <div class="border-b border-white/5 pb-3">
+            <strong class="text-slate-400 block mb-1">Value / Config:</strong>
+            <p class="text-slate-300 font-mono text-[11px]">${node.value}</p>
+          </div>
+          <div class="border-b border-white/5 pb-3">
+            <strong class="text-slate-400 block mb-1">Coordinates:</strong>
+            <p class="text-slate-300 font-mono text-[11px]">X: ${Math.round(node.x)}px | Y: ${Math.round(node.y)}px</p>
+          </div>
+          <div>
+            <strong class="text-slate-400 block mb-1">Topology Links:</strong>
+            <ul class="list-disc list-inside text-slate-400 font-mono text-[10px]">
+              ${connections.filter(c => c.from === node.id || c.to === node.id).map(c => {
+                const partnerId = c.from === node.id ? c.to : c.from;
+                const partner = nodes.find(n => n.id === partnerId);
+                return `<li>Link to Node ${partnerId} (${partner ? partner.label : 'Unknown'})</li>`;
+              }).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      insContent.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function closeInspector() {
+      inspector.classList.add('translate-x-full');
+      selectedNode = null;
+    }
+
+    // Inspector Action Callbacks
+    function toggleComplianceCheck(idx) {
+      csetChecklist[idx].done = !csetChecklist[idx].done;
+      
+      const doneCount = csetChecklist.filter(item => item.done).length;
+      const score = Math.round((doneCount / csetChecklist.length) * 100);
+      
+      const targetNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+      if (targetNode) {
+        targetNode.value = `CISA Sector 12 • ${score}% CSET Score`;
+        openInspector(targetNode);
+        logEvent('COMPLIANCE', `CSET compliance item [${csetChecklist[idx].text}] toggled on ${targetNode.label} to ${csetChecklist[idx].done ? 'VERIFIED' : 'FAILED'}. Score: ${score}%`, 'warning');
+      } else {
+        logEvent('COMPLIANCE', `CSET compliance item [${csetChecklist[idx].text}] toggled to ${csetChecklist[idx].done ? 'VERIFIED' : 'FAILED'}. Score: ${score}%`, 'warning');
+      }
+    }
+
+    function auditFacilityFully() {
+      csetChecklist.forEach(item => item.done = true);
+      const targetNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+      if (targetNode) {
+        targetNode.status = 'healthy';
+        targetNode.value = 'CISA Sector 12 • 100% CSET Score';
+        openInspector(targetNode);
+        logEvent('COMPLIANCE', `Recalculated full CSET compliance matrices for ${targetNode.label}. Score updated to: 100% (Certified).`, 'success');
+      } else {
+        logEvent('COMPLIANCE', 'Recalculated full CSET compliance matrices. Score updated to: 100% (Certified).', 'success');
+      }
+      
+      // Update left control panel badge
+      const badge = document.getElementById('btn-compliance-status');
+      badge.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-400';
+      badge.innerText = '100% Score';
+    }
+
+    function updateDealValue(val) {
+      dealValue = parseInt(val) || 0;
+      const targetNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+      if (targetNode) {
+        targetNode.value = `Proposal Stage • $${dealValue.toLocaleString()} Deal size`;
+        logEvent('SALES', `${targetNode.label} sales pipeline deal size updated to $${dealValue.toLocaleString()} USD.`, 'info');
+      }
+    }
+
+    function toggleSalesCheck(idx) {
+      salesChecklist[idx].done = !salesChecklist[idx].done;
+      const targetNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+      if (targetNode) {
+        const isSigned = salesChecklist.find(item => item.id === 'sign').done;
+        if (isSigned) {
+          targetNode.status = 'healthy';
+          targetNode.value = `Proposal Signed • Closed-Won • $${dealValue.toLocaleString()}`;
+          logEvent('SALES', `${targetNode.label} sales proposal contract SIGNED by administrator! Deal size $${dealValue.toLocaleString()} moved to Closed-Won.`, 'success');
+        } else {
+          targetNode.value = `Proposal Stage • $${dealValue.toLocaleString()} Deal size`;
+        }
+        openInspector(targetNode);
+      }
+    }
+
+    function approveSalesContract() {
+      salesChecklist.forEach(item => item.done = true);
+      const targetNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+      if (targetNode) {
+        targetNode.status = 'healthy';
+        targetNode.value = `Proposal Signed • Closed-Won • $${dealValue.toLocaleString()}`;
+        openInspector(targetNode);
+        logEvent('SALES', `${targetNode.label} contract signed and merged successfully into revenue pipeline.`, 'success');
+      }
+    }
+
+    function triggerPodcastDeployment() {
+      const targetNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+      if (!targetNode || targetNode.status === 'processing') return;
+      
+      targetNode.status = 'processing';
+      logEvent('TTS_ENGINE', `Starting Kokoro speech audio synthesis pipeline (2 speaker profiles) for ${targetNode.label}...`, 'info');
+      
+      // Animate extra high-speed particles along Node connection
+      const conn = connections.find(c => c.from === targetNode.id);
+      if (conn) {
+        logEvent('TTS_ENGINE', 'Streaming speech audio bytes to scheduler delivery queue...', 'info');
+      }
+      
+      setTimeout(() => {
+        targetNode.status = 'healthy';
+        logEvent('TTS_ENGINE', 'Audio compilation finished. MP3 file delivered to publisher queue.', 'success');
+        logEvent('SOCIAL_SCHEDULER', 'Social Scheduler queue updated. Scheduled for Twitter/LinkedIn.', 'info');
+        if (selectedNode && selectedNode.id === targetNode.id) openInspector(targetNode);
+      }, 3500);
+    }
+
+    function simulateResearchRun() {
+      const targetNode = (selectedNode && selectedNode.type === 'research') ? nodes.find(n => n.id === selectedNode.id) : nodes.find(n => n.id === 1);
+      if (!targetNode) return;
+      const statusBtn = document.getElementById('btn-research-status');
+      
+      targetNode.status = 'processing';
+      researchChecklist.forEach(item => {
+        if (item.text.includes('pgvector')) item.done = false;
+      });
+      
+      statusBtn.className = 'px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-cyan-500/10 border border-cyan-500/20 text-cyan-400';
+      statusBtn.innerText = 'polling';
+      
+      logEvent('RESEARCH_AGENT', `Initializing Valyu deep research crawler for ${targetNode.label}. Query: "rare earths sector 2026"`, 'info');
+      
+      setTimeout(() => {
+        logEvent('VALYU_SDK', 'Connected to proprietary sources repository. 4 database files matched.', 'info');
+      }, 1200);
+
+      setTimeout(() => {
+        targetNode.status = 'healthy';
+        researchChecklist.forEach(item => item.done = true);
+        targetNode.value = 'Valyu SDK API • 4 sources • Cached pgvector Postgres';
+        statusBtn.innerText = 'complete';
+        logEvent('RESEARCH_AGENT', `Knowledge graphs parsed for ${targetNode.label}. Vector embeddings stored in pgvector. Cache refreshed.`, 'success');
+        if (selectedNode && selectedNode.id === targetNode.id) openInspector(targetNode);
+      }, 3500);
+    }
+
+    function simulateComplianceQuiz() {
+      const targetNode = (selectedNode && selectedNode.type === 'compliance') ? nodes.find(n => n.id === selectedNode.id) : nodes.find(n => n.id === 5);
+      if (!targetNode) return;
+      const statusBtn = document.getElementById('btn-compliance-status');
+      
+      targetNode.status = 'processing';
+      targetNode.value = 'Updating compliance checkpoint marks...';
+      statusBtn.innerText = 'scoring';
+      
+      logEvent('COMPLIANCE', `Recalculating CSET scoring matrix for ${targetNode.label}...`, 'warning');
+
+      setTimeout(() => {
+        targetNode.status = 'healthy';
+        csetChecklist.forEach(item => item.done = true);
+        targetNode.value = 'CISA Sector 12 • 100% CSET Score (All checkpoints verified)';
+        statusBtn.innerText = '100% Score';
+        logEvent('COMPLIANCE', `CSET checklist compliance validated for ${targetNode.label}. Facility certified healthy.`, 'success');
+        if (selectedNode && selectedNode.id === targetNode.id) openInspector(targetNode);
+      }, 2000);
+    }
+
+    function triggerImmediateSreDiagnostic() {
+      if (sreLoop.state !== 'IDLE') {
+        logEvent('SRE_MONITOR', 'SRE Auto-healing loop is already running.', 'warning');
+        return;
+      }
+      logEvent('SRE_MONITOR', 'Immediate diagnostic run forced by Administrator.', 'info');
+      sreLoop.triggerFault();
+    }
+
+    function approvePullRequest() {
+      if (sreLoop.state !== 'PR_SPAWNING' && sreLoop.state !== 'INTEGRATION_TEST') {
+        logEvent('SRE_MONITOR', 'No active pull request is awaiting approval.', 'warning');
+        return;
+      }
+      
+      logEvent('ADMIN', 'Administrator clicked: Approve & Merge PR. Bypassing test suite.', 'success');
+      sreLoop.state = 'HEALING_EXEC';
+      sreLoop.timer = 0;
+      sreLoop.currentDuration = 4;
+      
+      const dbNodeToHeal = nodes.find(n => n.id === sreLoop.targetNodeId);
+      if (dbNodeToHeal) dbNodeToHeal.status = 'processing';
+      
+      const prNodeToMerge = nodes.find(n => n.id === 999);
+      if (prNodeToMerge) prNodeToMerge.status = 'healthy';
+      
+      logEvent('SRE_AGENT', 'PR #1406 approved by administrator. Merging branch and redeploying service.', 'success');
+      
+      if (selectedNode) openInspector(selectedNode);
+    }
+
+    // Canvas animation ticker
+    let lastTime = 0;
+    let heartbeatTimer = 0;
+
+    function animate(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      let dt = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+      
+      // Cap dt to prevent frame gaps
+      if (dt > 0.1) dt = 0.1;
+      
+      // Update opacity for fading elements
+      nodes.forEach(node => {
+        if (node.fade === true) {
+          node.alpha = Math.max(0, (node.alpha !== undefined ? node.alpha : 1.0) - dt * simulationSpeed * 0.5);
+        }
+      });
+      connections.forEach(conn => {
+        if (conn.fade === true) {
+          conn.alpha = Math.max(0, (conn.alpha !== undefined ? conn.alpha : 1.0) - dt * simulationSpeed * 0.5);
+        }
+      });
+      
+      updatePhysics(dt);
+      sreLoop.tick(dt);
+      
+      // Heartbeat logs
+      heartbeatTimer += dt;
+      if (heartbeatTimer >= 10.0) {
+        heartbeatTimer = 0;
+        if (!physicsPaused) {
+          const services = ['SurrealDB connection pool', 'Supervisord process status', 'pgvector storage sink', 'LiveKit media route client', 'Telemetry aggregator'];
+          const service = services[Math.floor(Math.random() * services.length)];
+          const states = ['ONLINE', 'HEALTHY', 'ACTIVE'];
+          const state = states[Math.floor(Math.random() * states.length)];
+          logEvent('HEARTBEAT', `Monitor status for ${service}: ${state}.`, 'success');
+        }
+      }
+      
+      draw();
+      updateHudDisplays();
+      
+      requestAnimationFrame(animate);
+    }
+
+    // Setup and initialization
+    // Export variables to window object for E2E testing
+    window.nodes = nodes;
+    window.connections = connections;
+    window.sreLoop = sreLoop;
+    window.csetChecklist = csetChecklist;
+    window.researchChecklist = researchChecklist;
+    window.addConnection = addConnection;
+    window.getConnectionState = getConnectionState;
+    window.openInspector = openInspector;
+    window.closeInspector = closeInspector;
+    window.logQueue = logQueue;
+    window.logEvent = logEvent;
+    window.updatePhysics = updatePhysics;
+    window.spawnNode = spawnNode;
+    window.adjustZoom = adjustZoom;
+    window.adjustSimSpeed = adjustSimSpeed;
+    window.toggleFilter = toggleFilter;
+    window.toggleComplianceCheck = toggleComplianceCheck;
+    window.auditFacilityFully = auditFacilityFully;
+    window.updateDealValue = updateDealValue;
+    window.toggleSalesCheck = toggleSalesCheck;
+    window.approveSalesContract = approveSalesContract;
+    window.simulateResearchRun = simulateResearchRun;
+    window.simulateComplianceQuiz = simulateComplianceQuiz;
+    window.triggerImmediateSreDiagnostic = triggerImmediateSreDiagnostic;
+    window.approvePullRequest = approvePullRequest;
+
+    Object.defineProperties(window, {
+      zoom: { get: () => zoom, set: (v) => { zoom = v; } },
+      panX: { get: () => panX, set: (v) => { panX = v; } },
+      panY: { get: () => panY, set: (v) => { panY = v; } },
+      simulationSpeed: { get: () => simulationSpeed, set: (v) => { simulationSpeed = v; } },
+      activeFilters: { get: () => activeFilters, set: (v) => { activeFilters = v; } },
+      physicsPaused: { get: () => physicsPaused, set: (v) => { physicsPaused = v; } },
+      draggedNode: { get: () => draggedNode, set: (v) => { draggedNode = v; } },
+      connectingSourceNode: { get: () => connectingSourceNode, set: (v) => { connectingSourceNode = v; } },
+      mouseWorldPos: { get: () => mouseWorldPos, set: (v) => { mouseWorldPos = v; } },
+      dealValue: { get: () => dealValue, set: (v) => { dealValue = v; } },
+      selectedNode: { get: () => selectedNode, set: (v) => { selectedNode = v; } }
+    });
+
+    logQueue.init();
+    lucide.createIcons();
+    
+    // Initial bootlogs
+    logEvent('DATABASE', 'SurrealDB v2 database connection pool initialized.', 'success');
+    logEvent('RESEARCH_MEMORY', 'pgvector postgres connection pool ready.', 'success');
+    logEvent('SUPERVISORD', 'All 6 Docker container blocks running healthy.', 'success');
+
+    // Start ticker
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
