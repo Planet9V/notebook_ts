@@ -20,11 +20,11 @@ Set up the SurrealQL credentials schema and the admin settings UI cards.
 Implement the OAuth 2.0 flow callbacks, token exchanges, and key encryption.
 
 ### Tasks
-- [ ] **Task 2.1**: Implement the callback endpoint `GET /api/credentials/oauth/callback` in `api/routers/credentials.py` exchanging authorization codes for access and refresh tokens.
-- [ ] **Task 2.2**: Integrate secure encryption via server keys and Vault-path formatting to persist the refresh token inside SurrealDB.
+- [x] **Task 2.1**: Implement the callback endpoint `GET /api/credentials/oauth/callback` in `api/routers/credentials.py` exchanging authorization codes for access and refresh tokens.
+- [x] **Task 2.2**: Integrate secure encryption via server keys and Vault-path formatting to persist the refresh token inside SurrealDB.
 
 ### Verification
-- [ ] Mock OAuth token exchange and verify tokens are encrypted and saved without leakage in tests.
+- [x] Mock OAuth token exchange and verify tokens are encrypted and saved without leakage in tests.
 
 ## Phase 3: Styleguide Document Compiler & Exporters
 Implement branded compilers and Google Docs, Sheets, and Slides API connectors.
