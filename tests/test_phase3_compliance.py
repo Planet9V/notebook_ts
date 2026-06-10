@@ -1,11 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
+import uuid
 
 client = TestClient(app)
 
 def test_asset_persistence_crud():
-    notebook_id = "test-nb-999"
+    notebook_id = f"test-nb-{uuid.uuid4().hex[:8]}"
     # Create asset
     payload = {
         "notebook_id": notebook_id,
@@ -177,8 +178,16 @@ async def test_assessment_session_quiz_and_report():
 
 
 def test_edge_persistence_crud():
-    notebook_id = "test-nb-999"
+    notebook_id = f"test-nb-{uuid.uuid4().hex[:8]}"
     # Ensure notebook exists by creating it or letting backend auto-create it
+    client.post(f"/api/notebooks/{notebook_id}/assets", json={
+        "notebook_id": notebook_id,
+        "node_id": "dummy-node",
+        "type": "plc",
+        "purdueLevel": 1,
+        "x": 0.0,
+        "y": 0.0
+    })
     # Create edges
     edges_payload = [
         {

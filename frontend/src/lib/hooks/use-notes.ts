@@ -99,3 +99,10 @@ export function useDeleteNote() {
     },
   })
 }
+
+export function useAllNotes() {
+  return useQuery({
+    queryKey: ['notes', 'all'],
+    queryFn: () => notesApi.list(),
+  })
+}

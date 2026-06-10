@@ -272,3 +272,115 @@ class TestAssessmentsAPI:
         assert fac["facility_name"] == "Refinery Alpha (Refinery)"
         assert fac["status"] == "COMPLETED"
         assert fac["compliance_score"] == 85.0
+
+    @patch("api.routers.assessments.repo_query")
+    def test_get_session_diff(self, mock_repo_query, client):
+        """Test GET /api/sessions/{session_id}/diff/{compare_session_id} generates comparative diff details."""
+        mock_repo_query.side_effect = [
+            [{"id": "assessment_session:sess_q1", "session_name": "Q1 Baseline", "version_lock": "regulation:IEC_62443_3_3"}],  # base session lookup
+            [{"id": "assessment_session:sess_q2", "session_name": "Q2 Baseline", "version_lock": "regulation:IEC_62443_3_3"}],  # compare session lookup
+            [
+                {
+                    "id": "question:Q1",
+                    "regulation_id": "regulation:IEC_62443_3_3",
+                    "standard_code": "SR 1.1",
+                    "question_text": "Are firewalls used?",
+                    "purdue_level": 3,
+                    "category": "Access Control"
+                }
+            ],  # base questions list
+            [
+                {
+                    "id": "answer:1",
+                    "question_id": "question:Q1",
+                    "answer": "Y",
+                    "comments": "Obs1",
+                    "evidence_url": "link1"
+                }
+            ],  # base answers list
+            [
+                {
+                    "id": "answer:2",
+                    "question_id": "question:Q1",
+                    "answer": "N",
+                    "comments": "Obs2",
+                    "evidence_url": "link2"
+                }
+            ]  # compare answers list
+        ]
+
+        response = client.get("/api/sessions/sess_q1/diff/sess_q2")
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert data["base_session_id"] == "assessment_session:sess_q1"
+        assert data["compare_session_id"] == "assessment_session:sess_q2"
+        assert len(data["differences"]) == 1
+        
+        diff_item = data["differences"][0]
+        assert diff_item["standard_code"] == "SR 1.1"
+        assert diff_item["base_answer"] == "Y"
+        assert diff_item["compare_answer"] == "N"
+        assert diff_item["has_changed"] is True
+
+    @patch("api.routers.assessments.get_session_report")
+    def test_export_session_report_xlsx(self, mock_report, client):
+        """Test GET /api/sessions/{session_id}/export?format=xlsx triggers openpyxl sheet download."""
+        from api.models import AssessmentReportResponse, AssessmentReportStats, CategoryCoverage
+        
+        mock_report.return_value = AssessmentReportResponse(
+            session_id="assessment_session:sess_q1",
+            session_name="Q1 Baseline",
+            framework_id="regulation:IEC_62443_3_3",
+            stats=AssessmentReportStats(
+                total_questions=1,
+                answered_count=1,
+                yes_count=1,
+                no_count=0,
+                na_count=0,
+                alt_count=0,
+                completion_percentage=100.0,
+                compliance_score=100.0
+            ),
+            category_coverage=[
+                CategoryCoverage(category="Access Control", total=1, answered=1, yes_count=1, score=100.0)
+            ],
+            prioritized_recommendations=[]
+        )
+        
+        response = client.get("/api/sessions/sess_q1/export?format=xlsx")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert "attachment; filename=" in response.headers["content-disposition"]
+        assert response.content is not None
+
+    @patch("api.routers.assessments.get_session_report")
+    def test_export_session_report_csv(self, mock_report, client):
+        """Test GET /api/sessions/{session_id}/export?format=csv triggers CSV stream download."""
+        from api.models import AssessmentReportResponse, AssessmentReportStats, CategoryCoverage
+        
+        mock_report.return_value = AssessmentReportResponse(
+            session_id="assessment_session:sess_q1",
+            session_name="Q1 Baseline",
+            framework_id="regulation:IEC_62443_3_3",
+            stats=AssessmentReportStats(
+                total_questions=1,
+                answered_count=1,
+                yes_count=1,
+                no_count=0,
+                na_count=0,
+                alt_count=0,
+                completion_percentage=100.0,
+                compliance_score=100.0
+            ),
+            category_coverage=[
+                CategoryCoverage(category="Access Control", total=1, answered=1, yes_count=1, score=100.0)
+            ],
+            prioritized_recommendations=[]
+        )
+        
+        response = client.get("/api/sessions/sess_q1/export?format=csv")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/csv; charset=utf-8"
+        assert "attachment; filename=" in response.headers["content-disposition"]
+        assert response.content is not None

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, Mic, LayoutTemplate, Calendar } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
@@ -16,6 +17,13 @@ import { needsModelSetup } from '@/lib/types/podcasts'
 export default function PodcastsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'episodes' | 'templates' | 'scheduler'>('episodes')
+
+  const router = useRouter()
+  useEffect(() => {
+    if (!embedded) {
+      router.replace('/media?tab=podcasts')
+    }
+  }, [embedded, router])
 
   useEffect(() => {
     document.title = 'Podcasts | Tetrel'
@@ -87,10 +95,14 @@ export default function PodcastsPage({ embedded = false }: { embedded?: boolean 
     </div>
   )
 
-  if (embedded) {
-    return content
+  if (!embedded) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background/50">
+        <Mic className="h-8 w-8 animate-pulse text-cyan-400" />
+      </div>
+    )
   }
 
-  return <AppShell>{content}</AppShell>
+  return content
 }
 

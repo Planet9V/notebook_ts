@@ -228,6 +228,8 @@ class TestCustomersAPI:
             [],
             # DELETE contact query return
             [],
+            # DELETE entity_note edge query return
+            [],
         ]
 
         mock_repo_delete.return_value = True

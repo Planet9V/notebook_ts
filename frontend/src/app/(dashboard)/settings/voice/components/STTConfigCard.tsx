@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Mic2, Mic, ExternalLink, Zap, Loader2 } from 'lucide-react'
+import { Mic2, Mic, ExternalLink, Zap, Loader2, ChevronDown, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useState, useCallback, useEffect } from 'react'
@@ -29,6 +29,7 @@ import { VoiceApiKeyField } from './VoiceApiKeyField'
 import { STTTestResult } from './STTTestResult'
 import { useCredentialsByProvider } from '@/lib/hooks/use-credentials'
 import { useServiceHealthTest } from '../hooks/use-voice-testing'
+import { useAnalytics } from '@/lib/hooks/use-analytics'
 
 interface STTConfigCardProps {
   config: VoiceConfig | null
@@ -82,6 +83,7 @@ const LANGUAGES = [
 ]
 
 export function STTConfigCard({ config, settings, onRefresh }: STTConfigCardProps) {
+  const { trackEvent } = useAnalytics()
   const [engine, setEngine] = useState<STTEngine>('whisper')
   const [selectedModel, setSelectedModel] = useState('Systran/faster-whisper-large-v3')
   const [computeType, setComputeType] = useState('int8')
@@ -154,6 +156,12 @@ export function STTConfigCard({ config, settings, onRefresh }: STTConfigCardProp
     setSTTTestResult('Recording for 3 seconds...')
     let stream: MediaStream | null = null
     try {
+      trackEvent('audio_generated', {
+        profile: model,
+        mode: 'transcription',
+        engine: engineType,
+        language,
+      })
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream)
       const chunks: Blob[] = []
@@ -233,7 +241,7 @@ export function STTConfigCard({ config, settings, onRefresh }: STTConfigCardProp
                 aria-checked={engine === e.id}
                 onClick={() => { setEngine(e.id); saveSettings({ stt_engine: e.id }) }}
                 className={cn(
-                  'flex-1 px-2 py-1.5 rounded-md border text-xs transition-all text-center',
+                  'flex-1 px-2 py-1.5 rounded-md border text-xs transition-all text-center cursor-pointer',
                   engine === e.id
                     ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
                     : 'border-sidebar-border/30 bg-sidebar-accent/5 text-muted-foreground hover:border-sidebar-border/50'
@@ -246,235 +254,247 @@ export function STTConfigCard({ config, settings, onRefresh }: STTConfigCardProp
           </div>
         </div>
 
-        {/* ── Faster Whisper ── */}
-        {engine === 'whisper' && (
-          <>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Service URL</Label>
-              <Input value={config?.whisper_stt_url || 'http://whisper-stt:8000'} readOnly className="h-8 text-xs font-mono bg-sidebar-accent/20" />
-              <p className="text-[10px] text-muted-foreground">
-                Set via <code className="bg-sidebar-accent/30 px-1 rounded">WHISPER_STT_URL</code> env var
-              </p>
-            </div>
+        {/* Active Model Indicator */}
+        <div className="rounded-lg bg-slate-950/30 border border-white/5 p-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider text-[10px]">Active Model</span>
+          <Badge variant="outline" className="font-mono text-xs text-emerald-400 border-emerald-500/20 bg-emerald-500/5">
+            {engine === 'whisper' ? selectedModel.split('/').pop() : engine === 'openai' ? openaiModel : dgModel}
+          </Badge>
+        </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Model</Label>
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {WHISPER_MODELS.map(m => (
-                      <SelectItem key={m.id} value={m.id}>
-                        <div className="flex flex-col">
-                          <span className="text-xs">{m.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{m.desc}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-muted-foreground">
-                  Set via <code className="bg-sidebar-accent/30 px-1 rounded">WHISPER__MODEL</code>
-                </p>
-              </div>
+        {/* Collapsible Advanced Configuration */}
+        <details className="group border border-sidebar-border/30 rounded-xl p-3.5 bg-sidebar-accent/5">
+          <summary className="text-xs font-semibold cursor-pointer select-none text-muted-foreground hover:text-foreground list-none flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-mono uppercase tracking-wider text-[10px]">
+              <Settings className="h-3.5 w-3.5" /> Engine Settings
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-3.5 space-y-4 pt-3.5 border-t border-sidebar-border/20">
+            {/* ── Faster Whisper Settings ── */}
+            {engine === 'whisper' && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Service URL</Label>
+                  <Input value={config?.whisper_stt_url || 'http://whisper-stt:8000'} readOnly className="h-8 text-xs font-mono bg-sidebar-accent/20" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Set via <code className="bg-sidebar-accent/30 px-1 rounded">WHISPER_STT_URL</code> env var
+                  </p>
+                </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Compute Type</Label>
-                <Select value={computeType} onValueChange={setComputeType}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {COMPUTE_TYPES.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <div className="flex flex-col">
-                          <span className="text-xs">{c.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{c.desc}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-muted-foreground">
-                  Set via <code className="bg-sidebar-accent/30 px-1 rounded">WHISPER__COMPUTE_TYPE</code>
-                </p>
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Model</Label>
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {WHISPER_MODELS.map(m => (
+                          <SelectItem key={m.id} value={m.id}>
+                            <div className="flex flex-col">
+                              <span className="text-xs">{m.name}</span>
+                              <span className="text-[10px] text-muted-foreground">{m.desc}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Set via <code className="bg-sidebar-accent/30 px-1 rounded">WHISPER__MODEL</code>
+                    </p>
+                  </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <Button variant="outline" size="sm" className="text-xs h-7" onClick={healthTest.test} disabled={healthTest.testing}>
-                <Zap className={cn('h-3 w-3 mr-1', healthTest.testing && 'animate-pulse')} />
-                {healthTest.testing ? 'Testing...' : 'Test Connection'}
-              </Button>
-              {healthTest.result && (
-                <span className={cn('text-[11px] font-mono', healthTest.result === 'success' ? 'text-emerald-400' : 'text-red-400')}>
-                  {healthTest.result === 'success' ? '✓ Connected' : '✗ Connection failed'}
-                </span>
-              )}
-              <a href="https://github.com/fedirz/faster-whisper-server" target="_blank" rel="noopener noreferrer" className="ml-auto text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Compute Type</Label>
+                    <Select value={computeType} onValueChange={setComputeType}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {COMPUTE_TYPES.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <div className="flex flex-col">
+                              <span className="text-xs">{c.name}</span>
+                              <span className="text-[10px] text-muted-foreground">{c.desc}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Set via <code className="bg-sidebar-accent/30 px-1 rounded">WHISPER__COMPUTE_TYPE</code>
+                    </p>
+                  </div>
+                </div>
 
-        {/* ── OpenAI Whisper API ── */}
-        {engine === 'openai' && (
-          <>
-            <VoiceApiKeyField
-              provider="openai"
-              providerLabel="OpenAI"
-              modalities={['text_to_speech', 'speech_to_text', 'language']}
-              docsUrl="https://platform.openai.com/docs/guides/speech-to-text"
-              docsLabel="OpenAI STT Docs"
-            />
+                <div className="flex items-center gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="text-xs h-7 cursor-pointer" onClick={healthTest.test} disabled={healthTest.testing}>
+                    <Zap className={cn('h-3 w-3 mr-1', healthTest.testing && 'animate-pulse')} />
+                    {healthTest.testing ? 'Testing...' : 'Test Connection'}
+                  </Button>
+                  {healthTest.result && (
+                    <span className={cn('text-[11px] font-mono', healthTest.result === 'success' ? 'text-emerald-400' : 'text-red-400')}>
+                      {healthTest.result === 'success' ? '✓ Connected' : '✗ Connection failed'}
+                    </span>
+                  )}
+                  <a href="https://github.com/fedirz/faster-whisper-server" target="_blank" rel="noopener noreferrer" className="ml-auto text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Model</Label>
-                <Select value={openaiModel} onValueChange={setOpenaiModel}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gpt-4o-transcribe">
-                      <div className="flex flex-col">
-                        <span className="text-xs">gpt-4o-transcribe</span>
-                        <span className="text-[10px] text-muted-foreground">Highest accuracy</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="gpt-4o-mini-transcribe">
-                      <div className="flex flex-col">
-                        <span className="text-xs">gpt-4o-mini-transcribe</span>
-                        <span className="text-[10px] text-muted-foreground">Cost-efficient</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="whisper-1">
-                      <div className="flex flex-col">
-                        <span className="text-xs">whisper-1</span>
-                        <span className="text-[10px] text-muted-foreground">Legacy model</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Language</Label>
-                <Select value={openaiLanguage} onValueChange={setOpenaiLanguage}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* ── OpenAI Whisper API Settings ── */}
+            {engine === 'openai' && (
+              <>
+                <VoiceApiKeyField
+                  provider="openai"
+                  providerLabel="OpenAI"
+                  modalities={['text_to_speech', 'speech_to_text', 'language']}
+                  docsUrl="https://platform.openai.com/docs/guides/speech-to-text"
+                  docsLabel="OpenAI STT Docs"
+                />
 
-            {/* Test Transcription */}
-            <div className="space-y-2 pt-3 border-t border-sidebar-border/20">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Model</Label>
+                    <Select value={openaiModel} onValueChange={setOpenaiModel}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gpt-4o-transcribe">
+                          <div className="flex flex-col">
+                            <span className="text-xs">gpt-4o-transcribe</span>
+                            <span className="text-[10px] text-muted-foreground">Highest accuracy</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="gpt-4o-mini-transcribe">
+                          <div className="flex flex-col">
+                            <span className="text-xs">gpt-4o-mini-transcribe</span>
+                            <span className="text-[10px] text-muted-foreground">Cost-efficient</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="whisper-1">
+                          <div className="flex flex-col">
+                            <span className="text-xs">whisper-1</span>
+                            <span className="text-[10px] text-muted-foreground">Legacy model</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Language</Label>
+                    <Select value={openaiLanguage} onValueChange={setOpenaiLanguage}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <a href="https://platform.openai.com/docs/guides/speech-to-text" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    OpenAI STT Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
+
+            {/* ── Deepgram Settings ── */}
+            {engine === 'deepgram' && (
+              <>
+                <VoiceApiKeyField
+                  provider="deepgram"
+                  providerLabel="Deepgram"
+                  modalities={['text_to_speech', 'speech_to_text']}
+                  docsUrl="https://developers.deepgram.com/docs/stt-models"
+                  docsLabel="Deepgram STT Docs"
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Model</Label>
+                    <Select value={dgModel} onValueChange={setDgModel}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DEEPGRAM_MODELS.map(m => (
+                          <SelectItem key={m.id} value={m.id}>
+                            <div className="flex flex-col">
+                              <span className="text-xs">{m.name}</span>
+                              <span className="text-[10px] text-muted-foreground">{m.desc}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Language</Label>
+                    <Select value={dgLanguage} onValueChange={setDgLanguage}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Feature Toggles */}
+                <div className="space-y-2.5">
+                  <Label className="text-xs text-muted-foreground">Features</Label>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <Checkbox checked={dgSmartFormat} onCheckedChange={(v) => setDgSmartFormat(!!v)} />
+                      Smart Format
+                    </label>
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <Checkbox checked={dgPunctuate} onCheckedChange={(v) => setDgPunctuate(!!v)} />
+                      Punctuate
+                    </label>
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <Checkbox checked={dgDiarize} onCheckedChange={(v) => setDgDiarize(!!v)} />
+                      Diarize
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <a href="https://developers.deepgram.com/docs" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    Deepgram Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </details>
+
+        {/* Test Transcription Section */}
+        <div className="space-y-2 pt-4 border-t border-sidebar-border/20">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Test Transcription</Label>
+            {engine !== 'whisper' && (
               <Button
-                onClick={() => handleTestSTT('openai', openaiModel, openaiLanguage)}
+                onClick={() => handleTestSTT(engine, engine === 'openai' ? openaiModel : dgModel, engine === 'openai' ? openaiLanguage : dgLanguage)}
                 disabled={isTestingSTT || !hasCloudKey}
                 variant="outline"
                 size="sm"
-                className="text-xs h-7 gap-1.5"
+                className="text-xs h-7 gap-1.5 cursor-pointer"
               >
                 {isTestingSTT ? (
                   <><Loader2 className="h-3 w-3 animate-spin" /> Testing...</>
                 ) : (
-                  <><Mic className="h-3 w-3" /> Test Transcription (3s)</>
+                  <><Mic className="h-3 w-3" /> Record & Transcribe (3s)</>
                 )}
               </Button>
-              <STTTestResult result={sttTestResult} />
-            </div>
-
-            <div className="pt-1">
-              <a href="https://platform.openai.com/docs/guides/speech-to-text" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                OpenAI STT Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
-
-        {/* ── Deepgram ── */}
-        {engine === 'deepgram' && (
-          <>
-            <VoiceApiKeyField
-              provider="deepgram"
-              providerLabel="Deepgram"
-              modalities={['text_to_speech', 'speech_to_text']}
-              docsUrl="https://developers.deepgram.com/docs/stt-models"
-              docsLabel="Deepgram STT Docs"
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Model</Label>
-                <Select value={dgModel} onValueChange={setDgModel}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DEEPGRAM_MODELS.map(m => (
-                      <SelectItem key={m.id} value={m.id}>
-                        <div className="flex flex-col">
-                          <span className="text-xs">{m.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{m.desc}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Language</Label>
-                <Select value={dgLanguage} onValueChange={setDgLanguage}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Feature Toggles */}
-            <div className="space-y-2.5">
-              <Label className="text-xs text-muted-foreground">Features</Label>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <Checkbox checked={dgSmartFormat} onCheckedChange={(v) => setDgSmartFormat(!!v)} />
-                  Smart Format
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <Checkbox checked={dgPunctuate} onCheckedChange={(v) => setDgPunctuate(!!v)} />
-                  Punctuate
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <Checkbox checked={dgDiarize} onCheckedChange={(v) => setDgDiarize(!!v)} />
-                  Diarize
-                </label>
-              </div>
-            </div>
-
-            {/* Test Transcription */}
-            <div className="space-y-2 pt-3 border-t border-sidebar-border/20">
-              <Button
-                onClick={() => handleTestSTT('deepgram', dgModel, dgLanguage)}
-                disabled={isTestingSTT || !hasCloudKey}
-                variant="outline"
-                size="sm"
-                className="text-xs h-7 gap-1.5"
-              >
-                {isTestingSTT ? (
-                  <><Loader2 className="h-3 w-3 animate-spin" /> Testing...</>
-                ) : (
-                  <><Mic className="h-3 w-3" /> Test Transcription (3s)</>
-                )}
-              </Button>
-              <STTTestResult result={sttTestResult} />
-            </div>
-
-            <div className="pt-1">
-              <a href="https://developers.deepgram.com/docs" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                Deepgram Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
+            )}
+            {engine === 'whisper' && (
+              <span className="text-[11px] text-muted-foreground font-mono">
+                Use connection test above to verify Faster Whisper
+              </span>
+            )}
+          </div>
+          {engine !== 'whisper' && <STTTestResult result={sttTestResult} />}
+        </div>
       </CardContent>
     </Card>
   )
 }
+

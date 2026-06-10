@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { useCustomers } from '@/lib/hooks/use-customers'
@@ -37,6 +38,13 @@ export default function CustomerLedgerPage({ embedded = false }: { embedded?: bo
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
+
+  const router = useRouter()
+  useEffect(() => {
+    if (!embedded) {
+      router.replace('/operations?tab=customer-ledger')
+    }
+  }, [embedded, router])
 
   useEffect(() => {
     document.title = 'Customer Ledger | Tetrel'
@@ -267,9 +275,13 @@ export default function CustomerLedgerPage({ embedded = false }: { embedded?: bo
     </div>
   )
 
-  if (embedded) {
-    return content
+  if (!embedded) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background/50">
+        <Users className="h-8 w-8 animate-pulse text-cyan-400" />
+      </div>
+    )
   }
 
-  return <AppShell>{content}</AppShell>
+  return content
 }

@@ -7,25 +7,15 @@ import { useSettings } from '@/lib/hooks/use-settings'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import { useTranslation } from '@/lib/hooks/use-translation'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { SettingsTabs } from './components/SettingsTabs'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
   const { refetch } = useSettings()
-  const pathname = usePathname()
 
   useEffect(() => {
     document.title = 'Settings | Tetrel'
   }, [])
-
-  const tabs = [
-    { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },
-    { name: t('settings.tabApiKeys', 'API Keys & Models'), href: '/settings/api-keys' },
-    { name: t('settings.tabPipeline', 'Pipeline Automations'), href: '/settings/pipeline' },
-    { name: t('settings.tabPublications', 'Publications & Email'), href: '/settings/publications' },
-  ]
 
   return (
     <AppShell>
@@ -40,25 +30,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Sub Navigation Tabs */}
-            <div className="flex items-center gap-1 border-b border-sidebar-border/20 mb-6">
-              {tabs.map((tab) => {
-                const active = pathname === tab.href
-                return (
-                  <Link
-                    key={tab.href}
-                    href={tab.href}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 -mb-[2px]",
-                      active
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {tab.name}
-                  </Link>
-                )
-              })}
-            </div>
+            <SettingsTabs />
 
             <SettingsForm />
           </div>

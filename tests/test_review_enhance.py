@@ -56,6 +56,8 @@ def create_mock_research_item(
     mock_ri.is_deep_research = False
     mock_ri.deep_research_state = ""
     mock_ri.deep_research_events = []
+    mock_ri.location_id = None
+    mock_ri.category = None
     return mock_ri
 
 

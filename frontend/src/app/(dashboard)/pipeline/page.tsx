@@ -26,6 +26,7 @@ import {
 import { ViewToggle, type ViewMode } from '@/components/ui/view-toggle'
 import { DataTable } from '@/components/data-table'
 import { toast } from 'sonner'
+import { publicationsApi } from '@/lib/api/publications'
 import { cn } from '@/lib/utils'
 
 // Date fns
@@ -171,6 +172,21 @@ export function PipelinePage({
   locationId?: string | null
   customerId?: string | null
 } = {}) {
+  const router = useRouter()
+  useEffect(() => {
+    if (!embedded) {
+      router.replace('/operations?tab=sales')
+    }
+  }, [embedded, router])
+
+  if (!embedded) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background/50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <Suspense fallback={
       <div className="flex h-screen w-full items-center justify-center bg-background/50">
@@ -341,6 +357,36 @@ function OperationsCenter({
     }
     
     return dayNotebooks
+  }
+
+  const handleReschedulePost = async (postId: string, newDate: Date) => {
+    const post = (scheduledPosts || []).find(p => p.id === postId)
+    if (!post) return
+
+    try {
+      const originalDate = new Date(post.scheduled_time)
+      const adjustedDate = new Date(newDate)
+      adjustedDate.setHours(originalDate.getHours())
+      adjustedDate.setMinutes(originalDate.getMinutes())
+      adjustedDate.setSeconds(originalDate.getSeconds())
+      adjustedDate.setMilliseconds(originalDate.getMilliseconds())
+
+      const newScheduledTimeStr = adjustedDate.toISOString()
+
+      await publicationsApi.updatePost(postId, {
+        title: post.title,
+        content: post.content,
+        channel: post.channel,
+        media_urls: post.media_urls || [],
+        scheduled_time: newScheduledTimeStr,
+        status: post.status,
+      })
+
+      toast.success(`Post rescheduled to ${adjustedDate.toLocaleDateString()}`)
+      refetchScheduledPosts()
+    } catch (err: any) {
+      toast.error('Failed to reschedule post')
+    }
   }
 
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
@@ -546,8 +592,8 @@ function OperationsCenter({
                   }
                 }}
                 showKanban={true}
-                showList={activeTab === 'sales' || activeTab === 'publication'}
-                showCalendar={activeTab === 'sales' || activeTab === 'publication'}
+                showList={activeTab === 'sales' || activeTab === 'publication' || activeTab === 'projects'}
+                showCalendar={activeTab === 'sales' || activeTab === 'publication' || activeTab === 'projects'}
               />
 
               {/* Action buttons based on active tab */}
@@ -854,6 +900,26 @@ function OperationsCenter({
                             className={`min-h-[100px] p-2 space-y-1.5 flex flex-col relative transition-colors duration-150 ${
                               isCurrentMonth ? 'bg-background/10' : 'bg-background/5 text-muted-foreground/35'
                             } ${isToday ? 'bg-primary/5 border border-primary/20' : ''}`}
+                            onDragOver={(e) => {
+                              if (isCurrentMonth && activeTab === 'publication') {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                                e.currentTarget.classList.add('bg-primary/10', 'ring-1', 'ring-primary/40');
+                              }
+                            }}
+                            onDragLeave={(e) => {
+                              e.currentTarget.classList.remove('bg-primary/10', 'ring-1', 'ring-primary/40');
+                            }}
+                            onDrop={async (e) => {
+                              if (isCurrentMonth && activeTab === 'publication') {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove('bg-primary/10', 'ring-1', 'ring-primary/40');
+                                const postId = e.dataTransfer.getData('text/plain');
+                                if (postId) {
+                                  await handleReschedulePost(postId, day);
+                                }
+                              }
+                            }}
                           >
                             {/* Day number */}
                             <span
@@ -915,7 +981,12 @@ function OperationsCenter({
                                         e.stopPropagation()
                                         router.push('/publications')
                                       }}
-                                      className={`px-1.5 py-1 rounded text-[10px] font-medium border cursor-pointer transition-all flex items-center gap-1 truncate ${colorClass}`}
+                                      draggable={true}
+                                      onDragStart={(e) => {
+                                        e.dataTransfer.setData('text/plain', post.id);
+                                        e.dataTransfer.effectAllowed = 'move';
+                                      }}
+                                      className={`px-1.5 py-1 rounded text-[10px] font-medium border cursor-grab active:cursor-grabbing transition-all flex items-center gap-1 truncate ${colorClass}`}
                                       title={`[${post.channel.toUpperCase()}] ${post.title} (${post.status})`}
                                     >
                                       <Icon className="h-3 w-3 shrink-0" />
@@ -1105,6 +1176,194 @@ function OperationsCenter({
                     {filteredProjects.map((project) => (
                       <ProjectCard key={project.id} project={project} customers={customers} />
                     ))}
+                  </div>
+                ) : projectsViewMode === 'list' ? (
+                  <div className="space-y-2">
+                    {filteredProjects.map((project) => {
+                      const customer = customers.find((c) => c.id === project.customer_id)
+                      const priorityColor = PRIORITY_COLORS[project.priority as keyof typeof PRIORITY_COLORS] || 'slate'
+                      const tasksDone = project.tasks?.filter((t) => t.status === 'done').length || 0
+                      const tasksTotal = project.tasks?.length || 0
+                      const stageLabel = PROJECT_STAGE_LABELS[project.stage as keyof typeof PROJECT_STAGE_LABELS] || project.stage
+                      
+                      return (
+                        <div
+                          key={project.id}
+                          className="flex flex-col lg:flex-row lg:items-center justify-between p-4 rounded-xl border border-sidebar-border bg-background/35 backdrop-blur-sm hover:bg-sidebar-accent/35 transition-all duration-200 gap-4"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="rounded-lg p-2 bg-sidebar-accent/50 text-muted-foreground border border-sidebar-border/50 shrink-0">
+                              <Building className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-bold text-sm text-foreground tracking-tight hover:text-primary transition-colors truncate">
+                                  {project.name}
+                                </h4>
+                                <Badge variant="outline" className={`text-[9px] font-mono py-0.5 px-1.5 uppercase tracking-wider shrink-0 border-${priorityColor}-500/50 text-${priorityColor}-500`}>
+                                  {PRIORITY_LABELS[project.priority as keyof typeof PRIORITY_LABELS] || project.priority}
+                                </Badge>
+                                <Badge variant="outline" className="text-[9px] font-mono py-0.5 px-1.5 uppercase tracking-wider shrink-0 text-slate-300">
+                                  {stageLabel.replace(/_/g, ' ')}
+                                </Badge>
+                              </div>
+                              {project.description && (
+                                <p className="text-xs text-muted-foreground truncate max-w-xl">
+                                  {project.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-6 shrink-0 flex-wrap sm:flex-nowrap justify-between lg:justify-end">
+                            {/* Task Progress */}
+                            {tasksTotal > 0 && (
+                              <div className="flex flex-col min-w-[120px]">
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Tasks ({tasksDone}/{tasksTotal})</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Progress value={(tasksDone / tasksTotal) * 100} className="h-1.5 w-16" />
+                                  <span className="text-[10px] font-mono font-bold text-slate-300">{Math.round((tasksDone / tasksTotal) * 100)}%</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Client Account */}
+                            {customer && (
+                              <div className="flex flex-col text-left min-w-[120px]">
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Customer</span>
+                                <span className="text-xs font-semibold text-slate-300 truncate max-w-[100px] mt-0.5" title={customer.name}>
+                                  {customer.name}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Date range */}
+                            <div className="flex flex-col text-left font-mono min-w-[140px]">
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Duration</span>
+                              <span className="text-xs font-bold text-amber-400 flex items-center gap-1 mt-0.5">
+                                <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                                <span>{project.start_date || '—'}</span>
+                                <span className="text-muted-foreground/50">to</span>
+                                <span>{project.end_date || '—'}</span>
+                              </span>
+                            </div>
+
+                            {/* Assignee */}
+                            {project.assigned_to && (
+                              <div className="flex flex-col items-start min-w-[100px]">
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-mono">Assignee</span>
+                                <span className="text-xs font-medium text-slate-300 mt-0.5 truncate max-w-[80px]" title={project.assigned_to}>
+                                  {project.assigned_to}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {filteredProjects.length === 0 && (
+                      <div className="text-center py-12 border border-dashed border-sidebar-border rounded-xl">
+                        <p className="text-sm text-muted-foreground">No projects found</p>
+                      </div>
+                    )}
+                  </div>
+                ) : projectsViewMode === 'calendar' ? (
+                  <div className="space-y-4">
+                    {/* Calendar Toolbar */}
+                    <div className="flex items-center justify-between bg-background/35 border border-sidebar-border rounded-xl p-3 backdrop-blur-sm">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8 border-sidebar-border" onClick={prevMonth} aria-label="Previous month">
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="font-semibold text-sm tracking-tight text-foreground px-2 font-mono">
+                          {format(currentMonth, 'MMMM yyyy')}
+                        </span>
+                        <Button variant="outline" size="icon" className="h-8 w-8 border-sidebar-border" onClick={nextMonth} aria-label="Next month">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Button variant="outline" size="sm" className="h-8 border-sidebar-border font-medium text-xs" onClick={goToday}>
+                        Today
+                      </Button>
+                    </div>
+
+                    {/* Calendar Grid Container */}
+                    <div className="border border-sidebar-border rounded-xl overflow-hidden bg-background/20 backdrop-blur-sm shadow-inner">
+                      {/* Days of Week Header */}
+                      <div className="grid grid-cols-7 border-b border-sidebar-border bg-sidebar-accent/25 text-center py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                      </div>
+
+                      {/* Grid Days */}
+                      <div className="grid grid-cols-7 divide-x divide-y divide-sidebar-border/40 min-h-[500px]">
+                        {calendarDays.map((day, idx) => {
+                          const dayStr = format(day, 'yyyy-MM-dd')
+                          const dayProjects = filteredProjects.filter((project) => {
+                            if (!project.start_date) return false
+                            if (!project.end_date) {
+                              return project.start_date === dayStr
+                            }
+                            return dayStr >= project.start_date && dayStr <= project.end_date
+                          })
+                          const isCurrentMonth = isSameMonth(day, currentMonth)
+                          const isToday = isSameDay(day, new Date())
+                          
+                          return (
+                            <div
+                              key={idx}
+                              className={`min-h-[100px] p-2 space-y-1.5 flex flex-col relative transition-colors duration-150 ${
+                                isCurrentMonth ? 'bg-background/10' : 'bg-background/5 text-muted-foreground/35'
+                              } ${isToday ? 'bg-primary/5 border border-primary/20' : ''}`}
+                            >
+                              {/* Day number */}
+                              <span
+                                className={`text-xs font-mono font-bold leading-none ${
+                                  isToday
+                                    ? 'bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm'
+                                    : isCurrentMonth
+                                    ? 'text-foreground/80'
+                                    : 'text-muted-foreground/30'
+                                }`}
+                              >
+                                {format(day, 'd')}
+                              </span>
+
+                              {/* Project List */}
+                              <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[120px] pr-0.5 scrollbar-thin">
+                                {dayProjects.map((project) => {
+                                  const priorityColor = PRIORITY_COLORS[project.priority as keyof typeof PRIORITY_COLORS] || 'slate'
+                                  const statusColors = {
+                                    planning: 'text-slate-400 bg-slate-800/40 border-slate-500/20 hover:bg-slate-800/60',
+                                    kickoff: 'text-cyan-400 bg-cyan-950/40 border-cyan-500/20 hover:bg-cyan-950/60',
+                                    in_progress: 'text-amber-400 bg-amber-950/40 border-amber-500/20 hover:bg-amber-950/60',
+                                    review: 'text-purple-400 bg-purple-950/40 border-purple-500/20 hover:bg-purple-950/60',
+                                    delivered: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/20 hover:bg-emerald-950/60',
+                                    closed: 'text-zinc-500 bg-zinc-950/40 border-zinc-500/20 hover:bg-zinc-950/60',
+                                  }
+                                  const colorClass = statusColors[project.stage as keyof typeof statusColors] || 'text-slate-400 bg-slate-800/40 border-slate-500/20 hover:bg-slate-800/60'
+                                  
+                                  return (
+                                    <div
+                                      key={project.id}
+                                      className={`px-1.5 py-1 rounded text-[10px] font-medium border cursor-pointer transition-all flex items-center gap-1 truncate ${colorClass}`}
+                                      title={`[${project.project_type.toUpperCase() || 'PROJECT'}] ${project.name} (${project.stage})`}
+                                    >
+                                      <span className="font-semibold truncate leading-tight">{project.name}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <DataTable

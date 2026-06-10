@@ -58,49 +58,33 @@ import { VoiceStatusIndicator } from '@/components/voice/VoiceStatusIndicator'
 
 const getNavigation = (t: TFunction) => [
   {
-    title: t('navigation.collect'),
+    title: t('navigation.collect', 'Collect'),
     items: [
-      { name: t('navigation.sources'), href: '/sources', icon: FileText },
+      { name: t('navigation.sources', 'Sources'), href: '/sources', icon: FileText },
     ],
   },
   {
     title: t('navigation.operations', 'Operations'),
     items: [
-      { name: t('navigation.operationsHub', 'Operations Hub'), href: '/operations', icon: LayoutDashboard },
-      { name: t('navigation.operationsCenter', 'Operations Center'), href: '/pipeline', icon: TrendingUp },
-      { name: t('navigation.customerLedger', 'Customer Ledger'), href: '/customer-ledger', icon: Users },
-      { name: t('navigation.contacts', 'Contacts'), href: '/contacts', icon: Contact2 },
+      { name: 'Operations Hub', href: '/operations', icon: LayoutDashboard },
     ],
   },
   {
     title: t('navigation.intelligence', 'Intelligence'),
     items: [
-      { name: t('navigation.askAndSearch'), href: '/search', icon: Search },
-      { name: t('navigation.researchMemory'), href: '/research-memory', icon: Brain },
-      { name: t('navigation.notebooks'), href: '/notebooks', icon: Book },
-      { name: t('navigation.compliance', 'Compliance Hub'), href: '/compliance', icon: ShieldCheck },
-      { name: 'Voice Lab', href: '/voice-playground', icon: FlaskConical },
+      { name: 'Intelligence Hub', href: '/search', icon: Search },
     ],
   },
   {
-    title: t('navigation.create'),
+    title: t('navigation.create', 'Creative'),
     items: [
-      { name: t('navigation.podcasts'), href: '/podcasts', icon: Mic },
-      { name: t('navigation.publications', 'Publications'), href: '/publications', icon: Calendar },
+      { name: 'Creative Media Workspace', href: '/media', icon: Mic },
     ],
   },
   {
-    title: t('navigation.manage'),
+    title: t('navigation.manage', 'Settings'),
     items: [
-      { name: t('navigation.models'), href: '/settings/api-keys', icon: Bot },
-      { name: t('navigation.transformations'), href: '/transformations', icon: Shuffle },
-      { name: 'Style Guides', href: '/settings/styleguides', icon: Palette },
-      { name: 'Voice AI', href: '/settings/voice', icon: AudioLines },
-      { name: 'Containers', href: '/settings/containers', icon: Boxes },
-      { name: 'System Logs', href: '/settings/logs', icon: ScrollText },
-      { name: 'Documentation', href: '/documentation', icon: BookOpen },
-      { name: t('navigation.settings'), href: '/settings', icon: Settings },
-      { name: t('navigation.advanced'), href: '/advanced', icon: Wrench },
+      { name: 'Settings Control Panel', href: '/settings', icon: Settings },
     ],
   },
 ] as const
@@ -290,7 +274,33 @@ export function AppSidebar() {
                 )}
 
                 {section.items.map((item) => {
-                  const isActive = pathname?.startsWith(item.href) || false
+                  let isActive = false
+                  if (pathname) {
+                    if (item.href === '/sources') {
+                      isActive = pathname.startsWith('/sources')
+                    } else if (item.href === '/operations') {
+                      isActive = pathname.startsWith('/operations') || 
+                                 pathname.startsWith('/pipeline') || 
+                                 pathname.startsWith('/customer-ledger') || 
+                                 pathname.startsWith('/customers') || 
+                                 pathname.startsWith('/contacts')
+                    } else if (item.href === '/search') {
+                      isActive = pathname.startsWith('/search') || 
+                                 pathname.startsWith('/compliance') || 
+                                 pathname.startsWith('/notebooks') || 
+                                 pathname.startsWith('/research-memory')
+                    } else if (item.href === '/media') {
+                      isActive = pathname.startsWith('/media') || 
+                                 pathname.startsWith('/podcasts') || 
+                                 pathname.startsWith('/voice-playground') || 
+                                 pathname.startsWith('/publications')
+                    } else if (item.href === '/settings') {
+                      isActive = pathname.startsWith('/settings') || 
+                                 pathname.startsWith('/transformations') || 
+                                 pathname.startsWith('/documentation') || 
+                                 pathname.startsWith('/advanced')
+                    }
+                  }
                   const button = (
                     <Button
                       variant={isActive ? 'secondary' : 'ghost'}

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import apiClient from '@/lib/api/client'
 import { AppShell } from '@/components/layout/AppShell'
@@ -27,8 +28,14 @@ import { MaturityWizard } from './components/MaturityWizard'
 // Main Page
 // =============================================================================
 
-export default function CompliancePage() {
+export default function CompliancePage({ embedded = false }: { embedded?: boolean } = {}) {
   const { t } = useTranslation()
+  const router = useRouter()
+  useEffect(() => {
+    if (!embedded) {
+      router.replace('/search?tab=compliance')
+    }
+  }, [embedded, router])
   const [frameworks, setFrameworks] = useState<CSETFramework[]>([])
   const [activeQuestions, setActiveQuestions] = useState<CSETQuestion[]>([])
   const [loadingFrameworks, setLoadingFrameworks] = useState<boolean>(false)
@@ -288,100 +295,108 @@ export default function CompliancePage() {
     return { total, answeredY, answeredALT, answeredNA, progress }
   }, [answers, selectedFramework, activeQuestions])
 
-  return (
-    <AppShell>
-      <div className="flex-1 overflow-y-auto bg-background text-foreground">
-        <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/5 pb-5">
-            <div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-6 w-6 text-cyan-400" />
-                <h1 className="text-2xl font-bold tracking-tight uppercase font-mono">
-                  {t('compliance.title')}
-                </h1>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 tracking-wide">
-                {t('compliance.subtitle')}
-              </p>
+  const content = (
+    <div className="flex-1 overflow-y-auto bg-background text-foreground">
+      <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/5 pb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-6 w-6 text-cyan-400" />
+              <h1 className="text-2xl font-bold tracking-tight uppercase font-mono">
+                {t('compliance.title')}
+              </h1>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <Button 
-                variant={matrixCompare ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => {
-                  setMatrixCompare(!matrixCompare)
-                  setSelectedFramework(null)
-                }}
-                className={matrixCompare 
-                  ? 'bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-xs uppercase' 
-                  : 'border-white/10 hover:bg-sidebar-accent font-mono text-xs uppercase text-muted-foreground'
-                }
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                {t('compliance.matrixTitle').split(' ')[0]} {t('compliance.matrixTitle').split(' ')[1]}
-              </Button>
-              <Badge variant="outline" className="text-[10px] font-mono border-white/10 bg-cyan-500/5 text-cyan-400 px-2 py-1.5 uppercase tracking-wider">
-                <HelpCircle className="h-3 w-3 mr-1" />
-                {frameworks.length} {t('compliance.activeStandards')}
-              </Badge>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1 tracking-wide">
+              {t('compliance.subtitle')}
+            </p>
           </div>
-
-          {/* Matrix Comparison View */}
-          {matrixCompare && (
-            <ComparisonMatrix setMatrixCompare={setMatrixCompare} />
-          )}
-
-          {/* Framework Grid (no framework selected, not in matrix mode) */}
-          {!selectedFramework && !matrixCompare && (
-            <FrameworkGrid
-              sectors={sectors}
-              selectedSector={selectedSector}
-              setSelectedSector={setSelectedSector}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              viewMode={viewMode}
-              setViewMode={setViewMode}
-              filteredFrameworks={filteredFrameworks}
-              setSelectedFramework={setSelectedFramework}
-              loadingFrameworks={loadingFrameworks}
-            />
-          )}
-
-          {/* Maturity Wizard (framework selected) */}
-          {selectedFramework && !matrixCompare && (
-            <MaturityWizard
-              selectedFramework={selectedFramework}
-              setSelectedFramework={setSelectedFramework}
-              stats={stats}
-              detailTab={detailTab}
-              setDetailTab={setDetailTab}
-              groupedAllQuestions={groupedAllQuestions}
-              manualExpandedCategories={manualExpandedCategories}
-              setManualExpandedCategories={setManualExpandedCategories}
-              jumpToQuestion={jumpToQuestion}
-              questionSearchQuery={questionSearchQuery}
-              setQuestionSearchQuery={setQuestionSearchQuery}
-              loadingQuestions={loadingQuestions}
-              filteredQuestions={filteredQuestions}
-              groupedPaginatedQuestions={groupedPaginatedQuestions}
-              expandedCategories={expandedCategories}
-              toggleCategory={toggleCategory}
-              answers={answers}
-              setAnswer={setAnswer}
-              rationales={rationales}
-              setRationales={setRationales}
-              drawerQuestion={drawerQuestion}
-              setDrawerQuestion={setDrawerQuestion}
-              totalPages={totalPages}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-            />
-          )}
+          
+          <div className="flex items-center gap-3">
+            <Button 
+              variant={matrixCompare ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => {
+                setMatrixCompare(!matrixCompare)
+                setSelectedFramework(null)
+              }}
+              className={matrixCompare 
+                ? 'bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-xs uppercase' 
+                : 'border-white/10 hover:bg-sidebar-accent font-mono text-xs uppercase text-muted-foreground'
+              }
+            >
+              <Layers className="h-4 w-4 mr-2" />
+              {t('compliance.matrixTitle').split(' ')[0]} {t('compliance.matrixTitle').split(' ')[1]}
+            </Button>
+            <Badge variant="outline" className="text-[10px] font-mono border-white/10 bg-cyan-500/5 text-cyan-400 px-2 py-1.5 uppercase tracking-wider">
+              <HelpCircle className="h-3 w-3 mr-1" />
+              {frameworks.length} {t('compliance.activeStandards')}
+            </Badge>
+          </div>
         </div>
+
+        {/* Matrix Comparison View */}
+        {matrixCompare && (
+          <ComparisonMatrix setMatrixCompare={setMatrixCompare} />
+        )}
+
+        {/* Framework Grid (no framework selected, not in matrix mode) */}
+        {!selectedFramework && !matrixCompare && (
+          <FrameworkGrid
+            sectors={sectors}
+            selectedSector={selectedSector}
+            setSelectedSector={setSelectedSector}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            filteredFrameworks={filteredFrameworks}
+            setSelectedFramework={setSelectedFramework}
+            loadingFrameworks={loadingFrameworks}
+          />
+        )}
+
+        {/* Maturity Wizard (framework selected) */}
+        {selectedFramework && !matrixCompare && (
+          <MaturityWizard
+            selectedFramework={selectedFramework}
+            setSelectedFramework={setSelectedFramework}
+            stats={stats}
+            detailTab={detailTab}
+            setDetailTab={setDetailTab}
+            groupedAllQuestions={groupedAllQuestions}
+            manualExpandedCategories={manualExpandedCategories}
+            setManualExpandedCategories={setManualExpandedCategories}
+            jumpToQuestion={jumpToQuestion}
+            questionSearchQuery={questionSearchQuery}
+            setQuestionSearchQuery={setQuestionSearchQuery}
+            loadingQuestions={loadingQuestions}
+            filteredQuestions={filteredQuestions}
+            groupedPaginatedQuestions={groupedPaginatedQuestions}
+            expandedCategories={expandedCategories}
+            toggleCategory={toggleCategory}
+            answers={answers}
+            setAnswer={setAnswer}
+            rationales={rationales}
+            setRationales={setRationales}
+            drawerQuestion={drawerQuestion}
+            setDrawerQuestion={setDrawerQuestion}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+          />
+        )}
       </div>
-    </AppShell>
+    </div>
   )
+
+  if (!embedded) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background/50">
+        <ShieldCheck className="h-8 w-8 animate-pulse text-cyan-400" />
+      </div>
+    )
+  }
+
+  return content
 }

@@ -451,3 +451,78 @@
 .tetrel-empty-state-desc {
   @apply text-sm text-muted-foreground max-w-sm;
 }
+
+/* ==========================================
+   Print / PDF Styles
+   ========================================== */
+@media print {
+  body, html {
+    background: white !important;
+    color: black !important;
+    font-size: 10pt !important;
+  }
+  
+  /* Hide UI Layout Elements */
+  header, footer, nav, aside, 
+  .app-sidebar, [data-sidebar],
+  .print\:hidden,
+  .print-hidden,
+  button, 
+  .button,
+  .SelectTrigger {
+    display: none !important;
+  }
+
+  /* Reset layout margins */
+  main, .p-6, .space-y-6 {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Make cards occupy full page width and have clean borders instead of glowing dark shadow borders */
+  .shadow-lg, .bg-slate-900\/40, .bg-slate-950\/60, .bg-slate-950\/40, .bg-slate-955\/30 {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: 1px solid #d9d9d9 !important;
+    border-radius: 4px !important;
+  }
+
+  /* Make text visible in print */
+  .text-slate-100, .text-slate-200, .text-slate-300, .text-muted-foreground, .text-slate-400 {
+    color: black !important;
+  }
+
+  .text-cyan-400, .text-emerald-400, .text-amber-400, .text-red-400 {
+    color: inherit !important;
+    font-weight: bold !important;
+  }
+
+  /* Table styling */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #d9d9d9 !important;
+    padding: 6px !important;
+  }
+
+  th {
+    background-color: #f2f2f2 !important;
+    color: black !important;
+  }
+
+  /* Avoid page breaks inside tables and cards */
+  tr, card, .card {
+    page-break-inside: avoid !important;
+  }
+  
+  h1, h2, h3 {
+    page-break-after: avoid !important;
+  }
+}
+

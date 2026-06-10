@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Volume2, Play, Loader2, ExternalLink } from 'lucide-react'
+import { Volume2, Play, Loader2, ExternalLink, ChevronDown, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { voiceApi } from '@/lib/api/voice'
@@ -28,6 +28,7 @@ import type { VoiceConfig, VoiceSettings } from '@/lib/api/voice'
 import { VoiceApiKeyField } from './VoiceApiKeyField'
 import { useCredentialsByProvider } from '@/lib/hooks/use-credentials'
 import { useAudioPlayback } from '../hooks/use-voice-testing'
+import { useAnalytics } from '@/lib/hooks/use-analytics'
 
 interface TTSConfigCardProps {
   config: VoiceConfig | null
@@ -60,6 +61,7 @@ const DEEPGRAM_TTS_VOICES = [
 ]
 
 export function TTSConfigCard({ config, settings, onRefresh }: TTSConfigCardProps) {
+  const { trackEvent } = useAnalytics()
   const [engine, setEngine] = useState<TTSEngine>('kokoro')
   const [selectedVoice, setSelectedVoice] = useState('af_heart')
   const [speed, setSpeed] = useState([1.0])
@@ -154,6 +156,12 @@ export function TTSConfigCard({ config, settings, onRefresh }: TTSConfigCardProp
   // Single parameterized test handler — replaces 4 duplicate functions
   const handleTestEngine = useCallback(async (engineId: string, synthOptions: Record<string, unknown>) => {
     try {
+      trackEvent('audio_generated', {
+        profile: synthOptions.voice || synthOptions.voiceId || synthOptions.model || 'default',
+        text_length: testText.length,
+        engine: engineId,
+        ...synthOptions,
+      })
       const blob = await voiceApi.synthesize(testText, synthOptions)
       await audio.play(engineId, blob)
     } catch (error) {
@@ -161,7 +169,21 @@ export function TTSConfigCard({ config, settings, onRefresh }: TTSConfigCardProp
       toast.error(`TTS test failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
       audio.stop()
     }
-  }, [testText, audio])
+  }, [testText, audio, trackEvent])
+
+  const handleTestTrigger = () => {
+    if (engine === 'kokoro') {
+      handleTestEngine('kokoro', { engine: 'kokoro', voice: selectedVoice, format: 'mp3', speed: speed[0] })
+    } else if (engine === 'openai') {
+      handleTestEngine('openai', { engine: 'openai', voice: openaiVoice, model: openaiModel, speed: openaiSpeed[0] })
+    } else if (engine === 'elevenlabs') {
+      handleTestEngine('elevenlabs', { engine: 'elevenlabs', voiceId: elVoiceId || undefined, modelId: elModel, stability: elStability[0], similarityBoost: elSimilarity[0] })
+    } else if (engine === 'deepgram') {
+      handleTestEngine('deepgram', { engine: 'deepgram', model: dgVoice })
+    }
+  }
+
+  const isTestingActive = audio.isPlaying('kokoro') || audio.isPlaying('openai') || audio.isPlaying('elevenlabs') || audio.isPlaying('deepgram')
 
   return (
     <Card className="relative overflow-hidden">
@@ -216,7 +238,7 @@ export function TTSConfigCard({ config, settings, onRefresh }: TTSConfigCardProp
                 aria-checked={engine === e.id}
                 onClick={() => handleEngineChange(e.id)}
                 className={cn(
-                  'flex-1 px-2 py-1.5 rounded-md border text-xs transition-all text-center',
+                  'flex-1 px-2 py-1.5 rounded-md border text-xs transition-all text-center cursor-pointer',
                   engine === e.id
                     ? 'border-violet-500/50 bg-violet-500/10 text-violet-400'
                     : 'border-sidebar-border/30 bg-sidebar-accent/5 text-muted-foreground hover:border-sidebar-border/50',
@@ -233,253 +255,248 @@ export function TTSConfigCard({ config, settings, onRefresh }: TTSConfigCardProp
           </div>
         </div>
 
-        {/* ── Kokoro Engine ── */}
-        {engine === 'kokoro' && (
-          <>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Service URL</Label>
-              <Input
-                value={config?.kokoro_tts_url || 'http://kokoro-tts:8880'}
-                readOnly
-                className="h-8 text-xs font-mono bg-sidebar-accent/20"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Set via <code className="bg-sidebar-accent/30 px-1 rounded">KOKORO_TTS_URL</code> env var
-              </p>
-            </div>
+        {/* Active Profile Indicator */}
+        <div className="rounded-lg bg-slate-950/30 border border-white/5 p-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider text-[10px]">Active Profile</span>
+          <Badge variant="outline" className="font-mono text-xs text-violet-400 border-violet-500/20 bg-violet-500/5">
+            {engine === 'kokoro' ? selectedVoice : engine === 'openai' ? `${openaiVoice} (${openaiModel})` : engine === 'elevenlabs' ? `${elVoiceId || 'default'} (${elModel})` : dgVoice}
+          </Badge>
+        </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Default Voice</Label>
-              <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(config?.available_voices || [
-                    'af_heart', 'af_bella', 'af_nicole', 'af_sarah', 'af_sky',
-                    'am_adam', 'am_michael', 'bf_emma', 'bf_isabella', 'bm_george', 'bm_lewis',
-                  ]).map((v) => (
-                    <SelectItem key={v} value={v}>
-                      <span className="flex items-center gap-2">
-                        <span className="font-mono text-xs">{v}</span>
-                        <span className="text-muted-foreground text-[10px]">
-                          {v.startsWith('af_') ? 'American Female' : v.startsWith('am_') ? 'American Male' : v.startsWith('bf_') ? 'British Female' : 'British Male'}
-                        </span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Speed</Label>
-                <span className="text-xs font-mono text-muted-foreground">{speed[0].toFixed(1)}x</span>
-              </div>
-              <Slider value={speed} onValueChange={setSpeed} min={0.5} max={2.0} step={0.1} className="w-full" aria-label="Kokoro speech speed" />
-              <div className="flex justify-between text-[10px] text-muted-foreground/50">
-                <span>0.5x</span><span>1.0x</span><span>2.0x</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Test Text</Label>
-              <div className="flex gap-2">
-                <Input value={testText} onChange={(e) => setTestText(e.target.value)} className="h-8 text-xs flex-1" placeholder="Type text to synthesize..." />
-                <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => handleTestEngine('kokoro', { engine: 'kokoro', voice: selectedVoice, format: 'mp3', speed: speed[0] })} disabled={!isHealthy || audio.isPlaying('kokoro') || !testText} aria-label={audio.isPlaying('kokoro') ? 'Synthesizing speech' : 'Test Kokoro voice'}>
-                  {audio.isPlaying('kokoro') ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-1">
-              <a href="https://github.com/remsky/Kokoro-FastAPI" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                Kokoro FastAPI Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
-
-        {/* ── OpenAI TTS ── */}
-        {engine === 'openai' && (
-          <>
-            <VoiceApiKeyField
-              provider="openai"
-              providerLabel="OpenAI"
-              modalities={['text_to_speech', 'speech_to_text', 'language']}
-              docsUrl="https://platform.openai.com/docs/guides/text-to-speech"
-              docsLabel="OpenAI TTS Docs"
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Voice</Label>
-                <Select value={openaiVoice} onValueChange={setOpenaiVoice}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {OPENAI_VOICES.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Model</Label>
-                <Select value={openaiModel} onValueChange={setOpenaiModel}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {OPENAI_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Speed</Label>
-                <span className="text-xs font-mono text-muted-foreground">{openaiSpeed[0].toFixed(1)}x</span>
-              </div>
-              <Slider value={openaiSpeed} onValueChange={setOpenaiSpeed} min={0.25} max={4.0} step={0.25} className="w-full" aria-label="OpenAI speech speed" />
-              <div className="flex justify-between text-[10px] text-muted-foreground/50">
-                <span>0.25x</span><span>1.0x</span><span>4.0x</span>
-              </div>
-            </div>
-
-            {/* Test Voice */}
-            <div className="space-y-1.5 pt-3 border-t border-sidebar-border/20">
-              <Label className="text-xs text-muted-foreground">Test Text</Label>
-              <div className="flex gap-2">
-                <Input value={testText} onChange={(e) => setTestText(e.target.value)} className="h-8 text-xs flex-1" placeholder="Type text to synthesize..." />
-                <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => handleTestEngine('openai', { engine: 'openai', voice: openaiVoice, model: openaiModel, speed: openaiSpeed[0] })} disabled={audio.isPlaying('openai') || !hasCloudKey || !testText} aria-label={audio.isPlaying('openai') ? 'Synthesizing speech' : 'Test OpenAI voice'}>
-                  {audio.isPlaying('openai') ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-1">
-              <a href="https://platform.openai.com/docs/guides/text-to-speech" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                OpenAI TTS Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
-
-        {/* ── ElevenLabs ── */}
-        {engine === 'elevenlabs' && (
-          <>
-            <VoiceApiKeyField
-              provider="elevenlabs"
-              providerLabel="ElevenLabs"
-              modalities={['text_to_speech']}
-              docsUrl="https://elevenlabs.io/docs"
-              docsLabel="ElevenLabs Docs"
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Voice ID</Label>
-                <Input value={elVoiceId} onChange={e => setElVoiceId(e.target.value)} placeholder="Voice ID..." className="h-8 text-xs font-mono" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Model</Label>
-                <Select value={elModel} onValueChange={setElModel}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ELEVENLABS_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Stability</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{elStability[0].toFixed(2)}</span>
+        {/* Collapsible Advanced Configuration */}
+        <details className="group border border-sidebar-border/30 rounded-xl p-3.5 bg-sidebar-accent/5">
+          <summary className="text-xs font-semibold cursor-pointer select-none text-muted-foreground hover:text-foreground list-none flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-mono uppercase tracking-wider text-[10px]">
+              <Settings className="h-3.5 w-3.5" /> Engine Settings
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-3.5 space-y-4 pt-3.5 border-t border-sidebar-border/20">
+            {/* ── Kokoro Engine Settings ── */}
+            {engine === 'kokoro' && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Service URL</Label>
+                  <Input
+                    value={config?.kokoro_tts_url || 'http://kokoro-tts:8880'}
+                    readOnly
+                    className="h-8 text-xs font-mono bg-sidebar-accent/20"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Set via <code className="bg-sidebar-accent/30 px-1 rounded">KOKORO_TTS_URL</code> env var
+                  </p>
                 </div>
-                <Slider value={elStability} onValueChange={setElStability} min={0} max={1} step={0.05} className="w-full" aria-label="Voice stability" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Similarity</Label>
-                  <span className="text-xs font-mono text-muted-foreground">{elSimilarity[0].toFixed(2)}</span>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Default Voice</Label>
+                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(config?.available_voices || [
+                        'af_heart', 'af_bella', 'af_nicole', 'af_sarah', 'af_sky',
+                        'am_adam', 'am_michael', 'bf_emma', 'bf_isabella', 'bm_george', 'bm_lewis',
+                      ]).map((v) => (
+                        <SelectItem key={v} value={v}>
+                          <span className="flex items-center gap-2">
+                            <span className="font-mono text-xs">{v}</span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {v.startsWith('af_') ? 'American Female' : v.startsWith('am_') ? 'American Male' : v.startsWith('bf_') ? 'British Female' : 'British Male'}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Slider value={elSimilarity} onValueChange={setElSimilarity} min={0} max={1} step={0.05} className="w-full" aria-label="Similarity boost" />
-              </div>
-            </div>
 
-            {/* Test Voice */}
-            <div className="space-y-1.5 pt-3 border-t border-sidebar-border/20">
-              <Label className="text-xs text-muted-foreground">Test Text</Label>
-              <div className="flex gap-2">
-                <Input value={testText} onChange={(e) => setTestText(e.target.value)} className="h-8 text-xs flex-1" placeholder="Type text to synthesize..." />
-                <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => handleTestEngine('elevenlabs', { engine: 'elevenlabs', voiceId: elVoiceId || undefined, modelId: elModel, stability: elStability[0], similarityBoost: elSimilarity[0] })} disabled={audio.isPlaying('elevenlabs') || !hasCloudKey || !testText} aria-label={audio.isPlaying('elevenlabs') ? 'Synthesizing speech' : 'Test ElevenLabs voice'}>
-                  {audio.isPlaying('elevenlabs') ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Speed</Label>
+                    <span className="text-xs font-mono text-muted-foreground">{speed[0].toFixed(1)}x</span>
+                  </div>
+                  <Slider value={speed} onValueChange={setSpeed} min={0.5} max={2.0} step={0.1} className="w-full animate-none" aria-label="Kokoro speech speed" />
+                  <div className="flex justify-between text-[10px] text-muted-foreground/50">
+                    <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                  </div>
+                </div>
 
-            <div className="pt-1">
-              <a href="https://elevenlabs.io/docs" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                ElevenLabs Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
+                <div className="pt-1">
+                  <a href="https://github.com/remsky/Kokoro-FastAPI" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    Kokoro FastAPI Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
 
-        {/* ── Deepgram TTS ── */}
-        {engine === 'deepgram' && (
-          <>
-            <VoiceApiKeyField
-              provider="deepgram"
-              providerLabel="Deepgram"
-              modalities={['text_to_speech', 'speech_to_text']}
-              docsUrl="https://developers.deepgram.com/docs/tts-models"
-              docsLabel="Deepgram TTS Docs"
-            />
+            {/* ── OpenAI TTS Settings ── */}
+            {engine === 'openai' && (
+              <>
+                <VoiceApiKeyField
+                  provider="openai"
+                  providerLabel="OpenAI"
+                  modalities={['text_to_speech', 'speech_to_text', 'language']}
+                  docsUrl="https://platform.openai.com/docs/guides/text-to-speech"
+                  docsLabel="OpenAI TTS Docs"
+                />
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Voice</Label>
-              <Select value={dgVoice} onValueChange={setDgVoice}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DEEPGRAM_TTS_VOICES.map(v => (
-                    <SelectItem key={v.id} value={v.id}>
-                      <div className="flex flex-col">
-                        <span className="text-xs">{v.name}</span>
-                        <span className="text-[10px] text-muted-foreground">{v.desc}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Voice</Label>
+                    <Select value={openaiVoice} onValueChange={setOpenaiVoice}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {OPENAI_VOICES.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Model</Label>
+                    <Select value={openaiModel} onValueChange={setOpenaiModel}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {OPENAI_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Model</Label>
-              <Input value="aura-2" readOnly className="h-8 text-xs font-mono bg-sidebar-accent/20" />
-              <p className="text-[10px] text-muted-foreground">
-                Deepgram Aura-2 — latest TTS model with natural prosody
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Speed</Label>
+                    <span className="text-xs font-mono text-muted-foreground">{openaiSpeed[0].toFixed(1)}x</span>
+                  </div>
+                  <Slider value={openaiSpeed} onValueChange={setOpenaiSpeed} min={0.25} max={4.0} step={0.25} className="w-full animate-none" aria-label="OpenAI speech speed" />
+                  <div className="flex justify-between text-[10px] text-muted-foreground/50">
+                    <span>0.25x</span><span>1.0x</span><span>4.0x</span>
+                  </div>
+                </div>
 
-            {/* Test Voice */}
-            <div className="space-y-1.5 pt-3 border-t border-sidebar-border/20">
-              <Label className="text-xs text-muted-foreground">Test Text</Label>
-              <div className="flex gap-2">
-                <Input value={testText} onChange={(e) => setTestText(e.target.value)} className="h-8 text-xs flex-1" placeholder="Type text to synthesize..." />
-                <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => handleTestEngine('deepgram', { engine: 'deepgram', model: dgVoice })} disabled={audio.isPlaying('deepgram') || !hasCloudKey || !testText} aria-label={audio.isPlaying('deepgram') ? 'Synthesizing speech' : 'Test Deepgram voice'}>
-                  {audio.isPlaying('deepgram') ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
+                <div className="pt-1">
+                  <a href="https://platform.openai.com/docs/guides/text-to-speech" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    OpenAI TTS Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
 
-            <div className="pt-1">
-              <a href="https://developers.deepgram.com/docs/tts-models" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                Deepgram TTS Docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </>
-        )}
+            {/* ── ElevenLabs Settings ── */}
+            {engine === 'elevenlabs' && (
+              <>
+                <VoiceApiKeyField
+                  provider="elevenlabs"
+                  providerLabel="ElevenLabs"
+                  modalities={['text_to_speech']}
+                  docsUrl="https://elevenlabs.io/docs"
+                  docsLabel="ElevenLabs Docs"
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Voice ID</Label>
+                    <Input value={elVoiceId} onChange={e => setElVoiceId(e.target.value)} placeholder="Voice ID..." className="h-8 text-xs font-mono" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Model</Label>
+                    <Select value={elModel} onValueChange={setElModel}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ELEVENLABS_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Stability</Label>
+                      <span className="text-xs font-mono text-muted-foreground">{elStability[0].toFixed(2)}</span>
+                    </div>
+                    <Slider value={elStability} onValueChange={setElStability} min={0} max={1} step={0.05} className="w-full animate-none" aria-label="Voice stability" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Similarity</Label>
+                      <span className="text-xs font-mono text-muted-foreground">{elSimilarity[0].toFixed(2)}</span>
+                    </div>
+                    <Slider value={elSimilarity} onValueChange={setElSimilarity} min={0} max={1} step={0.05} className="w-full animate-none" aria-label="Similarity boost" />
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <a href="https://elevenlabs.io/docs" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    ElevenLabs Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
+
+            {/* ── Deepgram TTS Settings ── */}
+            {engine === 'deepgram' && (
+              <>
+                <VoiceApiKeyField
+                  provider="deepgram"
+                  providerLabel="Deepgram"
+                  modalities={['text_to_speech', 'speech_to_text']}
+                  docsUrl="https://developers.deepgram.com/docs/tts-models"
+                  docsLabel="Deepgram TTS Docs"
+                />
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Voice</Label>
+                  <Select value={dgVoice} onValueChange={setDgVoice}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {DEEPGRAM_TTS_VOICES.map(v => (
+                        <SelectItem key={v.id} value={v.id}>
+                          <div className="flex flex-col">
+                            <span className="text-xs">{v.name}</span>
+                            <span className="text-[10px] text-muted-foreground">{v.desc}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Model</Label>
+                  <Input value="aura-2" readOnly className="h-8 text-xs font-mono bg-sidebar-accent/20" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Deepgram Aura-2 — latest TTS model with natural prosody
+                  </p>
+                </div>
+
+                <div className="pt-1">
+                  <a href="https://developers.deepgram.com/docs/tts-models" target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    Deepgram TTS Docs <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </details>
+
+        {/* Test Voice Section */}
+        <div className="space-y-1.5 border-t border-sidebar-border/20 pt-4">
+          <Label className="text-xs text-muted-foreground">Test Text</Label>
+          <div className="flex gap-2">
+            <Input value={testText} onChange={(e) => setTestText(e.target.value)} className="h-8 text-xs flex-1" placeholder="Type text to synthesize..." />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs gap-1.5 cursor-pointer"
+              onClick={handleTestTrigger}
+              disabled={(engine === 'kokoro' && !isHealthy) || (engine !== 'kokoro' && !hasCloudKey) || isTestingActive || !testText}
+              aria-label={isTestingActive ? 'Synthesizing speech' : 'Test voice synthesis'}
+            >
+              {isTestingActive ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              <span>Test Audio</span>
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

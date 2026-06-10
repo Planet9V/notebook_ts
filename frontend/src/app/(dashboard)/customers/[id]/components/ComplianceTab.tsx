@@ -16,8 +16,15 @@ import {
   Bookmark,
   Clock,
   ClipboardCheck,
+  Download,
+  Printer,
+  Loader2,
+  GitCompare,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react'
 import { Customer, COMPLIANCE_FRAMEWORKS, SECTOR_FRAMEWORK_MAP, SECTOR_COLORS, SECTOR_GUIDELINES } from '../data'
+import apiClient from '@/lib/api/client'
 import {
   Select,
   SelectContent,
@@ -124,6 +131,60 @@ export function ComplianceTab({
   const activeLocation = activeAssessment?.location_id
     ? locations.find((l) => l.id === activeAssessment.location_id)
     : null
+
+  const [compareSessionId, setCompareSessionId] = React.useState<string>('')
+  const [diffLoading, setDiffLoading] = React.useState<boolean>(false)
+  const [diffData, setDiffData] = React.useState<any | null>(null)
+  const [showChangesOnly, setShowChangesOnly] = React.useState<boolean>(true)
+  const [expandedDiffQuestionId, setExpandedDiffQuestionId] = React.useState<string | null>(null)
+  const [exportingFormat, setExportingFormat] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!compareSessionId || !activeSession) {
+      setDiffData(null)
+      return
+    }
+    const fetchDiff = async () => {
+      setDiffLoading(true)
+      try {
+        const response = await apiClient.get(`/sessions/${activeSession.id}/diff/${compareSessionId}`)
+        setDiffData(response.data)
+      } catch (e) {
+        console.error("Error fetching session diff:", e)
+      } finally {
+        setDiffLoading(false)
+      }
+    }
+    fetchDiff()
+  }, [compareSessionId, activeSession])
+
+  const handleExportReport = async (format: 'xlsx' | 'csv') => {
+    if (!activeSession) return
+    setExportingFormat(format)
+    try {
+      const response = await apiClient.get(`/sessions/${activeSession.id}/export`, {
+        params: { format },
+        responseType: 'blob'
+      })
+      const blob = new Blob([response.data], {
+        type: format === 'xlsx' 
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          : 'text/csv'
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const timestamp = new Date().toISOString().slice(0, 10)
+      const cleanName = activeSession.session_name ? activeSession.session_name.replace(/\s+/g, '_') : 'audit'
+      a.download = `compliance_report_${cleanName}_${timestamp}.${format}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error("Error exporting report:", e)
+    } finally {
+      setExportingFormat(null)
+    }
+  }
 
   return (
     <>
@@ -950,7 +1011,44 @@ export function ComplianceTab({
               </h2>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print:hidden">
+              <Button 
+                size="sm"
+                variant="outline"
+                disabled={exportingFormat !== null}
+                onClick={() => handleExportReport('xlsx')}
+                className="border-white/10 hover:bg-sidebar-accent font-mono text-[9.5px] uppercase h-8"
+              >
+                {exportingFormat === 'xlsx' ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Excel
+              </Button>
+              <Button 
+                size="sm"
+                variant="outline"
+                disabled={exportingFormat !== null}
+                onClick={() => handleExportReport('csv')}
+                className="border-white/10 hover:bg-sidebar-accent font-mono text-[9.5px] uppercase h-8"
+              >
+                {exportingFormat === 'csv' ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                CSV
+              </Button>
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => window.print()}
+                className="border-white/10 hover:bg-sidebar-accent font-mono text-[9.5px] uppercase h-8"
+              >
+                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                Print PDF
+              </Button>
               <Button 
                 size="sm"
                 onClick={() => setReportMode(false)}
@@ -1062,6 +1160,199 @@ export function ComplianceTab({
               </CardContent>
             </Card>
           </div>
+
+          {/* Milestone Comparison (Diff) Card */}
+          <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden animate-in slide-in-from-bottom duration-300 print:hidden">
+            <CardHeader className="pb-3 border-b border-white/5 bg-slate-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <GitCompare className="h-4 w-4 text-cyan-400" />
+                Milestone Answer &amp; Notes Comparison (Diff)
+              </CardTitle>
+              
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-muted-foreground font-sans">Compare with:</span>
+                <Select value={compareSessionId} onValueChange={setCompareSessionId}>
+                  <SelectTrigger className="w-[200px] h-7 bg-slate-950 border-white/10 text-slate-300 font-mono text-[10px]">
+                    <SelectValue placeholder="Select milestone..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10 text-slate-300 font-mono text-[10px]">
+                    {sessions
+                      .filter(s => s.id !== activeSession.id)
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.session_name} ({s.status})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                
+                {diffData && (
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={showChangesOnly}
+                      onChange={() => setShowChangesOnly(!showChangesOnly)}
+                      className="rounded bg-slate-950 border-white/10 text-cyan-500 focus:ring-0 focus:ring-offset-0 h-3.5 w-3.5"
+                    />
+                    <span>Show changes only</span>
+                  </label>
+                )}
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-0">
+              {diffLoading ? (
+                <div className="p-8 text-center text-muted-foreground space-y-2 flex flex-col items-center justify-center">
+                  <Loader2 className="h-6 w-6 text-cyan-400 animate-spin" />
+                  <p className="font-sans">Analyzing answer history and comparing enclaves...</p>
+                </div>
+              ) : diffData ? (
+                (() => {
+                  const filteredDiffs = showChangesOnly 
+                    ? diffData.differences.filter((d: any) => d.has_changed) 
+                    : diffData.differences
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Compare KPI Rollup */}
+                      <div className="grid grid-cols-2 border-b border-white/5 bg-slate-950/20 p-3 text-center">
+                        <div className="border-r border-white/5 space-y-1">
+                          <span className="text-[9px] text-muted-foreground uppercase block font-sans">
+                            Base: {diffData.base_session_name}
+                          </span>
+                          <span className="text-sm font-bold text-slate-200">
+                            {reportData.stats.compliance_score.toFixed(1)}% Rating
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-muted-foreground uppercase block font-sans">
+                            Compare: {diffData.compare_session_name}
+                          </span>
+                          <span className="text-sm font-bold text-cyan-400">
+                            {(() => {
+                              const yes = diffData.differences.filter((d: any) => d.compare_answer === 'Y').length
+                              const alt = diffData.differences.filter((d: any) => d.compare_answer === 'ALT').length
+                              const na = diffData.differences.filter((d: any) => d.compare_answer === 'NA').length
+                              const total = diffData.differences.length
+                              const denom = total - na
+                              const score = denom > 0 ? (yes + alt) / denom * 100 : 0
+                              return `${score.toFixed(1)}% Rating`
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {filteredDiffs.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground font-sans italic">
+                          {showChangesOnly 
+                            ? "No differences detected. Both milestones have identical ratings and comments."
+                            : "No questions to display."}
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                          <table className="w-full text-left border-collapse text-[11px]">
+                            <thead>
+                              <tr className="border-b border-white/5 bg-slate-950/40 text-muted-foreground uppercase text-[9px] tracking-wider font-semibold font-mono">
+                                <th className="p-2.5 w-24">Code</th>
+                                <th className="p-2.5 w-1/2">Standard Directive</th>
+                                <th className="p-2.5 text-center w-24">{diffData.base_session_name}</th>
+                                <th className="p-2.5 text-center w-24">{diffData.compare_session_name}</th>
+                                <th className="p-2.5 w-10"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 font-mono text-slate-300">
+                              {filteredDiffs.map((diff: any) => {
+                                const isExp = expandedDiffQuestionId === diff.question_id
+                                const ratingColors: Record<string, string> = {
+                                  'Y': 'text-emerald-400 font-bold',
+                                  'N': 'text-red-400 font-bold',
+                                  'NA': 'text-slate-400',
+                                  'ALT': 'text-amber-400 font-bold',
+                                  'U': 'text-slate-500 italic'
+                                }
+                                return (
+                                  <React.Fragment key={diff.question_id}>
+                                    <tr 
+                                      className={`hover:bg-slate-800/20 transition-all cursor-pointer ${
+                                        diff.has_changed ? 'bg-cyan-500/[0.03] border-l border-cyan-500/20' : ''
+                                      }`}
+                                      onClick={() => setExpandedDiffQuestionId(isExp ? null : diff.question_id)}
+                                    >
+                                      <td className="p-2.5 font-bold font-mono">{diff.standard_code}</td>
+                                      <td className="p-2.5 font-sans leading-relaxed text-slate-200">
+                                        {diff.question_text}
+                                      </td>
+                                      <td className={`p-2.5 text-center ${ratingColors[diff.base_answer]}`}>
+                                        {diff.base_answer}
+                                      </td>
+                                      <td className={`p-2.5 text-center ${ratingColors[diff.compare_answer]}`}>
+                                        {diff.compare_answer}
+                                      </td>
+                                      <td className="p-2.5 text-center text-slate-500">
+                                        {isExp ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                      </td>
+                                    </tr>
+
+                                    {/* Expandable details panel */}
+                                    {isExp && (
+                                      <tr className="bg-slate-950/40 text-[10px] leading-relaxed">
+                                        <td colSpan={5} className="p-3 border-t border-b border-white/5">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* Base Notes */}
+                                            <div className="space-y-1.5 p-2 bg-slate-900/40 rounded border border-white/5">
+                                              <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-widest block font-sans">
+                                                {diffData.base_session_name} Observations &amp; Evidence
+                                              </span>
+                                              <p className="text-slate-300 font-sans select-text">
+                                                <span className="font-semibold font-mono text-[9px] block">Notes:</span>
+                                                {diff.base_comments || <span className="italic text-muted-foreground">No notes cataloged.</span>}
+                                              </p>
+                                              {diff.base_evidence && (
+                                                <p className="text-cyan-400 hover:underline text-[9px] truncate">
+                                                  <span className="font-semibold font-mono text-[9px] text-slate-300">Link: </span>
+                                                  <a href={diff.base_evidence} target="_blank" rel="noreferrer" className="underline">{diff.base_evidence}</a>
+                                                </p>
+                                              )}
+                                            </div>
+
+                                            {/* Compare Notes */}
+                                            <div className="space-y-1.5 p-2 bg-slate-900/40 rounded border border-white/5">
+                                              <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-widest block font-sans">
+                                                {diffData.compare_session_name} Observations &amp; Evidence
+                                              </span>
+                                              <p className="text-slate-300 font-sans select-text">
+                                                <span className="font-semibold font-mono text-[9px] block">Notes:</span>
+                                                {diff.compare_comments || <span className="italic text-muted-foreground">No notes cataloged.</span>}
+                                              </p>
+                                              {diff.compare_evidence && (
+                                                <p className="text-cyan-400 hover:underline text-[9px] truncate">
+                                                  <span className="font-semibold font-mono text-[9px] text-slate-300">Link: </span>
+                                                  <a href={diff.compare_evidence} target="_blank" rel="noreferrer" className="underline">{diff.compare_evidence}</a>
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()
+              ) : (
+                <div className="p-8 text-center text-muted-foreground font-sans italic flex flex-col items-center justify-center gap-1.5">
+                  <GitCompare className="h-6 w-6 text-muted-foreground/40" />
+                  <p>Select another milestone session above to view rating, note, and evidence diffs.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Prioritized Recommendations */}
           <Card className="shadow-lg border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden animate-in slide-in-from-bottom duration-300">

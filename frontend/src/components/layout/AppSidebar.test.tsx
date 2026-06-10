@@ -19,7 +19,10 @@ describe('AppSidebar', () => {
     // With mocked t() returning keys, check for translation key strings
     expect(screen.getByText('common.appName')).toBeDefined()
     expect(screen.getByText('navigation.sources')).toBeDefined()
-    expect(screen.getByText('navigation.notebooks')).toBeDefined()
+    expect(screen.getByText('Operations Hub')).toBeDefined()
+    expect(screen.getByText('Intelligence Hub')).toBeDefined()
+    expect(screen.getByText('Creative Media Workspace')).toBeDefined()
+    expect(screen.getByText('Settings Control Panel')).toBeDefined()
   })
 
   it('toggles collapse state when clicking handle', () => {

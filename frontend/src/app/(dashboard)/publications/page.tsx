@@ -111,6 +111,43 @@ export default function PublicationsPage() {
     }
   }
 
+  const handleReschedulePost = async (postId: string, newDate: Date) => {
+    const post = posts.find(p => p.id === postId)
+    if (!post) return
+
+    try {
+      const originalDate = new Date(post.scheduled_time)
+      const adjustedDate = new Date(newDate)
+      adjustedDate.setHours(originalDate.getHours())
+      adjustedDate.setMinutes(originalDate.getMinutes())
+      adjustedDate.setSeconds(originalDate.getSeconds())
+      adjustedDate.setMilliseconds(originalDate.getMilliseconds())
+
+      const newScheduledTimeStr = adjustedDate.toISOString()
+
+      await publicationsApi.updatePost(postId, {
+        title: post.title,
+        content: post.content,
+        channel: post.channel,
+        media_urls: post.media_urls || [],
+        scheduled_time: newScheduledTimeStr,
+        status: post.status,
+      })
+
+      toast({
+        title: 'Success',
+        description: `Post rescheduled to ${adjustedDate.toLocaleDateString()} at ${adjustedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      })
+      fetchData()
+    } catch (err: any) {
+      toast({
+        title: 'Failed to reschedule post',
+        description: err.response?.data?.detail || err.message || 'Error occurred connecting to API',
+        variant: 'destructive',
+      })
+    }
+  }
+
   // Open creation modal
   const handleAddPostClick = (date: Date) => {
     setEditingPost(null)
@@ -476,6 +513,7 @@ export default function PublicationsPage() {
                 posts={posts}
                 onAddPost={handleAddPostClick}
                 onEditPost={handleEditPostClick}
+                onReschedulePost={handleReschedulePost}
               />
             </div>
 

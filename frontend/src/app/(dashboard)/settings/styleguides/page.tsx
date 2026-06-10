@@ -38,6 +38,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { SettingsTabs } from '../components/SettingsTabs'
 
 const EMPTY_FORM: StyleGuideCreate = {
   name: '',
@@ -237,6 +238,9 @@ export default function StyleGuidesPage() {
   return (
     <AppShell>
       <div className="container max-w-7xl mx-auto py-8 space-y-8">
+        {/* Settings Navigation */}
+        <SettingsTabs />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

@@ -208,7 +208,7 @@ const DOCUMENTATION: DocSection[] = [
       {
         id: 'arch-database',
         title: 'Database Architecture & Schema Layout',
-        content: 'The database layer utilizes SurrealDB (version >= 1.0.4) as its primary datastore, leveraging its support for relational graphs, schemafull/schemaless tables, and document storage.\n\n' +
+        content: 'The database layer uses SurrealDB (version >= 1.0.4) as its primary datastore, supporting relational graphs, schemafull/schemaless tables, and document storage.\n\n' +
                  '### Repository Architecture\n' +
                  'The repository layer is defined in `open_notebook/database/repository.py` and manages connection pooling and generic query execution:\n' +
                  '• Connection Context Manager (`db_connection`): Configures connection pooling using the official python `AsyncSurreal` client, and dynamically sets namespaces, credentials, and databases (SURREAL_URL, SURREAL_USER, SURREAL_PASSWORD, SURREAL_NAMESPACE, SURREAL_DATABASE).\n' +
@@ -216,7 +216,7 @@ const DOCUMENTATION: DocSection[] = [
                  '### Migrations\n' +
                  'Migrations are managed in `open_notebook/database/migrations/`. The database evolution is tracked through 42 sequentially numbered migration scripts, each accompanied by a `*_down.surrealql` rollback script, totaling 84 migration files.\n\n' +
                  '### Table Schema Classifications\n' +
-                 'The system manages a total of 42 unique tables divided into three classifications:\n\n' +
+                 'akf_trust_metadata: System maintains a total of 42 unique tables divided into three classifications:\n\n' +
                  '1. SCHEMAFULL Tables (25 tables) - Strict schema constraints are enforced:\n' +
                  '   `activity`, `agent_config`, `agent_execution`, `agent_log`, `asset`, `asset_edge`, `contact`, `credential`, `email_setting`, `episode`, `episode_profile`, `location`, `note`, `notebook`, `publication_metrics_history`, `scheduled_search`, `scheduled_post`, `skill_registry`, `source`, `source_embedding`, `source_insight`, `speaker_profile`, `sync_status`, `transformation`, `voice_settings`.\n\n' +
                  '2. SCHEMALESS Tables (14 tables) - Flexible JSON structures without validation constraints:\n' +
@@ -233,7 +233,7 @@ const DOCUMENTATION: DocSection[] = [
                  '  - 2 Regulations: `IEC_62443` (Industrial Communication Networks) and `NIST_SP_800_82` (Guide to ICS Security).\n' +
                  '  - 6 Questions: `Q1` to `Q4` map to `IEC_62443` (standard codes `SR 5.1` to `SR 5.4`); `Q5` to `Q6` map to `NIST_SP_800_82` (standard codes `Section 6.2.3` and `Section 6.2.4`).\n\n' +
                  '### Postgres + pgvector Caching Database\n' +
-                 'The application leverages a secondary PostgreSQL instance (pgvector/pgvector:pg17) to power the semantic caching layer (`ResearchMemory`):\n' +
+                 'The application uses a secondary PostgreSQL instance (pgvector/pgvector:pg17) to power the semantic caching layer (`ResearchMemory`):\n' +
                  '• Connection DSN: Configured via environment variable `POSTGRES_DSN` with asyncpg connection pooling (`min_size=2`, `max_size=10`).\n' +
                  '• Table Schema: The `research_corpus` table stores cached search query results: `id`, `query`, `title`, `url`, `content`, `source_type`, `relevance_score`, `embedding` (vector(1536)), `metadata`, `created_at`, `updated_at`.\n' +
                  '• Indices: Equipped with an HNSW cosine similarity index `idx_research_embedding` for semantic matching, a Gin index `idx_research_content_fts` on content for Full-Text Search (FTS) queries, and unique constraints `idx_research_query_url` (query + url) and `idx_research_query_content_hash` (query + content md5 hash) to prevent duplicate cached search entries.'
@@ -333,55 +333,57 @@ const DOCUMENTATION: DocSection[] = [
       {
         id: 'api-overview',
         title: 'FastAPI Backend Endpoints Overview',
-        content: 'The platform API is built using FastAPI (Python 3.11) with a total of 272 registered endpoints. The endpoints are modularly grouped by router files under `api/routers/`. Below is the complete endpoint count and responsibility breakdown per router file:',
+        content: 'The platform API is built using FastAPI (Python 3.11) with a total of 277 registered endpoints. The endpoints are modularly grouped by router files under `api/routers/`. Below is the complete endpoint count and responsibility breakdown per router file:',
         table: {
           headers: ['Router File', 'Route Count', 'Primary Responsibility / Exemplary Endpoints'],
           rows: [
-            ['api/routers/notebooks.py', '20', 'Drawing canvas notebook management, node/edge validation (POST /api/graph/validate), export routes (POST /api/notebooks/export/*).'],
-            ['api/routers/models.py', '14', 'Model registries, auto-assignment of default models, sync, provider configuration.'],
-            ['api/routers/credentials.py', '14', 'Cloud credentials management, OAuth flows, and environment migration utilities.'],
-            ['api/routers/research_items.py', '14', 'Background research tasks, deep research triggering, item approvals.'],
-            ['api/routers/voice.py', '14', 'Voice configuration, text-to-speech (TTS) preflight, audio transcribing (STT).'],
-            ['api/routers/sources.py', '12', 'Document source ingestion, full-text storage, and direct file download routing.'],
-            ['api/routers/podcasts.py', '12', 'Podcast episode creation, background generation, and execution scheduling.'],
-            ['api/routers/agents.py', '11', 'LLM agent definitions, custom prompts, and background pipeline runs.'],
-            ['api/routers/publications.py', '11', 'Scheduled posts publishing calendar, marketing metrics collection.'],
-            ['api/routers/assessments.py', '10', 'Compliance assessments, auditing sessions, CSET reporting, and rollup analytics.'],
-            ['api/routers/projects.py', '9', 'Project management, task tracking, and linking research items to active projects.'],
-            ['api/routers/transformations.py', '8', 'Content prompt templates, transformation pipelines, and execution engines.'],
-            ['api/routers/scheduled_search.py', '8', 'Automated recurring query scheduling and background search execution.'],
-            ['api/routers/chat.py', '7', 'General LLM assistant sessions, message threads, and notebook context building.'],
-            ['api/routers/contacts.py', '6', 'Customer stakeholder contacts list and contact updates.'],
-            ['api/routers/locations.py', '6', 'Facility locations definition, CRUD, and customer scoping.'],
-            ['api/routers/episode_profiles.py', '6', 'Speaker profiles, audio metadata, and duplicating podcast outlines.'],
-            ['api/routers/speaker_profiles.py', '6', 'Voice synthesizer speaker configs, duplication, and metadata querying.'],
-            ['api/routers/source_chat.py', '6', 'Vector-augmented chat sessions scoping to individual source documents.'],
-            ['api/routers/voice_sessions.py', '6', 'Web-socket or message-based real-time voice sessions, note creation.'],
-            ['api/routers/customers.py', '5', 'Customer profile registry, metadata adjustments.'],
-            ['api/routers/search.py', '5', 'Multi-modal semantic research search, document comparison.'],
-            ['api/routers/research_memory.py', '3', 'Research semantic cache querying, browse logs, and statistics.'],
-            ['api/routers/notes.py', '5', 'Note entity definitions, content updating, and notebook associations.'],
-            ['api/routers/commands.py', '5', 'Dynamic task execution, command registry debugging.'],
-            ['api/routers/pipeline.py', '5', 'Scanning status checking, compliance pipelines, automation rules.'],
-            ['api/routers/styleguides.py', '5', 'Styleguide templates for podcast/transcript text rendering.'],
-            ['api/routers/skills.py', '5', 'Extensible agent skill registry CRUD.'],
-            ['api/routers/import_export.py', '4', 'CSV/JSON data bulk importer/exporter utilities.'],
-            ['api/routers/containers.py', '4', 'Background process container health monitor, restarts, logs.'],
-            ['api/routers/activities.py', '3', 'Unified timeline activities listing, manual log insertions.'],
-            ['api/routers/insights.py', '3', 'Extracted document insights viewing and note conversion.'],
-            ['api/routers/organizations.py', '2', 'Shared tenant organization boundaries.'],
-            ['api/routers/auth.py', '2', 'Basic user profile and active auth session validators.'],
-            ['api/routers/regulations.py', '2', 'Regulation and framework query tools.'],
-            ['api/routers/embedding_rebuild.py', '2', 'Chunk re-indexing commands.'],
-            ['api/routers/settings.py', '2', 'System configurations management.'],
-            ['api/routers/voice_rag.py', '2', 'RAG-based real-time audio chat controllers.'],
-            ['api/main.py', '2', 'Root endpoint and raw server health route.'],
-            ['api/routers/config.py', '1', 'Global frontend config mappings injector.'],
-            ['api/routers/embedding.py', '1', 'Single-shot vector embedding calculation endpoint.'],
-            ['api/routers/context.py', '1', 'Context compiling for LLM prompting.'],
-            ['api/routers/languages.py', '1', 'Supported translation languages enumerations.'],
-            ['api/routers/platform.py', '1', 'Operating system platform indicators.'],
-            ['api/routers/mcp.py', '1', 'Enabled Model Context Protocol (MCP) server statuses.']
+            ['[api/routers/notebooks.py](code:api/routers/notebooks.py#L1)', '20', 'Drawing canvas notebook management, node/edge validation (POST /api/graph/validate), export routes (POST /api/notebooks/export/*).'],
+            ['[api/routers/models.py](code:api/routers/models.py#L1)', '14', 'Model registries, auto-assignment of default models, sync, provider configuration.'],
+            ['[api/routers/credentials.py](code:api/routers/credentials.py#L1)', '14', 'Cloud credentials management, OAuth flows, and environment migration utilities.'],
+            ['[api/routers/research_items.py](code:api/routers/research_items.py#L1)', '14', 'Background research tasks, deep research triggering, item approvals.'],
+            ['[api/routers/voice.py](code:api/routers/voice.py#L1)', '14', 'Voice configuration, text-to-speech (TTS) preflight, audio transcribing (STT).'],
+            ['[api/routers/sources.py](code:api/routers/sources.py#L1)', '12', 'Document source ingestion, full-text storage, and direct file download routing.'],
+            ['[api/routers/podcasts.py](code:api/routers/podcasts.py#L1)', '12', 'Podcast episode creation, background generation, and execution scheduling.'],
+            ['[api/routers/agents.py](code:api/routers/agents.py#L1)', '11', 'LLM agent definitions, custom prompts, and background pipeline runs.'],
+            ['[api/routers/publications.py](code:api/routers/publications.py#L1)', '11', 'Scheduled posts publishing calendar, marketing metrics collection.'],
+            ['[api/routers/assessments.py](code:api/routers/assessments.py#L1)', '10', 'Compliance assessments, auditing sessions, CSET reporting, and rollup analytics.'],
+            ['[api/routers/projects.py](code:api/routers/projects.py#L1)', '9', 'Project management, task tracking, and linking research items to active projects.'],
+            ['[api/routers/transformations.py](code:api/routers/transformations.py#L1)', '8', 'Content prompt templates, transformation pipelines, and execution engines.'],
+            ['[api/routers/scheduled_search.py](code:api/routers/scheduled_search.py#L1)', '8', 'Automated recurring query scheduling and background search execution.'],
+            ['[api/routers/chat.py](code:api/routers/chat.py#L1)', '7', 'General LLM assistant sessions, message threads, and notebook context building.'],
+            ['[api/routers/contacts.py](code:api/routers/contacts.py#L1)', '6', 'Customer stakeholder contacts list and contact updates.'],
+            ['[api/routers/locations.py](code:api/routers/locations.py#L1)', '6', 'Facility locations definition, CRUD, and customer scoping.'],
+            ['[api/routers/episode_profiles.py](code:api/routers/episode_profiles.py#L1)', '6', 'Speaker profiles, audio metadata, and duplicating podcast outlines.'],
+            ['[api/routers/speaker_profiles.py](code:api/routers/speaker_profiles.py#L1)', '6', 'Voice synthesizer speaker configs, duplication, and metadata querying.'],
+            ['[api/routers/source_chat.py](code:api/routers/source_chat.py#L1)', '6', 'Vector-augmented chat sessions scoping to individual source documents.'],
+            ['[api/routers/voice_sessions.py](code:api/routers/voice_sessions.py#L1)', '6', 'Web-socket or message-based real-time voice sessions, note creation.'],
+            ['[api/routers/customers.py](code:api/routers/customers.py#L1)', '5', 'Customer profile registry, metadata adjustments.'],
+            ['[api/routers/search.py](code:api/routers/search.py#L1)', '5', 'Multi-modal semantic research search, document comparison.'],
+            ['[api/routers/research_memory.py](code:api/routers/research_memory.py#L1)', '3', 'Research semantic cache querying, browse logs, and statistics.'],
+            ['[api/routers/notes.py](code:api/routers/notes.py#L1)', '5', 'Note entity definitions, content updating, and notebook associations.'],
+            ['[api/routers/commands.py](code:api/routers/commands.py#L1)', '5', 'Dynamic task execution, command registry debugging.'],
+            ['[api/routers/pipeline.py](code:api/routers/pipeline.py#L1)', '5', 'Scanning status checking, compliance pipelines, automation rules.'],
+            ['[api/routers/styleguides.py](code:api/routers/styleguides.py#L1)', '5', 'Styleguide templates for podcast/transcript text rendering.'],
+            ['[api/routers/skills.py](code:api/routers/skills.py#L1)', '5', 'Extensible agent skill registry CRUD.'],
+            ['[api/routers/import_export.py](code:api/routers/import_export.py#L1)', '4', 'CSV/JSON data bulk importer/exporter utilities.'],
+            ['[api/routers/containers.py](code:api/routers/containers.py#L1)', '4', 'Background process container health monitor, restarts, logs.'],
+            ['[api/routers/activities.py](code:api/routers/activities.py#L1)', '3', 'Unified timeline activities listing, manual log insertions.'],
+            ['[api/routers/insights.py](code:api/routers/insights.py#L1)', '3', 'Extracted document insights viewing and note conversion.'],
+            ['[api/routers/organizations.py](code:api/routers/organizations.py#L1)', '2', 'Shared tenant organization boundaries.'],
+            ['[api/routers/auth.py](code:api/routers/auth.py#L1)', '2', 'Basic user profile and active auth session validators.'],
+            ['[api/routers/regulations.py](code:api/routers/regulations.py#L1)', '2', 'Regulation and framework query tools.'],
+            ['[api/routers/embedding_rebuild.py](code:api/routers/embedding_rebuild.py#L1)', '2', 'Chunk re-indexing commands.'],
+            ['[api/routers/settings.py](code:api/routers/settings.py#L1)', '2', 'System configurations management.'],
+            ['[api/routers/voice_rag.py](code:api/routers/voice_rag.py#L1)', '2', 'RAG-based real-time audio chat controllers.'],
+            ['[api/routers/config.py](code:api/routers/config.py#L1)', '1', 'Global frontend config mappings injector.'],
+            ['[api/routers/embedding.py](code:api/routers/embedding.py#L1)', '1', 'Single-shot vector embedding calculation endpoint.'],
+            ['[api/routers/context.py](code:api/routers/context.py#L1)', '1', 'Context compiling for LLM prompting.'],
+            ['[api/routers/languages.py](code:api/routers/languages.py#L1)', '1', 'Supported translation languages enumerations.'],
+            ['[api/routers/platform.py](code:api/routers/platform.py#L1)', '1', 'Operating system platform indicators.'],
+            ['[api/routers/mcp.py](code:api/routers/mcp.py#L1)', '1', 'Enabled Model Context Protocol (MCP) server statuses.'],
+            ['[api/routers/activity_emitter.py](code:api/routers/activity_emitter.py#L1)', '0', 'Shared helper utility for emitting customer activity events dynamically.'],
+            ['[api/routers/system_logs.py](code:api/routers/system_logs.py#L1)', '2', 'Provides endpoints for monitoring, searching, filtering, and pruning system logs.'],
+            ['[api/routers/voice_tools.py](code:api/routers/voice_tools.py#L1)', '2', 'Search, summaries, and social query tools for voice agents. Exposes schema and execution.']
           ]
         }
       },
@@ -826,24 +828,55 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'comp-hooks',
-        title: 'Custom Hooks (41)',
-        content: 'The frontend codebase defines exactly 41 custom React hooks (40 in the core `frontend/src/lib/hooks/` folder and 1 localized within the voice settings page) to coordinate state, data fetching, and layouts.',
+        title: 'Custom Hooks (44)',
+        content: 'The frontend codebase defines exactly 44 custom React hooks (41 in the core `frontend/src/lib/hooks/` folder, 2 localized within the voice settings testing page, and 1 localized within the voice component) to coordinate state, data fetching, and layouts.',
         table: {
           headers: ['Hook Name', 'Target File', 'Purpose & Responsibility'],
           rows: [
-            ['useAuth', 'hooks/use-auth.ts', 'Integrates with useAuthStore to guard routes, redirect users post-login, and handle session expiration.'],
-            ['useNotebookChat', 'hooks/useNotebookChat.ts', 'Orchestrates notebook-level chat sessions. Retrieves history, and manages Server-Sent Events (SSE) message streaming with context parsing.'],
-            ['useSourceChat', 'hooks/useSourceChat.ts', 'Manages chat session state and messaging constrained to the context of a single document source.'],
-            ['useAsk', 'hooks/use-ask.ts', 'Interfaces with the search API endpoint (/api/search/ask) for Q&A queries.'],
-            ['useSearch', 'hooks/use-search.ts', 'Executes and manages history for semantic vector searches.'],
-            ['useInsights', 'hooks/use-insights.ts', 'Orchestrates dynamic AI analysis generation for uploaded documents.'],
-            ['useModalManager', 'hooks/use-modal-manager.ts', 'Synchronizes open detail modals with Next.js URL parameters (?modal=source&id=xyz) for shareable views.'],
-            ['useBreadcrumbs', 'hooks/use-breadcrumbs.ts', 'Triggers dynamic header breadcrumb title updates as pages mount/unmount.'],
-            ['useNotebookColumns', 'hooks/use-notebook-columns.ts', 'Coordinates multi-column widths and visibility settings in the notebook workspace.'],
-            ['useCustomers', 'hooks/use-customers.ts', 'React Query wrapper handling CRM customer queries, cache invalidations, and mutations.'],
-            ['useModels', 'hooks/use-models.ts', 'Fetches available language models and embedding providers from OpenRouter and Ollama configurations.'],
-            ['useCredentials', 'hooks/use-credentials.ts', 'Handles CRUD operations for API keys.'],
-            ['useVoiceSessions', 'hooks/use-voice-sessions.ts', 'Manages live WebRTC audio stream connections for voice assistant features.']
+            ['useAuth', '[frontend/src/lib/hooks/use-auth.ts](code:frontend/src/lib/hooks/use-auth.ts#L1)', 'Integrates with auth store to guard routes, redirect users, and handle session expiration.'],
+            ['useActivities', '[frontend/src/lib/hooks/use-activities.ts](code:frontend/src/lib/hooks/use-activities.ts#L1)', 'Queries and logs timeline activity logs.'],
+            ['useAgents', '[frontend/src/lib/hooks/use-agents.ts](code:frontend/src/lib/hooks/use-agents.ts#L1)', 'Coordinates custom AI agent configuration, execution, and logs.'],
+            ['useAnalytics', '[frontend/src/lib/hooks/use-analytics.ts](code:frontend/src/lib/hooks/use-analytics.ts#L1)', 'Tracks customer engagement, feature utilization, and search metrics.'],
+            ['useAsk', '[frontend/src/lib/hooks/use-ask.ts](code:frontend/src/lib/hooks/use-ask.ts#L1)', 'Interfaces with the Q&A streaming API for instant answers.'],
+            ['useBreadcrumbLabel', '[frontend/src/lib/hooks/use-breadcrumb-label.ts](code:frontend/src/lib/hooks/use-breadcrumb-label.ts#L1)', 'Sets the header breadcrumb text dynamically.'],
+            ['useContacts', '[frontend/src/lib/hooks/use-contacts.ts](code:frontend/src/lib/hooks/use-contacts.ts#L1)', 'Manages customer stakeholder contacts query and mutation lifecycle.'],
+            ['useCreateDialogs', '[frontend/src/lib/hooks/use-create-dialogs.tsx](code:frontend/src/lib/hooks/use-create-dialogs.tsx#L1)', 'Coordinates create and upload dialog forms.'],
+            ['useCredentials', '[frontend/src/lib/hooks/use-credentials.ts](code:frontend/src/lib/hooks/use-credentials.ts#L1)', 'Handles API keys CRUD operations.'],
+            ['useCustomers', '[frontend/src/lib/hooks/use-customers.ts](code:frontend/src/lib/hooks/use-customers.ts#L1)', 'Manages CRM customer queries, sectors, and compliance mappings.'],
+            ['useEntityNotes', '[frontend/src/lib/hooks/use-entity-notes.ts](code:frontend/src/lib/hooks/use-entity-notes.ts#L1)', 'Queries notes linked to a specific entity via graph relations.'],
+            ['useImport', '[frontend/src/lib/hooks/use-import.ts](code:frontend/src/lib/hooks/use-import.ts#L1)', 'Orchestrates multi-step CSV/XLSX data import wizard.'],
+            ['useInsights', '[frontend/src/lib/hooks/use-insights.ts](code:frontend/src/lib/hooks/use-insights.ts#L1)', 'Manages document summary and topic analysis generation.'],
+            ['useLocations', '[frontend/src/lib/hooks/use-locations.ts](code:frontend/src/lib/hooks/use-locations.ts#L1)', 'Handles customer facility geolocation CRUD operations.'],
+            ['useMediaQuery', '[frontend/src/lib/hooks/use-media-query.ts](code:frontend/src/lib/hooks/use-media-query.ts#L1)', 'Responsive window size matching helper.'],
+            ['useModalManager', '[frontend/src/lib/hooks/use-modal-manager.ts](code:frontend/src/lib/hooks/use-modal-manager.ts#L1)', 'Synchronizes open modals with search URL parameters.'],
+            ['useModels', '[frontend/src/lib/hooks/use-models.ts](code:frontend/src/lib/hooks/use-models.ts#L1)', 'Fetches and configures Cloud and Local LLMs.'],
+            ['useNavigation', '[frontend/src/lib/hooks/use-navigation.ts](code:frontend/src/lib/hooks/use-navigation.ts#L1)', 'Coordinates history stack transitions.'],
+            ['useNotebooks', '[frontend/src/lib/hooks/use-notebooks.ts](code:frontend/src/lib/hooks/use-notebooks.ts#L1)', 'Queries and manages notebook document workspaces.'],
+            ['useNotes', '[frontend/src/lib/hooks/use-notes.ts](code:frontend/src/lib/hooks/use-notes.ts#L1)', 'Manages note CRUD operations and notebook attachments.'],
+            ['usePipeline', '[frontend/src/lib/hooks/use-pipeline.ts](code:frontend/src/lib/hooks/use-pipeline.ts#L1)', 'Coordinates sales pipeline deals and kanban board drag-and-drop actions.'],
+            ['usePodcasts', '[frontend/src/lib/hooks/use-podcasts.ts](code:frontend/src/lib/hooks/use-podcasts.ts#L1)', 'Manages podcast generation tasks and player controls.'],
+            ['useProjects', '[frontend/src/lib/hooks/use-projects.ts](code:frontend/src/lib/hooks/use-projects.ts#L1)', 'Coordinates projects and milestones delivery.'],
+            ['usePublications', '[frontend/src/lib/hooks/use-publications.ts](code:frontend/src/lib/hooks/use-publications.ts#L1)', 'Manages marketing scheduled publications calendar.'],
+            ['useResearchItems', '[frontend/src/lib/hooks/use-research-items.ts](code:frontend/src/lib/hooks/use-research-items.ts#L1)', 'Handles deep research tasks status and progress logs.'],
+            ['useResearchMemory', '[frontend/src/lib/hooks/use-research-memory.ts](code:frontend/src/lib/hooks/use-research-memory.ts#L1)', 'Queries pgvector cache query histories and logs.'],
+            ['useScheduledSearch', '[frontend/src/lib/hooks/use-scheduled-search.ts](code:frontend/src/lib/hooks/use-scheduled-search.ts#L1)', 'Manages recurring background search tasks.'],
+            ['useSearch', '[frontend/src/lib/hooks/use-search.ts](code:frontend/src/lib/hooks/use-search.ts#L1)', 'Executes semantic searches using RRF hybrid models.'],
+            ['useSettings', '[frontend/src/lib/hooks/use-settings.ts](code:frontend/src/lib/hooks/use-settings.ts#L1)', 'Manages global application settings and theme variables.'],
+            ['useSkills', '[frontend/src/lib/hooks/use-skills.ts](code:frontend/src/lib/hooks/use-skills.ts#L1)', 'Queries and modifies agent skills registry.'],
+            ['useSources', '[frontend/src/lib/hooks/use-sources.ts](code:frontend/src/lib/hooks/use-sources.ts#L1)', 'Handles document uploads, reprocessing, and metadata CRUD.'],
+            ['useStyleguides', '[frontend/src/lib/hooks/use-styleguides.ts](code:frontend/src/lib/hooks/use-styleguides.ts#L1)', 'Queries and manages text rendering style guides.'],
+            ['useToast', '[frontend/src/lib/hooks/use-toast.ts](code:frontend/src/lib/hooks/use-toast.ts#L1)', 'Triggers transient user alerts and messages.'],
+            ['useTransformations', '[frontend/src/lib/hooks/use-transformations.ts](code:frontend/src/lib/hooks/use-transformations.ts#L1)', 'Executes document conversion template tasks.'],
+            ['useTranslation', '[frontend/src/lib/hooks/use-translation.ts](code:frontend/src/lib/hooks/use-translation.ts#L1)', 'Synchronizes multilocale resource files and direction indicators.'],
+            ['useUsers', '[frontend/src/lib/hooks/use-users.ts](code:frontend/src/lib/hooks/use-users.ts#L1)', 'Queries basic user profiles.'],
+            ['useVersionCheck', '[frontend/src/lib/hooks/use-version-check.ts](code:frontend/src/lib/hooks/use-version-check.ts#L1)', 'Verifies application version updates.'],
+            ['useVoiceRegistry', '[frontend/src/lib/hooks/use-voice-registry.ts](code:frontend/src/lib/hooks/use-voice-registry.ts#L1)', 'Queries available text-to-speech configurations.'],
+            ['useVoiceSessions', '[frontend/src/lib/hooks/use-voice-sessions.ts](code:frontend/src/lib/hooks/use-voice-sessions.ts#L1)', 'Manages WebRTC live voice connection sessions.'],
+            ['useNotebookChat', '[frontend/src/lib/hooks/useNotebookChat.ts](code:frontend/src/lib/hooks/useNotebookChat.ts#L1)', 'Orchestrates notebook-level chat and SSE streaming.'],
+            ['useSourceChat', '[frontend/src/lib/hooks/useSourceChat.ts](code:frontend/src/lib/hooks/useSourceChat.ts#L1)', 'Manages chat scoped to a single document source.'],
+            ['useAudioPlayback', '[frontend/src/app/(dashboard)/settings/voice/hooks/use-voice-testing.ts](code:frontend/src/app/(dashboard)/settings/voice/hooks/use-voice-testing.ts#L1)', 'Manages HTMLAudioElement play/stop playback lifecycle (localized).'],
+            ['useServiceHealthTest', '[frontend/src/app/(dashboard)/settings/voice/hooks/use-voice-testing.ts](code:frontend/src/app/(dashboard)/settings/voice/hooks/use-voice-testing.ts#L1)', 'Tests voice synthesis connectivity health (localized).'],
+            ['useVoiceProcessor', '[frontend/src/components/voice/useVoiceProcessor.ts](code:frontend/src/components/voice/useVoiceProcessor.ts#L1)', 'Handles live voice recording and audio stream pipelines (localized).']
           ],
         },
       },
@@ -892,18 +925,36 @@ const DOCUMENTATION: DocSection[] = [
         table: {
           headers: ['Module', 'Endpoints Covered', 'Role in the Platform'],
           rows: [
-            ['client.ts', 'Base Axios instance setup', 'Attaches authorization headers, manages request timeouts, and intercepts 401 errors.'],
-            ['sources.ts', '/sources/upload, /sources/', 'Orchestrates document source ingestion, metadata updates, and content deletion.'],
-            ['chat.ts', '/chat/sessions, /chat/messages', 'Fetches conversation histories and updates notebook chat configurations.'],
-            ['source-chat.ts', '/source-chat/sessions', 'Coordinates conversations constrained to a single document context.'],
-            ['search.ts', '/search/query, /search/ask, /search/research', 'Handles semantic searches, streaming question answering, and deep research.'],
-            ['research-memory.ts', '/research-memory/stats, /research-memory/search, /research-memory/browse', 'Interfaces with PostgreSQL pgvector query audit logs and cache stats.'],
-            ['credentials.ts', '/credentials/', 'Manages database CRUD operations for third-party API keys.'],
-            ['models.ts', '/models/', 'Queries and synchronizes the list of cloud/local text-generation and embedding models.'],
-            ['podcasts.ts', '/podcasts/generate', 'Coordinates speech generation jobs and podcast metadata updates.'],
-            ['pipeline.ts', '/pipeline/stages', 'Controls CRM sales pipeline stages and deal state transitions.'],
-            ['voice.ts', '/voice/session, /voice/auth', 'Obtains WebRTC session tokens and handles real-time call states.'],
-            ['transformations.ts', '/transformations/apply', 'Triggers document conversions using transformation templates.']
+            ['[client.ts](code:frontend/src/lib/api/client.ts#L1)', 'Base Axios instance setup', 'Attaches authorization headers, manages request timeouts, and intercepts 401 errors.'],
+            ['[sources.ts](code:frontend/src/lib/api/sources.ts#L1)', '/sources/upload, /sources/', 'Orchestrates document source ingestion, metadata updates, and content deletion.'],
+            ['[chat.ts](code:frontend/src/lib/api/chat.ts#L1)', '/chat/sessions, /chat/messages', 'Fetches conversation histories and updates notebook chat configurations.'],
+            ['[source-chat.ts](code:frontend/src/lib/api/source-chat.ts#L1)', '/source-chat/sessions', 'Coordinates conversations constrained to a single document context.'],
+            ['[search.ts](code:frontend/src/lib/api/search.ts#L1)', '/search/query, /search/ask, /search/research', 'Handles semantic searches, streaming question answering, and deep research.'],
+            ['[research-memory.ts](code:frontend/src/lib/api/research-memory.ts#L1)', '/research-memory/stats, /research-memory/search, /research-memory/browse', 'Interfaces with PostgreSQL pgvector query audit logs and cache stats.'],
+            ['[credentials.ts](code:frontend/src/lib/api/credentials.ts#L1)', '/credentials/', 'Manages database CRUD operations for third-party API keys.'],
+            ['[models.ts](code:frontend/src/lib/api/models.ts#L1)', '/models/', 'Queries and synchronizes the list of cloud/local text-generation and embedding models.'],
+            ['[podcasts.ts](code:frontend/src/lib/api/podcasts.ts#L1)', '/podcasts/generate', 'Coordinates speech generation jobs and podcast metadata updates.'],
+            ['[pipeline.ts](code:frontend/src/lib/api/pipeline.ts#L1)', '/pipeline/stages', 'Controls CRM sales pipeline stages and deal state transitions.'],
+            ['[voice.ts](code:frontend/src/lib/api/voice.ts#L1)', '/voice/session, /voice/auth', 'Obtains WebRTC session tokens and handles real-time call states.'],
+            ['[transformations.ts](code:frontend/src/lib/api/transformations.ts#L1)', '/transformations/apply', 'Triggers document conversions using transformation templates.'],
+            ['[activities.ts](code:frontend/src/lib/api/activities.ts#L1)', '/activities/', 'Timeline log querying and manual activity creations.'],
+            ['[agents.ts](code:frontend/src/lib/api/agents.ts#L1)', '/agents/', 'CRUD for custom AI agents and execution triggering.'],
+            ['[contacts.ts](code:frontend/src/lib/api/contacts.ts#L1)', '/contacts/', 'Customer contacts CRUD and pipeline integration.'],
+            ['[customers.ts](code:frontend/src/lib/api/customers.ts#L1)', '/customers/', 'CRM customer registry updates, sector tags, compliance.'],
+            ['[embedding.ts](code:frontend/src/lib/api/embedding.ts#L1)', '/embedding/', 'Triggering embedding rebuilds and index status checks.'],
+            ['[insights.ts](code:frontend/src/lib/api/insights.ts#L1)', '/insights/', 'Retrieves document AI summaries and converts insights to notes.'],
+            ['[locations.ts](code:frontend/src/lib/api/locations.ts#L1)', '/locations/', 'Customer facility locations CRUD and map search.'],
+            ['[notes.ts](code:frontend/src/lib/api/notes.ts#L1)', '/notes/', 'Note creation, updating, and notebook attachments.'],
+            ['[projects.ts](code:frontend/src/lib/api/projects.ts#L1)', '/projects/', 'Project milestones CRUD and timeline associations.'],
+            ['[publications.ts](code:frontend/src/lib/api/publications.ts#L1)', '/publications/', 'Marketing publications scheduled calendar and analytics.'],
+            ['[query-client.ts](code:frontend/src/lib/api/query-client.ts#L1)', 'react-query helper', 'Global react-query instance configuration helper.'],
+            ['[research-items.ts](code:frontend/src/lib/api/research-items.ts#L1)', '/research-items/', 'Deep research task creation, logs, and approvals.'],
+            ['[scheduled-search.ts](code:frontend/src/lib/api/scheduled-search.ts#L1)', '/scheduled-search/', 'Recurring searches list, scheduling, and deletions.'],
+            ['[settings.ts](code:frontend/src/lib/api/settings.ts#L1)', '/settings/', 'System settings query and configuration updates.'],
+            ['[skills.ts](code:frontend/src/lib/api/skills.ts#L1)', '/skills/', 'Custom AI skills registry CRUD operations.'],
+            ['[styleguides.ts](code:frontend/src/lib/api/styleguides.ts#L1)', '/styleguides/', 'Podcast styleguides CRUD.'],
+            ['[users.ts](code:frontend/src/lib/api/users.ts#L1)', '/users/', 'User profile status queries.'],
+            ['[notebooks.ts](code:frontend/src/lib/api/notebooks.ts#L1)', '/notebooks/', 'Workspace CRUD, linking source items, and canvas exports.']
           ],
         },
       },
@@ -951,7 +1002,7 @@ const DOCUMENTATION: DocSection[] = [
         id: 'dev-structure',
         title: 'Project Structure',
         content: 'The monorepo contains the Python backend and Next.js frontend in a single repository.',
-        code: `notebook_tetrel/\n├── api/                    # FastAPI backend\n│   ├── main.py             # App entry, router registration, CORS\n│   ├── models.py           # Pydantic request/response models\n│   └── routers/            # 32 API router modules\n│       ├── sources.py      # Source CRUD and file upload\n│       ├── notebooks.py    # Notebook management\n│       ├── chat.py         # Streaming AI chat\n│       ├── search.py       # Semantic search\n│       ├── customers.py    # CRM customers\n│       ├── assessments.py  # Compliance assessments\n│       ├── models.py       # AI model management\n│       └── ...             # 25 more routers\n├── open_notebook/          # Domain layer\n│   ├── database/\n│   │   ├── repository.py   # SurrealDB abstraction\n│   │   └── migrations/     # 42 migrations (84 files total)\n│   ├── domain/             # Business entities\n│   └── config/             # Application configuration\n├── frontend/               # Next.js frontend\n│   ├── src/\n│   │   ├── app/(dashboard)/ # 32 page routes\n│   │   ├── components/      # 18 component directories\n│   │   ├── lib/\n│   │   │   ├── api/         # 30 API client modules\n│   │   │   ├── hooks/       # 40 custom hooks\n│   │   │   ├── stores/      # Zustand stores\n│   │   │   ├── types/       # TypeScript type definitions\n│   │   │   └── locales/     # i18n translation files\n│   │   └── styles/          # Global CSS\n│   └── public/              # Static assets\n├── scripts/                 # Migration and utility scripts\n├── pyproject.toml           # Python project config\n└── CLAUDE.md                # AI coding guidelines`,
+        code: `notebook_tetrel/\n├── api/                    # FastAPI backend\n│   ├── main.py             # App entry, router registration, CORS\n│   ├── models.py           # Pydantic request/response models\n│   └── routers/            # 47 API router modules\n│       ├── sources.py      # Source CRUD and file upload\n│       ├── notebooks.py    # Notebook management\n│       ├── chat.py         # Streaming AI chat\n│       ├── search.py       # Semantic search\n│       ├── customers.py    # CRM customers\n│       ├── assessments.py  # Compliance assessments\n│       ├── models.py       # AI model management\n│       └── ...             # 40 more routers\n├── open_notebook/          # Domain layer\n│   ├── database/\n│   │   ├── repository.py   # SurrealDB abstraction\n│   │   └── migrations/     # 42 migrations (84 files total)\n│   ├── domain/             # Business entities\n│   └── config/             # Application configuration\n├── frontend/               # Next.js frontend\n│   ├── src/\n│   │   ├── app/(dashboard)/ # 32 page routes\n│   │   ├── components/      # 18 component directories\n│   │   ├── lib/\n│   │   │   ├── api/         # 30 API client modules\n│   │   │   ├── hooks/       # 41 custom hooks\n│   │   │   ├── stores/      # Zustand stores\n│   │   │   ├── types/       # TypeScript type definitions\n│   │   │   └── locales/     # i18n translation files\n│   │   └── styles/          # Global CSS\n│   └── public/              # Static assets\n├── scripts/                 # Migration and utility scripts\n├── pyproject.toml           # Python project config\n└── CLAUDE.md                # AI coding guidelines`,
       },
       {
         id: 'dev-standards',
@@ -1116,8 +1167,8 @@ export default function DocumentationPage() {
   }
 
   // Stats
-  const totalEndpoints = 272
-  const totalHooks = 40
+  const totalEndpoints = 277
+  const totalHooks = 44
   const totalComponents = 18
 
   return (
@@ -1360,7 +1411,33 @@ export default function DocumentationPage() {
                                         <tr key={i} className="hover:bg-slate-800/10 transition-all">
                                           {row.map((cell, j) => (
                                             <td key={j} className={`p-2.5 text-[10px] ${j === 0 ? 'font-bold text-slate-200' : 'text-muted-foreground/80'}`}>
-                                              {cell}
+                                              {(() => {
+                                                const linkRegex = /^\[([^\]]+)\]\((code:[^)]+)\)$/
+                                                const match = cell.match(linkRegex)
+                                                if (match) {
+                                                  const [, text, url] = match
+                                                  return (
+                                                    <a
+                                                      href={url}
+                                                      onClick={(e) => {
+                                                        e.preventDefault()
+                                                        const withoutProtocol = url.substring(5)
+                                                        const [path, linePart] = withoutProtocol.split('#L')
+                                                        const lineSuffix = linePart ? `:${linePart}` : ''
+                                                        const searchParams = new URLSearchParams(window.location.search)
+                                                        searchParams.set('modal', 'code')
+                                                        searchParams.set('id', `${path}${lineSuffix}`)
+                                                        window.history.pushState({}, '', `${window.location.pathname}?${searchParams.toString()}`)
+                                                        window.dispatchEvent(new Event('popstate'))
+                                                      }}
+                                                      className="text-cyan-400 hover:underline hover:text-cyan-300 transition-colors"
+                                                    >
+                                                      {text}
+                                                    </a>
+                                                  )
+                                                }
+                                                return cell
+                                              })()}
                                             </td>
                                           ))}
                                         </tr>

@@ -49,6 +49,8 @@ def test_publications_connection_test():
     res = client.post("/api/publications/settings/test", json=payload)
     assert res.status_code == 200
     assert "status" in res.json()
+    assert "steps" in res.json()
+    assert len(res.json()["steps"]) > 0
 
 def test_publications_connection_test_real_mocked():
     """Test connection validation endpoint with mocked smtplib connection."""
@@ -67,6 +69,8 @@ def test_publications_connection_test_real_mocked():
         res = client.post("/api/publications/settings/test", json=payload)
         assert res.status_code == 200
         assert res.json()["status"] == "success"
+        assert "steps" in res.json()
+        assert len(res.json()["steps"]) > 0
         mock_smtp.assert_called_once_with("smtp.company.com", 587, timeout=10)
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once_with("realuser", "realpassword")

@@ -12,9 +12,10 @@ interface ContentCalendarProps {
   posts: ScheduledPost[]
   onAddPost: (date: Date) => void
   onEditPost: (post: ScheduledPost) => void
+  onReschedulePost?: (postId: string, newDate: Date) => Promise<void>
 }
 
-export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalendarProps) {
+export function ContentCalendar({ posts, onAddPost, onEditPost, onReschedulePost }: ContentCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
   const year = currentDate.getFullYear()
@@ -193,6 +194,26 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
                   cell.isCurrentMonth ? "bg-card" : "bg-muted/10 opacity-40",
                   isToday && "bg-primary/5 ring-1 ring-primary/20 ring-inset"
                 )}
+                onDragOver={(e) => {
+                  if (cell.isCurrentMonth) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    e.currentTarget.classList.add('bg-primary/10', 'ring-1', 'ring-primary/40');
+                  }
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('bg-primary/10', 'ring-1', 'ring-primary/40');
+                }}
+                onDrop={async (e) => {
+                  if (cell.isCurrentMonth) {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('bg-primary/10', 'ring-1', 'ring-primary/40');
+                    const postId = e.dataTransfer.getData('text/plain');
+                    if (postId && onReschedulePost) {
+                      await onReschedulePost(postId, cell.date);
+                    }
+                  }
+                }}
               >
                 {/* Day Header */}
                 <div className="flex justify-between items-center mb-1">
@@ -227,8 +248,13 @@ export function ContentCalendar({ posts, onAddPost, onEditPost }: ContentCalenda
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => onEditPost(post)}
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', post.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
                           className={cn(
-                            "w-full flex items-center justify-between text-left text-[11px] font-medium py-1 px-1.5 rounded transition-all duration-150 truncate border",
+                            "w-full flex items-center justify-between text-left text-[11px] font-medium py-1 px-1.5 rounded transition-all duration-150 truncate border cursor-grab active:cursor-grabbing",
                             getChannelStyle(post.channel)
                           )}
                         >

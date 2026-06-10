@@ -122,34 +122,157 @@ async def test_smtp_connection(payload: EmailSettingsUpdate):
             or "mock" in smtp_host.lower()
         )
 
+        steps = []
+
         if is_sandbox:
             logger.info(
                 f"Sandbox SMTP pre-flight test: {smtp_host}:{smtp_port} for user {smtp_username}"
             )
+            steps.append({
+                "name": "DNS Resolution",
+                "status": "success",
+                "message": f"Sandbox mock resolved: {smtp_host or 'sandbox.smtp.local'}"
+            })
+            steps.append({
+                "name": "TCP Socket Connection",
+                "status": "success",
+                "message": f"Sandbox mock socket established on port {smtp_port or 587}"
+            })
+            if use_tls:
+                steps.append({
+                    "name": "STARTTLS Negotiation",
+                    "status": "success",
+                    "message": "Sandbox mock TLS handshake complete."
+                })
+            if smtp_username:
+                steps.append({
+                    "name": "SMTP Authentication",
+                    "status": "success",
+                    "message": f"Sandbox mock authenticated user {smtp_username}."
+                })
             return {
                 "status": "success",
                 "message": "SMTP pre-flight test completed successfully (Sandbox Mode)",
+                "steps": steps
             }
-        
+
+        import socket
         import smtplib
-        logger.info(f"Testing real SMTP connection to {smtp_host}:{smtp_port}")
-        if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
-        else:
-            server = smtplib.SMTP(smtp_host, smtp_port or 587, timeout=10)
-            if use_tls:
+
+        # 1. DNS Resolution
+        try:
+            ip_addr = socket.gethostbyname(smtp_host)
+            steps.append({
+                "name": "DNS Resolution",
+                "status": "success",
+                "message": f"Resolved {smtp_host} to {ip_addr}"
+            })
+        except Exception as e:
+            # In mock/test environments, hostname resolution might fail.
+            # Log warning and append warning step but continue to allow mocked connection tests to pass.
+            logger.warning(f"DNS Resolution failed for {smtp_host}: {str(e)}")
+            steps.append({
+                "name": "DNS Resolution",
+                "status": "warning",
+                "message": f"Failed to resolve DNS for {smtp_host}: {str(e)}. Proceeding with connection."
+            })
+
+        # 2. TCP Socket Connection
+        server = None
+        port_val = smtp_port or (465 if smtp_port == 465 else 587)
+        try:
+            logger.info(f"Testing real SMTP connection to {smtp_host}:{port_val}")
+            if port_val == 465:
+                server = smtplib.SMTP_SSL(smtp_host, port_val, timeout=10)
+            else:
+                server = smtplib.SMTP(smtp_host, port_val, timeout=10)
+            
+            steps.append({
+                "name": "TCP Socket Connection",
+                "status": "success",
+                "message": f"Established socket connection to {smtp_host}:{port_val}"
+            })
+        except Exception as e:
+            steps.append({
+                "name": "TCP Socket Connection",
+                "status": "failed",
+                "message": f"Failed to connect to socket {smtp_host}:{port_val}: {str(e)}"
+            })
+            return {
+                "status": "failed",
+                "message": f"TCP Socket Connection failed: {str(e)}",
+                "steps": steps
+            }
+
+        # 3. STARTTLS Negotiation
+        try:
+            if port_val != 465 and use_tls:
                 server.starttls()
-        
-        if smtp_username and smtp_password:
-            server.login(smtp_username, smtp_password)
-        
-        server.noop()
-        server.quit()
-        logger.success(f"Successfully connected to SMTP server at {smtp_host}:{smtp_port}")
-        return {
-            "status": "success",
-            "message": f"Successfully connected to SMTP server at {smtp_host}:{smtp_port}",
-        }
+                steps.append({
+                    "name": "STARTTLS Negotiation",
+                    "status": "success",
+                    "message": "Secure TLS handshake completed successfully."
+                })
+            elif port_val == 465:
+                steps.append({
+                    "name": "STARTTLS Negotiation",
+                    "status": "success",
+                    "message": "Implicit SSL/TLS connection active."
+                })
+        except Exception as e:
+            steps.append({
+                "name": "STARTTLS Negotiation",
+                "status": "failed",
+                "message": f"Failed to negotiate STARTTLS encryption: {str(e)}"
+            })
+            try:
+                server.close()
+            except:
+                pass
+            return {
+                "status": "failed",
+                "message": f"STARTTLS negotiation failed: {str(e)}",
+                "steps": steps
+            }
+
+        # 4. SMTP Authentication
+        try:
+            if smtp_username and smtp_password:
+                server.login(smtp_username, smtp_password)
+                steps.append({
+                    "name": "SMTP Authentication",
+                    "status": "success",
+                    "message": f"Login accepted for user {smtp_username}."
+                })
+            else:
+                steps.append({
+                    "name": "SMTP Authentication",
+                    "status": "success",
+                    "message": "No authentication credentials required."
+                })
+            server.noop()
+            server.quit()
+            logger.success(f"Successfully connected to SMTP server at {smtp_host}:{port_val}")
+            return {
+                "status": "success",
+                "message": f"Successfully connected to SMTP server at {smtp_host}:{port_val}",
+                "steps": steps
+            }
+        except Exception as e:
+            steps.append({
+                "name": "SMTP Authentication",
+                "status": "failed",
+                "message": f"SMTP authentication rejected or noop failed: {str(e)}"
+            })
+            try:
+                server.close()
+            except:
+                pass
+            return {
+                "status": "failed",
+                "message": f"SMTP Authentication failed: {str(e)}",
+                "steps": steps
+            }
     except Exception as e:
         logger.error(f"Error running connection test: {str(e)}")
         raise HTTPException(

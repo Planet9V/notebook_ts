@@ -29,7 +29,9 @@ import {
   Upload, 
   Sparkles, 
   Loader2, 
-  Volume2 
+  Volume2,
+  ChevronDown,
+  Settings
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { 
@@ -41,10 +43,12 @@ import {
 import { resolvePodcastAssetUrl } from '@/lib/api/podcasts'
 import { AudioSequence } from '@/lib/types/podcasts'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { useAnalytics } from '@/lib/hooks/use-analytics'
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024 // 15MB
 
 export function AudioSequencesCard() {
+  const { trackEvent } = useAnalytics()
   const { data: sequences = [], isLoading } = useAudioSequences()
   const uploadMutation = useUploadAudioSequence()
   const generateMutation = useGenerateAudioSequence()
@@ -158,6 +162,13 @@ export function AudioSequencesCard() {
     if (!ttsName.trim() || !ttsPrompt.trim()) return
 
     try {
+      trackEvent('audio_generated', {
+        profile: ttsVoice || 'default',
+        text_length: ttsPrompt.length,
+        engine: ttsProvider,
+        sequence_name: ttsName,
+        sequence_type: ttsType,
+      })
       await generateMutation.mutateAsync({
         name: ttsName.trim(),
         description: ttsDesc.trim(),
@@ -350,8 +361,8 @@ export function AudioSequencesCard() {
 
             {/* Upload form */}
             <TabsContent value="upload">
-              <form onSubmit={handleUploadSubmit} className="space-y-3">
-                <div className="space-y-1">
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
+                <div className="space-y-1.5">
                   <Label htmlFor="upload-name" className="text-xs">Sequence Name *</Label>
                   <Input
                     id="upload-name"
@@ -363,44 +374,52 @@ export function AudioSequencesCard() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="upload-desc" className="text-xs">Description</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="file-select" className="text-xs">Audio File *</Label>
                   <Input
-                    id="upload-desc"
-                    value={uploadDesc}
-                    onChange={(e) => setUploadDesc(e.target.value)}
-                    placeholder="Short description..."
-                    className="text-xs h-8"
+                    id="file-select"
+                    type="file"
+                    accept=".mp3,.wav"
+                    onChange={handleFileChange}
+                    required
+                    ref={fileInputRef}
+                    className="text-[10px] h-8 pt-1 bg-background"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={uploadType} onValueChange={(v) => setUploadType(v as 'intro' | 'outro')}>
-                      <SelectTrigger className="text-xs h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="intro">Intro Clip</SelectItem>
-                        <SelectItem value="outro">Outro Clip</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {/* Collapsible Optional Parameters */}
+                <details className="group border border-sidebar-border/30 rounded-xl p-3 bg-sidebar-accent/5">
+                  <summary className="text-xs font-semibold cursor-pointer select-none text-muted-foreground hover:text-foreground list-none flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-mono uppercase tracking-wider text-[9px]">
+                      <Settings className="h-3 w-3" /> Optional Parameters
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="mt-3 space-y-3 pt-3 border-t border-sidebar-border/20">
+                    <div className="space-y-1">
+                      <Label htmlFor="upload-desc" className="text-xs">Description</Label>
+                      <Input
+                        id="upload-desc"
+                        value={uploadDesc}
+                        onChange={(e) => setUploadDesc(e.target.value)}
+                        placeholder="Short description..."
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Type</Label>
+                      <Select value={uploadType} onValueChange={(v) => setUploadType(v as 'intro' | 'outro')}>
+                        <SelectTrigger className="text-xs h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="intro">Intro Clip</SelectItem>
+                          <SelectItem value="outro">Outro Clip</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-
-                  <div className="space-y-1 flex flex-col justify-end">
-                    <Label htmlFor="file-select" className="text-xs mb-1">Audio File *</Label>
-                    <Input
-                      id="file-select"
-                      type="file"
-                      accept=".mp3,.wav"
-                      onChange={handleFileChange}
-                      required
-                      ref={fileInputRef}
-                      className="text-[10px] h-8 pt-1 bg-background"
-                    />
-                  </div>
-                </div>
+                </details>
 
                 <p className="text-[10px] text-muted-foreground">
                   Supported: .mp3, .wav. Max size: 15MB.
@@ -409,7 +428,7 @@ export function AudioSequencesCard() {
                 <Button
                   type="submit"
                   disabled={!selectedFile || !uploadName.trim() || uploadMutation.isPending}
-                  className="w-full text-xs h-8 gap-1"
+                  className="w-full text-xs h-8 gap-1 cursor-pointer"
                 >
                   {uploadMutation.isPending ? (
                     <>
@@ -426,8 +445,8 @@ export function AudioSequencesCard() {
 
             {/* TTS Generation Form */}
             <TabsContent value="generate">
-              <form onSubmit={handleGenerateSubmit} className="space-y-3">
-                <div className="space-y-1">
+              <form onSubmit={handleGenerateSubmit} className="space-y-4">
+                <div className="space-y-1.5">
                   <Label htmlFor="tts-name" className="text-xs">Sequence Name *</Label>
                   <Input
                     id="tts-name"
@@ -439,61 +458,7 @@ export function AudioSequencesCard() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="tts-desc" className="text-xs">Description</Label>
-                  <Input
-                    id="tts-desc"
-                    value={ttsDesc}
-                    onChange={(e) => setTtsDesc(e.target.value)}
-                    placeholder="Short description..."
-                    className="text-xs h-8"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={ttsType} onValueChange={(v) => setTtsType(v as 'intro' | 'outro')}>
-                      <SelectTrigger className="text-xs h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="intro">Intro Clip</SelectItem>
-                        <SelectItem value="outro">Outro Clip</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs">TTS Engine</Label>
-                    <Select value={ttsProvider} onValueChange={(v) => setTtsProvider(v as any)}>
-                      <SelectTrigger className="text-xs h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="openai">OpenAI TTS</SelectItem>
-                        <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="tts-voice" className="text-xs flex items-center justify-between">
-                    <span>Voice Name / ID</span>
-                    <span className="text-[9px] text-muted-foreground">Optional</span>
-                  </Label>
-                  <Input
-                    id="tts-voice"
-                    value={ttsVoice}
-                    onChange={(e) => setTtsVoice(e.target.value)}
-                    placeholder={ttsProvider === 'openai' ? 'alloy, echo, nova...' : 'Voice ID / Preset...'}
-                    className="text-xs h-8"
-                  />
-                </div>
-
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label htmlFor="tts-prompt" className="text-xs">TTS Script *</Label>
                   <Textarea
                     id="tts-prompt"
@@ -506,10 +471,74 @@ export function AudioSequencesCard() {
                   />
                 </div>
 
+                {/* Collapsible Optional Parameters */}
+                <details className="group border border-sidebar-border/30 rounded-xl p-3 bg-sidebar-accent/5">
+                  <summary className="text-xs font-semibold cursor-pointer select-none text-muted-foreground hover:text-foreground list-none flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-mono uppercase tracking-wider text-[9px]">
+                      <Settings className="h-3 w-3" /> Optional Parameters
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="mt-3 space-y-3 pt-3 border-t border-sidebar-border/20">
+                    <div className="space-y-1">
+                      <Label htmlFor="tts-desc" className="text-xs">Description</Label>
+                      <Input
+                        id="tts-desc"
+                        value={ttsDesc}
+                        onChange={(e) => setTtsDesc(e.target.value)}
+                        placeholder="Short description..."
+                        className="text-xs h-8"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Type</Label>
+                        <Select value={ttsType} onValueChange={(v) => setTtsType(v as 'intro' | 'outro')}>
+                          <SelectTrigger className="text-xs h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="intro">Intro Clip</SelectItem>
+                            <SelectItem value="outro">Outro Clip</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">TTS Engine</Label>
+                        <Select value={ttsProvider} onValueChange={(v) => setTtsProvider(v as any)}>
+                          <SelectTrigger className="text-xs h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default</SelectItem>
+                            <SelectItem value="openai">OpenAI TTS</SelectItem>
+                            <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="tts-voice" className="text-xs flex items-center justify-between">
+                        <span>Voice Name / ID</span>
+                      </Label>
+                      <Input
+                        id="tts-voice"
+                        value={ttsVoice}
+                        onChange={(e) => setTtsVoice(e.target.value)}
+                        placeholder={ttsProvider === 'openai' ? 'alloy, echo, nova...' : 'Voice ID / Preset...'}
+                        className="text-xs h-8"
+                      />
+                    </div>
+                  </div>
+                </details>
+
                 <Button
                   type="submit"
                   disabled={!ttsName.trim() || !ttsPrompt.trim() || generateMutation.isPending}
-                  className="w-full text-xs h-8 gap-1 bg-cyan-600 hover:bg-cyan-700 text-white"
+                  className="w-full text-xs h-8 gap-1 bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer"
                 >
                   {generateMutation.isPending ? (
                     <>
@@ -529,3 +558,4 @@ export function AudioSequencesCard() {
     </Card>
   )
 }
+

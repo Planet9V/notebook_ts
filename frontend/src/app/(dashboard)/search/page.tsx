@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { AppShell } from '@/components/layout/AppShell'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,13 +14,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Search, ChevronDown, AlertCircle, Settings, Save, MessageCircleQuestion, Wand2, Bot, Database, Layers, Globe, RotateCw, ExternalLink } from 'lucide-react'
+import { Search, ChevronDown, AlertCircle, Settings, Save, MessageCircleQuestion, Wand2, Bot, Database, Layers, Globe, RotateCw, ExternalLink, ShieldCheck, Plus, FileEdit } from 'lucide-react'
+import CompliancePage from '@/app/(dashboard)/compliance/page'
 import { useSearch } from '@/lib/hooks/use-search'
 import { useAsk } from '@/lib/hooks/use-ask'
 import { useModelDefaults, useModels } from '@/lib/hooks/use-models'
 import { useModalManager } from '@/lib/hooks/use-modal-manager'
 import { useTransformations } from '@/lib/hooks/use-transformations'
 import { useStyleguides } from '@/lib/hooks/use-styleguides'
+import { useAllNotes, useCreateNote, useUpdateNote } from '@/lib/hooks/use-notes'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { StreamingResponse } from '@/components/search/StreamingResponse'
 import { AdvancedModelsDialog } from '@/components/search/AdvancedModelsDialog'
@@ -28,19 +30,35 @@ import { SaveToNotebooksDialog } from '@/components/search/SaveToNotebooksDialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
+import { useAnalytics } from '@/lib/hooks/use-analytics'
 
 export default function SearchPage() {
   const { t } = useTranslation()
+  const { trackEvent } = useAnalytics()
   // URL params
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  
   const urlQuery = searchParams?.get('q') || ''
   const rawMode = searchParams?.get('mode')
+  const urlTab = searchParams?.get('tab')
+  const activeTabFromUrl = ['ask', 'search', 'compliance'].includes(urlTab || '')
+    ? (urlTab as 'ask' | 'search' | 'compliance')
+    : (rawMode === 'search' ? 'search' : 'ask')
+
   const urlMode = rawMode === 'search' ? 'search' : 'ask'
 
   // Tab state (controlled)
-  const [activeTab, setActiveTab] = useState<'ask' | 'search'>(
-    urlMode === 'search' ? 'search' : 'ask'
-  )
+  const [activeTab, setActiveTab] = useState<'ask' | 'search' | 'compliance'>(activeTabFromUrl)
+
+  const handleTabChange = (val: string) => {
+    trackEvent('workspace_tab_changed', { workspace: 'intelligence', tab_name: val })
+    setActiveTab(val as 'ask' | 'search' | 'compliance')
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', val)
+    router.replace(`${pathname}?${params.toString()}`)
+  }
 
   // Search state
   const [searchQuery, setSearchQuery] = useState(urlMode === 'search' ? urlQuery : '')
@@ -73,6 +91,93 @@ export default function SearchPage() {
   const { data: modelDefaults, isLoading: modelsLoading } = useModelDefaults()
   const { data: availableModels } = useModels()
   const { openModal } = useModalManager()
+
+  // Research Note Scratchpad States & Mutations
+  const { data: notesList = [], refetch: refetchNotes } = useAllNotes()
+  const createNoteMutation = useCreateNote()
+  const updateNoteMutation = useUpdateNote()
+
+  const [activeNoteId, setActiveNoteId] = useState<string>('')
+  const [activeNoteTitle, setActiveNoteTitle] = useState('')
+  const [activeNoteContent, setActiveNoteContent] = useState('')
+  const [isSavingNote, setIsSavingNote] = useState(false)
+
+  // Load selected note content into scratchpad
+  useEffect(() => {
+    if (activeNoteId && activeNoteId !== 'new') {
+      const selected = notesList.find((n) => n.id === activeNoteId)
+      if (selected) {
+        setActiveNoteTitle(selected.title || '')
+        setActiveNoteContent(selected.content || '')
+      }
+    } else if (activeNoteId === 'new') {
+      // Keep editor empty or with default template
+    }
+  }, [activeNoteId, notesList])
+
+  const handleSaveNote = async () => {
+    if (!activeNoteTitle.trim()) return
+    setIsSavingNote(true)
+    try {
+      if (activeNoteId && activeNoteId !== 'new') {
+        await updateNoteMutation.mutateAsync({
+          id: activeNoteId,
+          data: { title: activeNoteTitle, content: activeNoteContent }
+        })
+      } else {
+        const newNote = await createNoteMutation.mutateAsync({
+          title: activeNoteTitle,
+          content: activeNoteContent,
+          note_type: 'human'
+        })
+        if (newNote && newNote.id) {
+          setActiveNoteId(newNote.id)
+        }
+      }
+      refetchNotes()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSavingNote(false)
+    }
+  }
+
+  const handleCreateNewNote = () => {
+    setActiveNoteId('new')
+    setActiveNoteTitle(`Research Scratchpad - ${new Date().toLocaleDateString()}`)
+    setActiveNoteContent('')
+  }
+
+  const handleAppendToNote = async (title: string, matches: string[], origin: string) => {
+    const snippets = matches.map(m => `* ${m}`).join('\n')
+    const formattedText = `\n\n### Findings: ${title} (${origin})\n${snippets}`
+    
+    let currentTitle = activeNoteTitle
+    let currentContent = activeNoteContent + formattedText
+    
+    // Auto-save/create
+    if (!activeNoteId || activeNoteId === 'new') {
+      const generatedTitle = currentTitle || `Research Scratchpad - ${new Date().toLocaleDateString()}`
+      setActiveNoteTitle(generatedTitle)
+      setActiveNoteContent(currentContent)
+      
+      const newNote = await createNoteMutation.mutateAsync({
+        title: generatedTitle,
+        content: currentContent,
+        note_type: 'human'
+      })
+      if (newNote && newNote.id) {
+        setActiveNoteId(newNote.id)
+      }
+    } else {
+      setActiveNoteContent(currentContent)
+      await updateNoteMutation.mutateAsync({
+        id: activeNoteId,
+        data: { title: currentTitle, content: currentContent }
+      })
+    }
+    refetchNotes()
+  }
 
   const [engine, setEngine] = useState<'local' | 'hybrid'>('local')
   const [selectedTransformationId, setSelectedTransformationId] = useState<string>('')
@@ -111,6 +216,13 @@ export default function SearchPage() {
     if (!searchQuery.trim()) return
 
     const currentConfig = searchConfigs[searchType]
+    trackEvent('search_submitted', {
+      query_length: searchQuery.length,
+      mode: 'search',
+      search_type: searchType,
+      limit: currentConfig.limit,
+      reranker: currentConfig.reranker,
+    })
     searchMutation.mutate({
       query: searchQuery,
       type: searchType,
@@ -120,7 +232,7 @@ export default function SearchPage() {
       minimum_score: currentConfig.minimumScore,
       reranker: currentConfig.reranker,
     })
-  }, [searchQuery, searchType, searchSources, searchNotes, searchConfigs, searchMutation])
+  }, [searchQuery, searchType, searchSources, searchNotes, searchConfigs, searchMutation, trackEvent])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -130,6 +242,13 @@ export default function SearchPage() {
 
   const handleAsk = useCallback(() => {
     if (!askQuestion.trim()) return
+
+    trackEvent('search_submitted', {
+      query_length: askQuestion.length,
+      mode: 'ask',
+      engine,
+      has_custom_prompt: !!customPrompt,
+    })
 
     if (engine === 'local') {
       if (!modelDefaults?.default_chat_model) return
@@ -150,7 +269,7 @@ export default function SearchPage() {
         selectedStyleguideId && selectedStyleguideId !== 'none' ? selectedStyleguideId : undefined
       )
     }
-  }, [askQuestion, engine, modelDefaults, customModels, selectedTransformationId, selectedModelId, customPrompt, outputFormatting, selectedStyleguideId, ask])
+  }, [askQuestion, engine, modelDefaults, customModels, selectedTransformationId, selectedModelId, customPrompt, outputFormatting, selectedStyleguideId, ask, trackEvent])
 
   // Auto-trigger search/ask when arriving with URL params
   useEffect(() => {
@@ -231,16 +350,98 @@ export default function SearchPage() {
     }
   }, [searchParams])
 
+  const renderScratchpad = () => (
+    <Card className="border border-white/5 bg-slate-950/20 rounded-2xl flex flex-col h-full">
+      <CardHeader className="border-b border-white/5 pb-4 flex flex-row items-center justify-between space-y-0">
+        <div className="flex items-center gap-2">
+          <FileEdit className="h-5 w-5 text-cyan-400" />
+          <CardTitle className="text-sm font-bold uppercase tracking-wider font-mono">Researcher Scratchpad</CardTitle>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleCreateNewNote}
+          disabled={createNoteMutation.isPending}
+          className="h-8 text-xs font-mono border-white/10 hover:bg-white/5"
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          New Note
+        </Button>
+      </CardHeader>
+      <CardContent className="pt-4 flex flex-col space-y-4 flex-1">
+        {/* Dropdown to select note */}
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase font-bold font-mono tracking-wider text-muted-foreground">Select Active Note</label>
+          <Select value={activeNoteId} onValueChange={setActiveNoteId}>
+            <SelectTrigger className="w-full text-xs h-9 bg-slate-900/40 border-white/5">
+              <SelectValue placeholder="-- Select Note --" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-950 border-white/10 text-xs">
+              <SelectItem value="new" disabled>New Scratchpad Note</SelectItem>
+              {notesList.map((note) => (
+                <SelectItem key={note.id} value={note.id || ''}>
+                  {note.title || 'Untitled Note'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Note Title Input */}
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase font-bold font-mono tracking-wider text-muted-foreground">Note Title</label>
+          <Input
+            type="text"
+            placeholder="Research Summary Title"
+            value={activeNoteTitle}
+            onChange={(e) => setActiveNoteTitle(e.target.value)}
+            className="text-xs h-9 bg-slate-900/40 border-white/5 font-mono text-white"
+          />
+        </div>
+
+        {/* Note Content Textarea */}
+        <div className="space-y-1 flex-1 flex flex-col">
+          <label className="text-[10px] uppercase font-bold font-mono tracking-wider text-muted-foreground">Note Body (Markdown)</label>
+          <Textarea
+            placeholder="Compile findings here. Type manually, edit, or click 'Append' on search results to append content automatically."
+            value={activeNoteContent}
+            onChange={(e) => setActiveNoteContent(e.target.value)}
+            className="text-xs bg-slate-900/40 border-white/5 font-mono resize-none min-h-[300px] text-white flex-1"
+          />
+        </div>
+
+        {/* Save Button */}
+        <Button
+          onClick={handleSaveNote}
+          disabled={isSavingNote || !activeNoteTitle.trim()}
+          className="w-full h-9 text-xs font-mono uppercase bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold"
+        >
+          {isSavingNote ? (
+            <>
+              <LoadingSpinner size="sm" className="mr-2 text-slate-950" />
+              Saving Note...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Note
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+
   return (
     <AppShell>
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-6 pb-20">
           <h1 className="text-2xl font-semibold tracking-tight mb-4 md:mb-6">{t('searchPage.askAndSearch')}</h1>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'ask' | 'search')} className="w-full space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('searchPage.chooseAMode')}</p>
-            <TabsList aria-label={t('common.accessibility.searchKB')} className="w-full max-w-xl">
+            <TabsList aria-label={t('common.accessibility.searchKB')} className="w-full max-w-2xl grid grid-cols-3 bg-slate-900/60 p-1 border border-white/5 rounded-xl">
               <TabsTrigger value="ask">
                 <MessageCircleQuestion className="h-4 w-4" />
                 {t('searchPage.askBeta')}
@@ -249,17 +450,23 @@ export default function SearchPage() {
                 <Search className="h-4 w-4" />
                 {t('searchPage.search')}
               </TabsTrigger>
+              <TabsTrigger value="compliance">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Compliance Hub</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="ask" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t('searchPage.askYourKb')}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {t('searchPage.askYourKbDesc')}
-                </p>
-              </CardHeader>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+              <div className="lg:col-span-3">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{t('searchPage.askYourKb')}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {t('searchPage.askYourKbDesc')}
+                    </p>
+                  </CardHeader>
               <CardContent className="space-y-6">
                 {/* Search Engine Mode Selector */}
                 <div className="space-y-3">
@@ -550,16 +757,23 @@ export default function SearchPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+          <div className="lg:col-span-2 h-full">
+            {renderScratchpad()}
+          </div>
+        </div>
+      </TabsContent>
 
           <TabsContent value="search" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t('searchPage.search')}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {t('searchPage.searchDesc')}
-                </p>
-              </CardHeader>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+              <div className="lg:col-span-3">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{t('searchPage.search')}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {t('searchPage.searchDesc')}
+                    </p>
+                  </CardHeader>
               <CardContent className="space-y-4">
                 {/* Search Input */}
                 <div className="space-y-2">
@@ -846,10 +1060,21 @@ export default function SearchPage() {
                                       <span className="font-medium text-sm text-foreground">{result.title}</span>
                                     )}
 
-                                    {/* Score */}
-                                    <Badge variant="secondary" className="ml-auto tabular-nums font-mono text-xs shrink-0">
-                                      {result.final_score.toFixed(2)}
-                                    </Badge>
+                                    {/* Score & Append button */}
+                                    <div className="flex items-center gap-2 ml-auto shrink-0">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleAppendToNote(result.title, result.matches || [], isValyu ? 'Valyu' : 'Local KB')}
+                                        className="h-7 px-2 text-[10px] font-mono border-white/10 hover:bg-cyan-500/10 hover:text-cyan-400 hover:border-cyan-500/20 text-muted-foreground animate-pulse"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Append
+                                      </Button>
+                                      <Badge variant="secondary" className="tabular-nums font-mono text-xs">
+                                        {result.final_score.toFixed(2)}
+                                      </Badge>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -881,6 +1106,14 @@ export default function SearchPage() {
                 )}
               </CardContent>
             </Card>
+          </div>
+          <div className="lg:col-span-2 h-full">
+            {renderScratchpad()}
+          </div>
+        </div>
+      </TabsContent>
+          <TabsContent value="compliance" className="mt-6">
+            <CompliancePage embedded={true} />
           </TabsContent>
         </Tabs>
       </div>

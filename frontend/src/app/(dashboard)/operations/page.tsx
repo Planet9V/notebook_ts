@@ -27,6 +27,7 @@ import { useProjects } from '@/lib/hooks/use-projects'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { useAnalytics } from '@/lib/hooks/use-analytics'
 
 // Embedded Workspace page imports
 import PipelinePage from '@/app/(dashboard)/pipeline/page'
@@ -45,6 +46,7 @@ interface RecentItem {
 function OperationsWorkspaceContent() {
   const { t } = useTranslation()
   const router = useRouter()
+  const { trackEvent } = useAnalytics()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -54,6 +56,7 @@ function OperationsWorkspaceContent() {
     : 'dashboard'
 
   const handleTabChange = (val: string) => {
+    trackEvent('workspace_tab_changed', { workspace: 'operations', tab_name: val })
     const params = new URLSearchParams(window.location.search)
     params.set('tab', val)
     router.replace(`${pathname}?${params.toString()}`)

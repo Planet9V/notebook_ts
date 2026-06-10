@@ -8,29 +8,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 import { useToast } from '@/lib/hooks/use-toast'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { publicationsApi } from '@/lib/api/publications'
 import { EmailSettings } from '@/lib/types/publications'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { SettingsTabs } from '../components/SettingsTabs'
 import { Mail, Server, Key, ShieldCheck, RefreshCw, Loader2, Link2, Globe, FileText, FileSpreadsheet, Layout, CheckCircle2, AlertCircle } from 'lucide-react'
 import { credentialsApi } from '@/lib/api/credentials'
 
 export default function PublicationsSettingsPage() {
   const { t } = useTranslation()
   const { toast } = useToast()
-  const pathname = usePathname()
-
-  // Tab State
-  const tabs = [
-    { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },
-    { name: t('settings.tabApiKeys', 'API Keys & Models'), href: '/settings/api-keys' },
-    { name: t('settings.tabPipeline', 'Pipeline Automations'), href: '/settings/pipeline' },
-    { name: t('settings.tabPublications', 'Publications & Email'), href: '/settings/publications' },
-  ]
-
   // Form Fields
   const [smtpHost, setSmtpHost] = useState('')
   const [smtpPort, setSmtpPort] = useState('')
@@ -201,25 +190,7 @@ export default function PublicationsSettingsPage() {
             </div>
 
             {/* Sub Navigation Tabs */}
-            <div className="flex items-center gap-1 border-b border-sidebar-border/20 mb-6">
-              {tabs.map((tab) => {
-                const active = pathname === tab.href
-                return (
-                  <Link
-                    key={tab.href}
-                    href={tab.href}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 -mb-[2px]",
-                      active
-                        ? "border-primary text-primary font-semibold"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {tab.name}
-                  </Link>
-                )
-              })}
-            </div>
+            <SettingsTabs />
 
             {loading ? (
               <div className="flex items-center justify-center py-20">

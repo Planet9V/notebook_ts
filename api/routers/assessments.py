@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Set
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
 
 from api.models import (
@@ -18,6 +18,8 @@ from api.models import (
     FacilityRollup,
     FrameworkRollup,
     CustomerComplianceRollup,
+    AssessmentSessionDiffResponse,
+    AssessmentSessionDiffItem,
 )
 from open_notebook.database.repository import (
     ensure_record_id,
@@ -945,6 +947,386 @@ async def get_assessment_trends(assessment_id: str):
         return trends
     except Exception as e:
         logger.error(f"Error computing auditing trends: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _build_session_csv_stream(report: AssessmentReportResponse):
+    import csv
+    import io
+    buf = io.StringIO()
+    headers = ["Priority", "Standard Code", "Category", "Purdue Level", "Question Text", "Guidance Description"]
+    writer = csv.writer(buf)
+    writer.writerow(headers)
+    for rec in report.prioritized_recommendations:
+        writer.writerow([
+            rec.get("priority", "Medium"),
+            rec.get("standard_code", ""),
+            rec.get("category", ""),
+            rec.get("purdue_level", 0),
+            rec.get("question_text", ""),
+            rec.get("description", "")
+        ])
+    buf.seek(0)
+    return buf
+
+
+def _build_session_xlsx_bytes(report: AssessmentReportResponse) -> bytes:
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    import io
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    
+    # 1. Summary Sheet
+    ws1 = wb.active
+    ws1.title = "Summary"
+    ws1.views.sheetView[0].showGridLines = True
+    
+    # Fonts & Styles
+    title_font = Font(name="Calibri", size=16, bold=True, color="1F497D")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    section_font = Font(name="Calibri", size=13, bold=True, color="1F497D")
+    bold_font = Font(name="Calibri", size=11, bold=True)
+    regular_font = Font(name="Calibri", size=11)
+    
+    header_fill = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
+    accent_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+    zebra_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+    
+    thin_border = Border(
+        left=Side(style='thin', color='D9D9D9'),
+        right=Side(style='thin', color='D9D9D9'),
+        top=Side(style='thin', color='D9D9D9'),
+        bottom=Side(style='thin', color='D9D9D9')
+    )
+    
+    # Title
+    ws1["A1"] = f"Compliance Audit Summary: {report.session_name}"
+    ws1["A1"].font = title_font
+    
+    ws1["A2"] = f"Framework: {report.framework_id.replace('regulation:', '')} | Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+    ws1["A2"].font = Font(name="Calibri", size=10, italic=True)
+    
+    # Score Callout
+    ws1["D4"] = "Compliance Rating"
+    ws1["D4"].font = bold_font
+    ws1["D5"] = f"{report.stats.compliance_score:.1f}%"
+    ws1["D5"].font = Font(name="Calibri", size=24, bold=True, color="2E75B6")
+    ws1["D5"].fill = accent_fill
+    ws1["D5"].alignment = Alignment(horizontal="center")
+    
+    # Stats Overview table
+    ws1["A4"] = "AUDITING METRICS"
+    ws1["A4"].font = section_font
+    
+    metrics = [
+        ("Total Questions", report.stats.total_questions),
+        ("Completed Answers", report.stats.answered_count),
+        ("Yes Compliances", report.stats.yes_count),
+        ("Alternative (ALT) Controls", report.stats.alt_count),
+        ("Identified Gaps (No/Unanswered)", report.stats.no_count),
+        ("N/A (Exclusions)", report.stats.na_count),
+        ("Completion Progress", f"{report.stats.completion_percentage:.1f}%")
+    ]
+    
+    ws1.cell(row=5, column=1, value="Metric").font = header_font
+    ws1.cell(row=5, column=1).fill = header_fill
+    ws1.cell(row=5, column=2, value="Value").font = header_font
+    ws1.cell(row=5, column=2).fill = header_fill
+    
+    for idx, (metric, val) in enumerate(metrics, start=6):
+        c1 = ws1.cell(row=idx, column=1, value=metric)
+        c2 = ws1.cell(row=idx, column=2, value=val)
+        c1.font = regular_font
+        c2.font = bold_font
+        c1.border = thin_border
+        c2.border = thin_border
+        
+    # Category Coverage Table
+    start_row = 15
+    ws1.cell(row=start_row, column=1, value="CATEGORY COVERAGE INDEX").font = section_font
+    
+    cat_headers = ["Category Family", "Total", "Answered", "Yes/ALT", "Score (%)"]
+    for col_idx, text in enumerate(cat_headers, start=1):
+        cell = ws1.cell(row=start_row + 1, column=col_idx, value=text)
+        cell.font = header_font
+        cell.fill = header_fill
+        
+    for row_idx, cat in enumerate(report.category_coverage, start=start_row + 2):
+        r_fill = zebra_fill if row_idx % 2 == 0 else PatternFill(fill_type=None)
+        
+        c1 = ws1.cell(row=row_idx, column=1, value=cat.category)
+        c2 = ws1.cell(row=row_idx, column=2, value=cat.total)
+        c3 = ws1.cell(row=row_idx, column=3, value=cat.answered)
+        c4 = ws1.cell(row=row_idx, column=4, value=cat.yes_count)
+        c5 = ws1.cell(row=row_idx, column=5, value=f"{cat.score:.1f}%")
+        
+        for cell in [c1, c2, c3, c4, c5]:
+            cell.font = regular_font
+            cell.border = thin_border
+            if r_fill.fill_type:
+                cell.fill = r_fill
+        c5.font = bold_font
+        
+    # Set Column Widths for Summary
+    for col in ws1.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws1.column_dimensions[col_letter].width = max(max_len + 3, 12)
+        
+    # 2. Roadmap Sheet
+    ws2 = wb.create_sheet(title="Remediation Roadmap")
+    ws2.views.sheetView[0].showGridLines = True
+    
+    ws2["A1"] = "Prioritized Remediation Roadmap (Gap Fixes)"
+    ws2["A1"].font = section_font
+    
+    roadmap_headers = ["Priority", "Standard Code", "Requirement Directive Description", "Category Family", "Purdue Level", "Technical Guidance Details"]
+    for col_idx, text in enumerate(roadmap_headers, start=1):
+        cell = ws2.cell(row=3, column=col_idx, value=text)
+        cell.font = header_font
+        cell.fill = header_fill
+        
+    priority_colors = {
+        "Critical": "FCE4D6", # Soft red
+        "High": "FFF2CC",     # Soft orange
+        "Medium": "F2F2F2"    # Light gray
+    }
+    
+    for row_idx, rec in enumerate(report.prioritized_recommendations, start=4):
+        prio = rec.get("priority", "Medium")
+        prio_fill = PatternFill(start_color=priority_colors.get(prio, "FFFFFF"), end_color=priority_colors.get(prio, "FFFFFF"), fill_type="solid")
+        
+        c1 = ws2.cell(row=row_idx, column=1, value=prio)
+        c2 = ws2.cell(row=row_idx, column=2, value=rec.get("standard_code", ""))
+        c3 = ws2.cell(row=row_idx, column=3, value=rec.get("question_text", ""))
+        c4 = ws2.cell(row=row_idx, column=4, value=rec.get("category", ""))
+        c5 = ws2.cell(row=row_idx, column=5, value=rec.get("purdue_level", 0))
+        c6 = ws2.cell(row=row_idx, column=6, value=rec.get("description", ""))
+        
+        for cell in [c1, c2, c3, c4, c5, c6]:
+            cell.font = regular_font
+            cell.border = thin_border
+            
+        c1.fill = prio_fill
+        c1.alignment = Alignment(horizontal="center")
+        c2.font = bold_font
+        c5.alignment = Alignment(horizontal="center")
+        
+    # Wrap text and set dimensions for Roadmap sheet
+    ws2.column_dimensions['A'].width = 12
+    ws2.column_dimensions['B'].width = 15
+    ws2.column_dimensions['C'].width = 50
+    ws2.column_dimensions['D'].width = 20
+    ws2.column_dimensions['E'].width = 12
+    ws2.column_dimensions['F'].width = 50
+    
+    for row in ws2.iter_rows(min_row=4, max_row=ws2.max_row, min_col=3, max_col=3):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+            
+    for row in ws2.iter_rows(min_row=4, max_row=ws2.max_row, min_col=6, max_col=6):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+            
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+@router.get("/sessions/{session_id}/diff/{compare_session_id}", response_model=AssessmentSessionDiffResponse)
+async def get_session_diff(session_id: str, compare_session_id: str):
+    """Retrieve question-level differences (rating, comments, evidence) between two sessions."""
+    try:
+        base_sess_id = session_id
+        if ":" not in base_sess_id:
+            base_sess_id = f"assessment_session:{session_id}"
+        compare_sess_id = compare_session_id
+        if ":" not in compare_sess_id:
+            compare_sess_id = f"assessment_session:{compare_session_id}"
+            
+        sess_check_base = await repo_query("SELECT * FROM $id", {"id": ensure_record_id(base_sess_id)})
+        if not sess_check_base:
+            raise HTTPException(status_code=404, detail="Base audit session not found")
+            
+        sess_check_compare = await repo_query("SELECT * FROM $id", {"id": ensure_record_id(compare_sess_id)})
+        if not sess_check_compare:
+            raise HTTPException(status_code=404, detail="Comparison audit session not found")
+            
+        base_sess = sess_check_base[0]
+        base_fw = base_sess.get("version_lock")
+        
+        compare_sess = sess_check_compare[0]
+        compare_fw = compare_sess.get("version_lock")
+        
+        # Load questions
+        base_questions = await repo_query(
+            "SELECT * FROM question WHERE regulation_id = $fw_id",
+            {"fw_id": base_fw}
+        )
+        if base_fw == compare_fw:
+            compare_questions = base_questions
+        else:
+            compare_questions = await repo_query(
+                "SELECT * FROM question WHERE regulation_id = $fw_id",
+                {"fw_id": compare_fw}
+            )
+            
+        # Load answers
+        base_answers = await repo_query(
+            "SELECT * FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
+            {"session_id": base_sess_id}
+        )
+        compare_answers = await repo_query(
+            "SELECT * FROM assessment_answer WHERE type::string(session_id) = type::string($session_id)",
+            {"session_id": compare_sess_id}
+        )
+        
+        base_ans_map = {str(ans["question_id"]): ans for ans in base_answers}
+        compare_ans_map = {str(ans["question_id"]): ans for ans in compare_answers}
+        
+        # Maps for questions by standard code (primary key) and id (fallback)
+        base_q_by_code = {q.get("standard_code"): q for q in base_questions if q.get("standard_code")}
+        base_q_by_id = {str(q["id"]): q for q in base_questions}
+        
+        compare_q_by_code = {q.get("standard_code"): q for q in compare_questions if q.get("standard_code")}
+        compare_q_by_id = {str(q["id"]): q for q in compare_questions}
+        
+        # Gather all keys to iterate over
+        all_keys = set()
+        for q in base_questions:
+            all_keys.add(q.get("standard_code") or str(q["id"]))
+        for q in compare_questions:
+            all_keys.add(q.get("standard_code") or str(q["id"]))
+            
+        active_prefixes_base = await get_active_cset_prefixes_for_session(base_sess_id, base_fw)
+        active_prefixes_compare = await get_active_cset_prefixes_for_session(compare_sess_id, compare_fw)
+        
+        differences = []
+        for key in sorted(all_keys):
+            q_base = base_q_by_code.get(key) or base_q_by_id.get(key)
+            q_compare = compare_q_by_code.get(key) or compare_q_by_id.get(key)
+            
+            q = q_compare or q_base
+            if not q:
+                continue
+                
+            q_id = str(q["id"])
+            standard_code = q.get("standard_code") or ""
+            question_text = q.get("question_text") or ""
+            category = q.get("category") or "Control"
+            purdue_level = int(q.get("purdue_level") or 0)
+            
+            # Base answer mapping
+            base_ans_val = "U"
+            base_comments = ""
+            base_evidence = ""
+            if q_base:
+                ans_b_obj = base_ans_map.get(str(q_base["id"]))
+                if ans_b_obj:
+                    base_ans_val = ans_b_obj["answer"]
+                    base_comments = ans_b_obj.get("comments") or ""
+                    base_evidence = ans_b_obj.get("evidence_url") or ""
+                    
+                if active_prefixes_base is not None:
+                    std_c_b = q_base.get("standard_code") or ""
+                    is_act = False
+                    for prefix in active_prefixes_base:
+                        if std_c_b.strip().startswith(prefix):
+                            is_act = True
+                            break
+                    if not is_act:
+                        base_ans_val = "NA"
+                        
+            # Compare answer mapping
+            compare_ans_val = "U"
+            compare_comments = ""
+            compare_evidence = ""
+            if q_compare:
+                ans_c_obj = compare_ans_map.get(str(q_compare["id"]))
+                if ans_c_obj:
+                    compare_ans_val = ans_c_obj["answer"]
+                    compare_comments = ans_c_obj.get("comments") or ""
+                    compare_evidence = ans_c_obj.get("evidence_url") or ""
+                    
+                if active_prefixes_compare is not None:
+                    std_c_c = q_compare.get("standard_code") or ""
+                    is_act = False
+                    for prefix in active_prefixes_compare:
+                        if std_c_c.strip().startswith(prefix):
+                            is_act = True
+                            break
+                    if not is_act:
+                        compare_ans_val = "NA"
+                        
+            has_changed = (
+                (base_ans_val != compare_ans_val) or
+                (base_comments != compare_comments) or
+                (base_evidence != compare_evidence)
+            )
+            
+            differences.append(AssessmentSessionDiffItem(
+                question_id=q_id,
+                standard_code=standard_code,
+                question_text=question_text,
+                category=category,
+                purdue_level=purdue_level,
+                base_answer=base_ans_val,
+                compare_answer=compare_ans_val,
+                base_comments=base_comments,
+                compare_comments=compare_comments,
+                base_evidence=base_evidence,
+                compare_evidence=compare_evidence,
+                has_changed=has_changed
+            ))
+            
+        return AssessmentSessionDiffResponse(
+            base_session_id=base_sess_id,
+            base_session_name=str(base_sess["session_name"]),
+            compare_session_id=compare_sess_id,
+            compare_session_name=str(compare_sess["session_name"]),
+            differences=differences
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error computing session diff: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sessions/{session_id}/export")
+async def export_session_report(
+    session_id: str,
+    format: str = Query("xlsx", description="Export format: csv or xlsx")
+):
+    """Export the compliance report metrics and prioritized gaps remediation list."""
+    from fastapi.responses import StreamingResponse
+    import io
+    try:
+        report = await get_session_report(session_id)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        safe_name = "".join(c for c in report.session_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+        
+        if format.lower() == "xlsx":
+            xlsx_data = _build_session_xlsx_bytes(report)
+            return StreamingResponse(
+                io.BytesIO(xlsx_data),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f'attachment; filename="compliance_report_{safe_name}_{timestamp}.xlsx"'},
+            )
+        else:
+            csv_buf = _build_session_csv_stream(report)
+            return StreamingResponse(
+                iter([csv_buf.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="compliance_report_{safe_name}_{timestamp}.csv"'},
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting session report: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

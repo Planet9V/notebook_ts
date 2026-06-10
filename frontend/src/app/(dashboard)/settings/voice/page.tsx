@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { voiceApi, VoiceConfig, VoiceSettings } from '@/lib/api/voice'
 import { apiClient } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
+import { SettingsTabs } from '../components/SettingsTabs'
 
 interface PlatformInfo {
   os: string
@@ -126,6 +127,9 @@ export default function VoiceSettingsPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Sub Navigation Tabs */}
+            <SettingsTabs />
 
             {/* Platform Info */}
             {platform && (

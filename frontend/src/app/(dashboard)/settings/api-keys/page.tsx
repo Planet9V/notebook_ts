@@ -10,9 +10,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { useTranslation } from '@/lib/hooks/use-translation'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { SettingsTabs } from '../components/SettingsTabs'
 import { useModels, useModelDefaults } from '@/lib/hooks/use-models'
 import {
   useCredentials,
@@ -34,15 +32,7 @@ import {
 
 export default function ApiKeysPage() {
   const { t } = useTranslation()
-  const pathname = usePathname()
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
-
-  const tabs = [
-    { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },
-    { name: t('settings.tabApiKeys', 'API Keys & Models'), href: '/settings/api-keys' },
-    { name: t('settings.tabPipeline', 'Pipeline Automations'), href: '/settings/pipeline' },
-    { name: t('settings.tabPublications', 'Publications & Email'), href: '/settings/publications' },
-  ]
 
   // Data
   const { data: credentials, isLoading: credentialsLoading } = useCredentials()
@@ -115,25 +105,7 @@ export default function ApiKeysPage() {
           </div>
 
           {/* Sub Navigation Tabs */}
-          <div className="flex items-center gap-1 border-b border-sidebar-border/20">
-            {tabs.map((tab) => {
-              const active = pathname === tab.href
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 -mb-[2px]",
-                    active
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {tab.name}
-                </Link>
-              )
-            })}
-          </div>
+          <SettingsTabs />
 
           {/* Encryption warning */}
           {!encryptionReady && (

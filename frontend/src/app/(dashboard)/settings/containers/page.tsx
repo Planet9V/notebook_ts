@@ -15,6 +15,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'sonner'
+import { SettingsTabs } from '../components/SettingsTabs'
 import { ContainerCard } from './components/ContainerCard'
 import { ContainerLogViewer } from './components/ContainerLogViewer'
 import type { ContainerInfo } from './components/ContainerCard'
@@ -149,6 +150,9 @@ export default function ContainersPage() {
               </Button>
             </div>
           </header>
+
+          {/* Sub Navigation Tabs */}
+          <SettingsTabs />
 
           {/* ── Error Banner ─────────────────────────────────────── */}
           {error && (

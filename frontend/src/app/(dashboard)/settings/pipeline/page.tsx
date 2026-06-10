@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { AppShell } from '@/components/layout/AppShell'
 import {
   Card,
@@ -41,10 +42,8 @@ import { SearchableModelSelect, type ModelOption } from '@/components/common/Sea
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { DataPageSkeleton } from '@/components/common/DataPageSkeleton'
 import { useTranslation } from '@/lib/hooks/use-translation'
-import Link from 'next/link'
+import { SettingsTabs } from '../components/SettingsTabs'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import {
   Sparkles,
   TrendingUp,
@@ -60,14 +59,6 @@ import {
 
 export default function PipelineSettingsPage() {
   const { t } = useTranslation()
-  const pathname = usePathname()
-
-  const tabs = [
-    { name: t('settings.tabGeneral', 'General Configuration'), href: '/settings' },
-    { name: t('settings.tabApiKeys', 'API Keys & Models'), href: '/settings/api-keys' },
-    { name: t('settings.tabPipeline', 'Pipeline Automations'), href: '/settings/pipeline' },
-    { name: t('settings.tabPublications', 'Publications & Email'), href: '/settings/publications' },
-  ]
 
   const { data: rules, isLoading: rulesLoading } = usePipelineRules()
   const { data: models } = useModels()
@@ -208,25 +199,7 @@ export default function PipelineSettingsPage() {
             </div>
 
             {/* Sub Navigation Tabs */}
-            <div className="flex items-center gap-1 border-b border-sidebar-border/20">
-              {tabs.map((tab) => {
-                const active = pathname === tab.href
-                return (
-                  <Link
-                    key={tab.href}
-                    href={tab.href}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 -mb-[2px]",
-                      active
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {tab.name}
-                  </Link>
-                )
-              })}
-            </div>
+            <SettingsTabs />
 
             {/* Explanation Banner */}
             <Card className="bg-primary/5 border-primary/20 backdrop-blur-md">

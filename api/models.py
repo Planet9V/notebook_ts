@@ -1672,6 +1672,29 @@ class AssessmentReportResponse(BaseModel):
     prioritized_recommendations: List[Dict[str, Any]]
 
 
+class AssessmentSessionDiffItem(BaseModel):
+    question_id: str
+    standard_code: str
+    question_text: str
+    category: str
+    purdue_level: int
+    base_answer: str
+    compare_answer: str
+    base_comments: str
+    compare_comments: str
+    base_evidence: str
+    compare_evidence: str
+    has_changed: bool
+
+
+class AssessmentSessionDiffResponse(BaseModel):
+    base_session_id: str
+    base_session_name: str
+    compare_session_id: str
+    compare_session_name: str
+    differences: List[AssessmentSessionDiffItem]
+
+
 # Scheduled Search models
 class ScheduledSearchCreate(BaseModel):
     name: str = Field(..., description="Name for this scheduled search")

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import {
   FlaskConical,
@@ -17,6 +18,13 @@ import { RoundTripPlayground } from './components/RoundTripPlayground'
 // ── Main Page ───────────────────────────────────────────────────────
 
 export default function VoicePlaygroundPage({ embedded = false }: { embedded?: boolean } = {}) {
+  const router = useRouter()
+  useEffect(() => {
+    if (!embedded) {
+      router.replace('/media?tab=voice-playground')
+    }
+  }, [embedded, router])
+
   useEffect(() => {
     document.title = 'Voice Playground | Tetrel'
   }, [])
@@ -108,9 +116,13 @@ export default function VoicePlaygroundPage({ embedded = false }: { embedded?: b
     </div>
   )
 
-  if (embedded) {
-    return content
+  if (!embedded) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background/50">
+        <FlaskConical className="h-8 w-8 animate-pulse text-cyan-400" />
+      </div>
+    )
   }
 
-  return <AppShell>{content}</AppShell>
+  return content
 }

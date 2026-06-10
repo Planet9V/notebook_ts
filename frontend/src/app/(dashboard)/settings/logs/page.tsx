@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'sonner'
+import { SettingsTabs } from '../components/SettingsTabs'
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -265,6 +266,9 @@ export default function SystemLogsPage() {
               </Button>
             </div>
           </header>
+
+          {/* Sub Navigation Tabs */}
+          <SettingsTabs />
 
           {/* ── Bento Grid Metric Summaries ─────────────────────── */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
