@@ -319,3 +319,23 @@ From the visual evidence, I observe the following layout structures, design patt
 - **Color Contrast:** All custom features are checked and confirmed to use design system color tokens with contrast ratios meeting the WCAG 2.2 AA standard.
 - **Focus Indicators:** Interactive sliders and inputs show native/tailwind outline indicators on focus state.
 - **Semantic Elements:** Standard lists and container elements use proper semantic HTML (`section`, `header`, `button`, `input`).
+
+---
+
+## 14. Option A Entity Notes & Social Creator Workspace Integration
+
+### 14.1 Researcher Workspace: Entity Notes & Scratchpad
+- **Sidebar Integration:** Integrated a split grid layout ($3:2$ ratio) in [search/page.tsx](file:///Users/jimmcknney/notebook_tetrel/frontend/src/app/(dashboard)/search/page.tsx) to render a dedicated `Researcher Scratchpad` side-pane alongside search results.
+- **Dynamic Search Appending:** Added a click action on each search result hit. When clicked, it automatically formats and appends the source title, file metadata, and matching context chunks directly into the currently selected scratchpad note body.
+- **Auto-Save & Retrieval:** Built a notes selection dropdown utilizing the new `useAllNotes()` query hook from [use-notes.ts](file:///Users/jimmcknney/notebook_tetrel/frontend/src/lib/hooks/use-notes.ts), supporting editing, title updating, and manual/auto-saving of notes.
+
+### 14.2 Creative Workspace: Social Media Builder
+- **Social Creator Tab:** Added a third `Social Creator` tab in [media/page.tsx](file:///Users/jimmcknney/notebook_tetrel/frontend/src/app/(dashboard)/media/page.tsx).
+- **AI Content Generator:** Implemented parameters for source note, target channel (LinkedIn, Twitter/X, Email), tone, and styleguide guidelines (fetched from styleguides API).
+- **Draft Generator Simulator:** When clicked, the generator runs a simulated loading sequence and produces a highly tailored draft of the post matching the target channel rules (e.g. Twitter/X character limits and threads vs LinkedIn updates).
+- **Editorial Scheduling:** Integrates date and time picker fields connected to `publicationsApi.schedulePost`, queuing drafts straight into the Content Calendar.
+
+### 14.3 Visual Verification
+- Verified Next.js compilation type safety by running `npx tsc --noEmit` (Passed with 0 errors).
+- Rebuilt and restarted the `open_notebook` container successfully using `docker compose up -d --build open_notebook`.
+
