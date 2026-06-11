@@ -17,6 +17,12 @@ import {
   TrendingUp,
   Activity,
   Clock,
+  MessageCircleQuestion,
+  Search,
+  ShieldCheck,
+  Upload,
+  LinkIcon,
+  FileText,
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
@@ -32,6 +38,9 @@ import { useAnalytics } from '@/lib/hooks/use-analytics'
 // Embedded Workspace page imports
 import PipelinePage from '@/app/(dashboard)/pipeline/page'
 import CustomerLedgerPage from '@/app/(dashboard)/customer-ledger/page'
+import SearchPage from '@/app/(dashboard)/search/page'
+import CompliancePage from '@/app/(dashboard)/compliance/page'
+import { IngestIntelCard } from '@/components/sources/IngestIntelCard'
 import { DeliveryTree } from '@/components/delivery/DeliveryTree'
 import { AttachDocumentModal } from '@/components/delivery/AttachDocumentModal'
 
@@ -51,7 +60,20 @@ function OperationsWorkspaceContent() {
   const searchParams = useSearchParams()
 
   const tab = searchParams?.get('tab') || 'dashboard'
-  const activeTab = ['dashboard', 'sales', 'projects', 'customer-ledger'].includes(tab)
+  const activeTab = [
+    'dashboard',
+    'sales',
+    'projects',
+    'customer-ledger',
+    'ask',
+    'search',
+    'compliance',
+    'sources',
+    'research',
+    'sources-url',
+    'sources-upload',
+    'sources-text'
+  ].includes(tab)
     ? tab
     : 'dashboard'
 
@@ -194,22 +216,50 @@ function OperationsWorkspaceContent() {
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Select Operations View</p>
-              <TabsList className="w-full max-w-2xl grid grid-cols-4 bg-slate-900/60 p-1 border border-white/5 rounded-xl">
-                <TabsTrigger value="dashboard" className="flex items-center justify-center gap-2 py-2">
+              <TabsList className="w-full max-w-7xl flex flex-wrap bg-slate-900/60 p-1 border border-white/5 rounded-xl h-auto gap-1">
+                <TabsTrigger value="dashboard" className="flex items-center justify-center gap-2 py-2 px-3">
                   <LayoutDashboard className="h-4 w-4" />
                   <span>Dashboard</span>
                 </TabsTrigger>
-                <TabsTrigger value="sales" className="flex items-center justify-center gap-2 py-2">
+                <TabsTrigger value="sales" className="flex items-center justify-center gap-2 py-2 px-3">
                   <TrendingUp className="h-4 w-4" />
                   <span>Sales CRM</span>
                 </TabsTrigger>
-                <TabsTrigger value="projects" className="flex items-center justify-center gap-2 py-2">
+                <TabsTrigger value="projects" className="flex items-center justify-center gap-2 py-2 px-3">
                   <FolderKanban className="h-4 w-4" />
                   <span>Project Delivery</span>
                 </TabsTrigger>
-                <TabsTrigger value="customer-ledger" className="flex items-center justify-center gap-2 py-2">
+                <TabsTrigger value="customer-ledger" className="flex items-center justify-center gap-2 py-2 px-3">
                   <Users className="h-4 w-4" />
                   <span>Customer Ledger</span>
+                </TabsTrigger>
+                <TabsTrigger value="ask" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <MessageCircleQuestion className="h-4 w-4" />
+                  <span>Ask (beta)</span>
+                </TabsTrigger>
+                <TabsTrigger value="search" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <Search className="h-4 w-4" />
+                  <span>Search</span>
+                </TabsTrigger>
+                <TabsTrigger value="compliance" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Compliance Hub</span>
+                </TabsTrigger>
+                <TabsTrigger value="research" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <Telescope className="h-4 w-4 text-cyan-400" />
+                  <span>Research Hub</span>
+                </TabsTrigger>
+                <TabsTrigger value="sources-url" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <LinkIcon className="h-4 w-4" />
+                  <span>Add URL</span>
+                </TabsTrigger>
+                <TabsTrigger value="sources-upload" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <Upload className="h-4 w-4" />
+                  <span>Upload File</span>
+                </TabsTrigger>
+                <TabsTrigger value="sources-text" className="flex items-center justify-center gap-2 py-2 px-3">
+                  <FileText className="h-4 w-4" />
+                  <span>Enter Text</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -468,6 +518,46 @@ function OperationsWorkspaceContent() {
             {/* Customer Ledger Tab */}
             <TabsContent value="customer-ledger" className="mt-0 outline-none">
               <CustomerLedgerPage embedded={true} />
+            </TabsContent>
+
+            {/* Ask (beta) Tab */}
+            <TabsContent value="ask" className="mt-0 outline-none">
+              <SearchPage embedded={true} controlledTab="ask" />
+            </TabsContent>
+
+            {/* Search Tab */}
+            <TabsContent value="search" className="mt-0 outline-none">
+              <SearchPage embedded={true} controlledTab="search" />
+            </TabsContent>
+
+            {/* Compliance Hub Tab */}
+            <TabsContent value="compliance" className="mt-0 outline-none">
+              <CompliancePage embedded={true} />
+            </TabsContent>
+
+            {/* Research Tab */}
+            <TabsContent value="research" className="mt-0 outline-none">
+              <PipelinePage embedded={true} overrideTab="research" />
+            </TabsContent>
+
+            {/* Ingest Intel Tab */}
+            <TabsContent value="sources" className="mt-0 outline-none">
+              <IngestIntelCard />
+            </TabsContent>
+
+            {/* Ingest URL Tab */}
+            <TabsContent value="sources-url" className="mt-0 outline-none">
+              <IngestIntelCard defaultType="link" hideTypeSwitcher={true} />
+            </TabsContent>
+
+            {/* Ingest Upload Tab */}
+            <TabsContent value="sources-upload" className="mt-0 outline-none">
+              <IngestIntelCard defaultType="upload" hideTypeSwitcher={true} />
+            </TabsContent>
+
+            {/* Ingest Text Tab */}
+            <TabsContent value="sources-text" className="mt-0 outline-none">
+              <IngestIntelCard defaultType="text" hideTypeSwitcher={true} />
             </TabsContent>
           </Tabs>
         </div>

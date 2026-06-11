@@ -21,6 +21,7 @@ describe('AppSidebar', () => {
     expect(screen.getByText('navigation.sources')).toBeDefined()
     expect(screen.getByText('Operations Hub')).toBeDefined()
     expect(screen.getByText('Intelligence Hub')).toBeDefined()
+    expect(screen.getByText('Research Hub')).toBeDefined()
     expect(screen.getByText('Creative Media Workspace')).toBeDefined()
     expect(screen.getByText('Settings Control Panel')).toBeDefined()
   })

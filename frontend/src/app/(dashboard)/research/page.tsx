@@ -7,7 +7,7 @@ export default function ResearchRedirectPage() {
   const router = useRouter()
   
   useEffect(() => {
-    router.replace('/pipeline?tab=research')
+    router.replace('/operations?tab=research')
   }, [router])
 
   return null

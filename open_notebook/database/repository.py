@@ -115,12 +115,14 @@ async def repo_relate(
     """Create a relationship between two records with optional data"""
     if data is None:
         data = {}
-    query = f"RELATE {source}->{relationship}->{target} CONTENT $data;"
+    query = f"RELATE $source_id->{relationship}->$target_id CONTENT $data;"
     # logger.debug(f"Relate query: {query}")
 
     return await repo_query(
         query,
         {
+            "source_id": ensure_record_id(source),
+            "target_id": ensure_record_id(target),
             "data": data,
         },
     )
@@ -133,7 +135,11 @@ async def repo_upsert(
     data.pop("id", None)
     if add_timestamp:
         data["updated"] = datetime.now(timezone.utc)
-    query = f"UPSERT {id if id else table} MERGE $data;"
+    if id:
+        record_id = ensure_record_id(id)
+        query = "UPSERT $record_id MERGE $data;"
+        return await repo_query(query, {"record_id": record_id, "data": data})
+    query = f"UPSERT {table} MERGE $data;"
     return await repo_query(query, {"data": data})
 
 
@@ -143,17 +149,20 @@ async def repo_update(
     """Update an existing record by table and id"""
     # If id already contains the table name, use it as is
     try:
-        if isinstance(id, RecordID) or (":" in id and id.startswith(f"{table}:")):
+        if isinstance(id, RecordID):
+            record_id = id
+        elif isinstance(id, str) and ":" in id and id.startswith(f"{table}:"):
             record_id = id
         else:
             record_id = f"{table}:{id}"
+        record_id = ensure_record_id(record_id)
         data.pop("id", None)
         if "created" in data and isinstance(data["created"], str):
             data["created"] = datetime.fromisoformat(data["created"])
         data["updated"] = datetime.now(timezone.utc)
-        query = f"UPDATE {record_id} MERGE $data;"
+        query = "UPDATE $record_id MERGE $data;"
         # logger.debug(f"Update query: {query}")
-        result = await repo_query(query, {"data": data})
+        result = await repo_query(query, {"record_id": record_id, "data": data})
         # if isinstance(result, list):
         #     return [_return_data(item) for item in result]
         return parse_record_ids(result)

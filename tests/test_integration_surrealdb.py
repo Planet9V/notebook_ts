@@ -32,6 +32,7 @@ from open_notebook.database.repository import (
     repo_query,
     repo_update,
     repo_upsert,
+    repo_relate,
 )
 
 
@@ -189,6 +190,31 @@ class TestSurrealDBCRUD:
 
         # Cleanup
         await repo_delete(record_id)
+
+    @pytest.mark.asyncio
+    async def test_repo_operations_with_hyphenated_ids(self):
+        """Test that repo_upsert, repo_update, and repo_relate handle record IDs with hyphens correctly."""
+        source_id = f"{self.TEST_TABLE}:source-with-hyphens-123"
+        target_id = f"{self.TEST_TABLE}:target-with-hyphens-456"
+
+        # 1. Test upsert with hyphenated ID
+        upsert_res = await repo_upsert(self.TEST_TABLE, source_id, {"name": "source-node"})
+        assert len(upsert_res) > 0
+
+        upsert_res_2 = await repo_upsert(self.TEST_TABLE, target_id, {"name": "target-node"})
+        assert len(upsert_res_2) > 0
+
+        # 2. Test update with hyphenated ID
+        update_res = await repo_update(self.TEST_TABLE, source_id, {"updated_field": "yes"})
+        assert len(update_res) > 0
+
+        # 3. Test relate with hyphenated ID
+        relate_res = await repo_relate(source_id, "relates_to", target_id, {"weight": 1})
+        assert len(relate_res) > 0
+
+        # Cleanup
+        await repo_delete(source_id)
+        await repo_delete(target_id)
 
 
 # ── Domain Model Tests ───────────────────────────────────────────────

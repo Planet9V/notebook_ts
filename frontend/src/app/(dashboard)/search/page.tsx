@@ -32,7 +32,15 @@ import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { useAnalytics } from '@/lib/hooks/use-analytics'
 
-export default function SearchPage() {
+export default function SearchPage({
+  embedded = false,
+  controlledTab,
+  onTabChange,
+}: {
+  embedded?: boolean
+  controlledTab?: 'ask' | 'search' | 'compliance'
+  onTabChange?: (tab: 'ask' | 'search' | 'compliance') => void
+} = {}) {
   const { t } = useTranslation()
   const { trackEvent } = useAnalytics()
   // URL params
@@ -54,10 +62,17 @@ export default function SearchPage() {
 
   const handleTabChange = (val: string) => {
     trackEvent('workspace_tab_changed', { workspace: 'intelligence', tab_name: val })
-    setActiveTab(val as 'ask' | 'search' | 'compliance')
-    const params = new URLSearchParams(window.location.search)
-    params.set('tab', val)
-    router.replace(`${pathname}?${params.toString()}`)
+    const targetTab = val as 'ask' | 'search' | 'compliance'
+    if (onTabChange) {
+      onTabChange(targetTab)
+    } else {
+      setActiveTab(targetTab)
+      if (!embedded) {
+        const params = new URLSearchParams(window.location.search)
+        params.set('tab', val)
+        router.replace(`${pathname}?${params.toString()}`)
+      }
+    }
   }
 
   // Search state
@@ -179,7 +194,7 @@ export default function SearchPage() {
     refetchNotes()
   }
 
-  const [engine, setEngine] = useState<'local' | 'hybrid'>('local')
+  const [engine, setEngine] = useState<'local' | 'hybrid' | 'perplexity'>('local')
   const [selectedTransformationId, setSelectedTransformationId] = useState<string>('')
   const [selectedModelId, setSelectedModelId] = useState<string>('')
   const [customPrompt, setCustomPrompt] = useState<string>('')
@@ -432,32 +447,31 @@ export default function SearchPage() {
     </Card>
   )
 
-  return (
-    <AppShell>
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-6 pb-20">
-          <h1 className="text-2xl font-semibold tracking-tight mb-4 md:mb-6">{t('searchPage.askAndSearch')}</h1>
+  const tabValue = controlledTab || activeTab
 
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('searchPage.chooseAMode')}</p>
-            <TabsList aria-label={t('common.accessibility.searchKB')} className="w-full max-w-2xl grid grid-cols-3 bg-slate-900/60 p-1 border border-white/5 rounded-xl">
-              <TabsTrigger value="ask">
-                <MessageCircleQuestion className="h-4 w-4" />
-                {t('searchPage.askBeta')}
-              </TabsTrigger>
-              <TabsTrigger value="search">
-                <Search className="h-4 w-4" />
-                {t('searchPage.search')}
-              </TabsTrigger>
-              <TabsTrigger value="compliance">
-                <ShieldCheck className="h-4 w-4" />
-                <span>Compliance Hub</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+  const content = (
+    <Tabs value={tabValue} onValueChange={handleTabChange} className="w-full space-y-6">
+      {!embedded && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('searchPage.chooseAMode')}</p>
+          <TabsList aria-label={t('common.accessibility.searchKB')} className="w-full max-w-2xl grid grid-cols-3 bg-slate-900/60 p-1 border border-white/5 rounded-xl">
+            <TabsTrigger value="ask">
+              <MessageCircleQuestion className="h-4 w-4" />
+              {t('searchPage.askBeta')}
+            </TabsTrigger>
+            <TabsTrigger value="search">
+              <Search className="h-4 w-4" />
+              {t('searchPage.search')}
+            </TabsTrigger>
+            <TabsTrigger value="compliance">
+              <ShieldCheck className="h-4 w-4" />
+              <span>Compliance Hub</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+      )}
 
-          <TabsContent value="ask" className="mt-6">
+      <TabsContent value="ask" className={cn(embedded ? "mt-0" : "mt-6")}>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
               <div className="lg:col-span-3">
                 <Card>
@@ -471,7 +485,7 @@ export default function SearchPage() {
                 {/* Search Engine Mode Selector */}
                 <div className="space-y-3">
                   <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Research Intelligence Mode</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Local KB RAG */}
                     <button
                       type="button"
@@ -517,6 +531,30 @@ export default function SearchPage() {
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Local KB + Perplexity + Valyu combined with deduplication and synthesis.
+                      </p>
+                    </button>
+
+                    {/* Perplexity Online */}
+                    <button
+                      type="button"
+                      onClick={() => setEngine('perplexity')}
+                      disabled={ask.isStreaming}
+                      className={cn(
+                        "relative flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-300 backdrop-blur-md shadow-sm",
+                        engine === 'perplexity'
+                          ? "border-purple-500 bg-purple-500/10 shadow-md ring-1 ring-purple-500/30"
+                          : "border-border/40 bg-background/50 hover:bg-accent/40"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Globe className="h-4 w-4 text-purple-500" />
+                          <span className="text-sm font-semibold text-foreground">Perplexity Online</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-purple-500/20 text-purple-450 dark:text-purple-400">online</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Query Perplexity Online directly for up-to-date web intelligence.
                       </p>
                     </button>
                   </div>
@@ -1112,12 +1150,24 @@ export default function SearchPage() {
           </div>
         </div>
       </TabsContent>
-          <TabsContent value="compliance" className="mt-6">
-            <CompliancePage embedded={true} />
-          </TabsContent>
-        </Tabs>
+      <TabsContent value="compliance" className={cn(embedded ? "mt-0" : "mt-6")}>
+        <CompliancePage embedded={true} />
+      </TabsContent>
+    </Tabs>
+  )
+
+  if (embedded) {
+    return content
+  }
+
+  return (
+    <AppShell>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-6 py-6 pb-20">
+          <h1 className="text-2xl font-semibold tracking-tight mb-4 md:mb-6">{t('searchPage.askAndSearch')}</h1>
+          {content}
+        </div>
       </div>
-    </div>
-  </AppShell>
+    </AppShell>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -53,6 +53,7 @@ import {
   Calendar,
   Brain,
   ScrollText,
+  Telescope,
 } from 'lucide-react'
 import { VoiceStatusIndicator } from '@/components/voice/VoiceStatusIndicator'
 
@@ -73,6 +74,7 @@ const getNavigation = (t: TFunction) => [
     title: t('navigation.intelligence', 'Intelligence'),
     items: [
       { name: 'Intelligence Hub', href: '/search', icon: Search },
+      { name: 'Research Hub', href: '/operations?tab=research', icon: Telescope },
     ],
   },
   {
@@ -95,6 +97,7 @@ export function AppSidebar() {
   const { t } = useTranslation()
   const navigation = getNavigation(t)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { logout } = useAuth()
   const { isCollapsed, toggleCollapse } = useSidebarStore()
   const { openSourceDialog, openNotebookDialog, openPodcastDialog } = useCreateDialogs()
@@ -279,11 +282,15 @@ export function AppSidebar() {
                     if (item.href === '/sources') {
                       isActive = pathname.startsWith('/sources')
                     } else if (item.href === '/operations') {
-                      isActive = pathname.startsWith('/operations') || 
+                      const tab = searchParams?.get('tab')
+                      isActive = (pathname === '/operations' && tab !== 'research') ||
                                  pathname.startsWith('/pipeline') || 
                                  pathname.startsWith('/customer-ledger') || 
                                  pathname.startsWith('/customers') || 
                                  pathname.startsWith('/contacts')
+                    } else if (item.href === '/operations?tab=research') {
+                      const tab = searchParams?.get('tab')
+                      isActive = pathname.startsWith('/research') || (pathname === '/operations' && tab === 'research')
                     } else if (item.href === '/search') {
                       isActive = pathname.startsWith('/search') || 
                                  pathname.startsWith('/compliance') || 

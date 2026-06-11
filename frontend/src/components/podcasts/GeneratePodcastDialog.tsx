@@ -206,7 +206,7 @@ function ContentSelectionPanel({
                 const selection = selections[notebook.id]
                 const summary = selectedNotebookSummaries[index]
                 const notebookChecked = summary.sources + summary.notes > 0
-                const totalItems = sources.length + notes.length
+                const totalItems = (notebook.source_count ?? 0) + (notebook.note_count ?? 0)
                 const isIndeterminate =
                   notebookChecked &&
                   summary.sources + summary.notes > 0 &&
@@ -247,7 +247,7 @@ function ContentSelectionPanel({
                             </p>
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {sources.length} {tr.sources} · {notes.length} {tr.notes}
+                            {notebook.source_count ?? 0} {tr.sources} · {notebook.note_count ?? 0} {tr.notes}
                           </Badge>
                         </Label>
                       </AccordionTrigger>
