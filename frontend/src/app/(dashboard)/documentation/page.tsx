@@ -150,6 +150,16 @@ const DOCUMENTATION: DocSection[] = [
         id: 'user-crud-api',
         title: '4. User CRUD API Architecture',
         content: 'The user database has been fully operationalized for CRUD access:\n\n• Schema Migration: Schema-full fields (first_name, last_name, email, role) added in SurrealDB migration 48.surrealql.\n• FastAPI Endpoints: Deployed secure endpoints in api/routers/auth.py (POST, PUT, DELETE /api/auth/users) to allow dynamic user management.'
+      },
+      {
+        id: 'container-health-rebuild-control',
+        title: '5. Container Health Observatory & pgvector Rebuild Controls',
+        content: 'The application implements dedicated administrative controls for infrastructure management:\n\n• Docker Service Observatory: Deployed at `/settings/containers` and backed by `/api/containers/status`. It queries active container states (SurrealDB database on port 8000, PostgreSQL on port 5433, Local Kokoro TTS on port 8880, and Uvicorn API on port 8502) and allows administrators to restart containers directly from the browser UI.\n• pgvector Index Rebuild Manager: Accessible in the Advanced Diagnostics page (`/advanced`) and Settings. Powered by `/api/rebuild`, it allows administrators to trigger complete re-indexing operations of text chunks (existing or all sources, notes, and insights) into the PostgreSQL pgvector database, with real-time status and completion tracking.'
+      },
+      {
+        id: 'perspective-landing-page',
+        title: '6. 7 Perspectives Landing Page Integration',
+        content: 'The 7 Perspectives Selector Dashboard (Perspective+) has been configured as the primary landing page (`/`) of the application. This unified control desk provides direct, role-based entry points tailored to Sales, Delivery, Social Media, Researcher, and System Administrator personas, ensuring seamless access across the entire suite of capabilities.'
       }
     ]
   },
@@ -350,6 +360,91 @@ const DOCUMENTATION: DocSection[] = [
             ['/advanced', 'Advanced', 'Developer tools, DB management, diagnostics'],
           ],
         },
+      },
+      {
+        id: 'sitemap-complete-tree',
+        title: '1. Complete Site Tree (File Routes in frontend/src/app)',
+        content: 'The application defines the following page routes in the repository structure:\n\n' +
+                 '• Authentication Area (`(auth)`)\n' +
+                 '  - `/login` — User Authentication Page\n' +
+                 '• Core Dashboard Area (`(dashboard)`)\n' +
+                 '  - `/` — **Landing Page (7 Perspectives / Perspective+ Dashboard)**\n' +
+                 '  - `/operations` — Operations Hub Dashboard\n' +
+                 '  - `/search` — Intelligence / Semantic Search Hub\n' +
+                 '  - `/sources` — Ingested Sources Document List\n' +
+                 '  - `/media` — Creative Media & Publication Workspace\n' +
+                 '  - `/settings` — Settings Control Panel (General configs)\n' +
+                 '    * `/settings/api-keys` — API Credentials Manager\n' +
+                 '    * `/settings/containers` — Docker Compose Services Status Console\n' +
+                 '    * `/settings/logs` — Realtime System Logs Viewer\n' +
+                 '    * `/settings/pipeline` — NLP and Transformations Pipeline Settings\n' +
+                 '    * `/settings/publications` — Distribution channels\n' +
+                 '    * `/settings/styleguides` — Brand tone style guides\n' +
+                 '    * `/settings/voice` — Kokoro TTS & Whisper STT voice engine settings\n' +
+                 '  - `/pipeline` — CRM deals & pipelines visualizer\n' +
+                 '  - `/customer-ledger` — Customer Accounts Balance Ledger\n' +
+                 '  - `/customers` — Customer Organizations Directory\n' +
+                 '  - `/contacts` — Contact Directory for CRM Customers\n' +
+                 '  - `/notebooks` — Research & Generation Workspace Notebooks\n' +
+                 '  - `/compliance` — CISA & CFATS security compliance audits\n' +
+                 '  - `/research-memory` — PostgreSQL `pgvector` index structure stats\n' +
+                 '  - `/projects` — Project Tasks & Kanban Boards\n' +
+                 '  - `/publications` — Social post queue scheduler & tracker\n' +
+                 '  - `/podcasts` — Podcast audio segment profile config\n' +
+                 '  - `/voice-playground` — Bidirectional Voice AI webrtc sandbox\n' +
+                 '  - `/transformations` — NLP transformations builder\n' +
+                 '  - `/documentation` — Developer documentation Wiki\n' +
+                 '  - `/advanced` — Advanced system troubleshooting\n' +
+                 '  - `/mockups` — *Legacy Mockup playground page (Redirects client-side to `/`)*\n' +
+                 '  - `/research` — *Legacy Research page (Redirects client-side to `/operations?tab=research`)*',
+      },
+      {
+        id: 'sitemap-accessible-menus',
+        title: '2. Pages Showing Up in Menus & Application Views',
+        content: 'The accessible pages are organized across two main navigation systems: the **Persistent App Sidebar** and the **Root Dashboard (7 Perspectives)**.\n\n' +
+                 '### A. Persistent App Sidebar (Left Navigation Menu)\n' +
+                 '• 🗂️ **Collect**\n' +
+                 '  - **Sources** (`/sources`)\n' +
+                 '• ⚙️ **Operations**\n' +
+                 '  - **Operations Hub** (`/operations`)\n' +
+                 '• 🔭 **Intelligence**\n' +
+                 '  - **Intelligence Hub** (`/search`)\n' +
+                 '  - **Research Hub** (`/operations?tab=research`)\n' +
+                 '• 🎙️ **Creative**\n' +
+                 '  - **Creative Media Workspace** (`/media`)\n' +
+                 '• 🛠️ **Settings**\n' +
+                 '  - **Settings Control Panel** (`/settings`)\n\n' +
+                 '### B. Landing Page Navigation Cockpit (7 Perspectives)\n' +
+                 'The landing page contains quick-link matrices mapped directly to respective mindsets:\n\n' +
+                 '• 📈 **Sales CRM Mindset**\n' +
+                 '  - **Pipeline** (`/pipeline`)\n' +
+                 '  - **Ledger** (`/customer-ledger`)\n' +
+                 '  - **Customers** (`/customers`)\n' +
+                 '  - **Contacts** (`/contacts`)\n' +
+                 '• 🔍 **Research Hub Mindset**\n' +
+                 '  - **Search** (`/search`)\n' +
+                 '  - **Notebooks** (`/notebooks`)\n' +
+                 '  - **Audits** (`/compliance`)\n' +
+                 '  - **pgvector** (`/research-memory`)\n' +
+                 '• ⚡ **Project Delivery Mindset**\n' +
+                 '  - **Projects** (`/projects`)\n' +
+                 '  - **Operations** (`/operations`)\n' +
+                 '  - **Containers** (`/settings/containers`)\n' +
+                 '  - **Config** (`/settings`)\n' +
+                 '• 🎙️ **Marketing Studio Mindset**\n' +
+                 '  - **Media Hub** (`/media`)\n' +
+                 '  - **Podcasts** (`/podcasts`)\n' +
+                 '  - **Voice Desk** (`/voice-playground`)\n' +
+                 '  - **Pub Tracker** (`/publications`)\n' +
+                 '• ⚙️ **System Administrator Mindset**\n' +
+                 '  - **Logs Stream** (`/settings/logs`)\n' +
+                 '  - **API Keys** (`/settings/api-keys`)\n' +
+                 '  - **Pipelines** (`/settings/pipeline`)\n' +
+                 '  - **Styleguides** (`/settings/styleguides`)\n' +
+                 '  - **Voice System** (`/settings/voice`)\n' +
+                 '  - **Transforms** (`/transformations`)\n' +
+                 '  - **Docs Wiki** (`/documentation`)\n' +
+                 '  - **Advanced** (`/advanced`)',
       },
     ],
   },
