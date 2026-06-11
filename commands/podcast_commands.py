@@ -59,6 +59,7 @@ class PodcastGenerationInput(CommandInput):
     notebook_id: Optional[str] = None
     tts_engine: str = "default"  # "default" | "kokoro" | "openai"
     voice_mapping: Optional[Dict[str, str]] = None  # speaker_name → voice_id
+    target_duration: Optional[str] = None  # target duration string e.g. "30s" or "13m"
 
 
 class PodcastGenerationOutput(CommandOutput):
@@ -69,6 +70,31 @@ class PodcastGenerationOutput(CommandOutput):
     outline: Optional[dict] = None
     processing_time: float
     error_message: Optional[str] = None
+
+
+def parse_duration(duration_str: Optional[str]) -> int:
+    """Parse duration string like '30s', '13m', '5 minutes' into seconds."""
+    if not duration_str:
+        return 0
+    import re
+    s = duration_str.strip().lower()
+    m = re.match(r"^([\d.]+)\s*(s|sec|seconds?|m|min|minutes?)$", s)
+    if m:
+        val = float(m.group(1))
+        unit = m.group(2)
+        if unit.startswith("m"):
+            return int(val * 60)
+        else:
+            return int(val)
+    try:
+        val = float(s)
+        if val <= 30:
+            return int(val * 60) # assume minutes if small
+        else:
+            return int(val) # assume seconds if larger
+    except ValueError:
+        pass
+    return 0
 
 
 @command("generate_podcast", app="open_notebook", retry={"max_attempts": 1})
@@ -271,10 +297,51 @@ async def generate_podcast_command(
                     speaker["tts_model"] = "tts-1"
                     speaker["tts_config"] = {"api_key": openai_key} if openai_key else {}
 
-        # 6. Generate briefing
+        # 6. Generate briefing & handle duration constraints
         briefing = episode_profile.default_briefing
         if input_data.briefing_suffix:
             briefing += f"\n\nAdditional instructions: {input_data.briefing_suffix}"
+
+        num_segments = episode_profile.num_segments
+        duration_seconds = parse_duration(input_data.target_duration)
+        if duration_seconds > 0:
+            total_words = int(duration_seconds * 2.5) # ~150 WPM
+            if duration_seconds <= 45:
+                num_segments = 2
+                style_desc = (
+                    "Extremely short and punchy. All segments MUST be 'short' size. "
+                    "Avoid pleasantries or chit-chat. Get straight to the point. "
+                    "Each dialogue turn must be brief (around 10-20 words)."
+                )
+            elif duration_seconds <= 180:
+                num_segments = 3
+                style_desc = (
+                    "Concise. Segments should be 'short' or 'medium' size. "
+                    "Each dialogue turn should be around 20-35 words."
+                )
+            elif duration_seconds <= 600:
+                num_segments = 4
+                style_desc = (
+                    "Standard length. Segments should be 'medium' or 'long' size. "
+                    "Provide clear explanations. Each dialogue turn should be around 30-50 words."
+                )
+            else:
+                num_segments = 5
+                style_desc = (
+                    "Detailed, long-form podcast. Deep-dive explanations and back-and-forth discussion. "
+                    "Each dialogue turn should be descriptive (around 45-60 words) to ensure target duration is met."
+                )
+            
+            # Apply override to episode profile object
+            episode_profile.num_segments = num_segments
+            
+            # Append target duration instructions to briefing
+            briefing += (
+                f"\n\n[DURATION CONSTRAINT] "
+                f"Target duration is {input_data.target_duration} (~{duration_seconds} seconds). "
+                f"The total word budget across the entire podcast is approximately {total_words} words. "
+                f"Narrative style: {style_desc}"
+            )
 
         # Check if an episode already exists for this command to avoid duplicates on retries
         command_id = input_data.execution_context.command_id if input_data.execution_context else None
@@ -336,6 +403,10 @@ async def generate_podcast_command(
         else:
             await episode.save()
 
+        # Update episode profile dict in the dictionary that gets configured
+        if episode_profile.name in episode_profiles_dict:
+            episode_profiles_dict[episode_profile.name]["num_segments"] = num_segments
+
         configure("speakers_config", {"profiles": speaker_profiles_dict})
         configure("episode_config", {"profiles": episode_profiles_dict})
 
@@ -359,6 +430,7 @@ async def generate_podcast_command(
             output_dir=str(output_dir),
             speaker_config=speaker_profile.name,
             episode_profile=episode_profile.name,
+            num_segments=num_segments,
         )
 
         episode.audio_file = (

@@ -1,0 +1,6 @@
+-- Migration 48 Down: Remove custom_voice table and user metadata fields
+REMOVE TABLE custom_voice;
+REMOVE FIELD first_name ON TABLE user;
+REMOVE FIELD last_name ON TABLE user;
+REMOVE FIELD email ON TABLE user;
+REMOVE FIELD role ON TABLE user;

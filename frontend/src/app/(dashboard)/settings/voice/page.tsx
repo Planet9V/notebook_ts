@@ -5,6 +5,7 @@ import { VoiceServicesPanel } from './components/VoiceServicesPanel'
 import { LiveKitConfigCard } from './components/LiveKitConfigCard'
 import { TTSConfigCard } from './components/TTSConfigCard'
 import { STTConfigCard } from './components/STTConfigCard'
+import { VoiceRecorderCard } from './components/VoiceRecorderCard'
 import { AudioLines, RefreshCw, Cpu, HardDrive, Monitor, Server } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -223,8 +224,9 @@ export default function VoiceSettingsPage() {
               <TTSConfigCard config={config} settings={settings} onRefresh={refresh} />
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <STTConfigCard config={config} settings={settings} onRefresh={refresh} />
+              <VoiceRecorderCard onRefresh={refresh} />
             </div>
           </div>
         </div>

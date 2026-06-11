@@ -221,6 +221,23 @@ export const voiceApi = {
     const { data } = await apiClient.post('/voice/preflight', { engine })
     return data
   },
+
+  async uploadCustomVoice(
+    file: Blob,
+    speakerName: string,
+    provider: string
+  ): Promise<{ voice_id: string; custom_voice_path: string; message: string }> {
+    const formData = new FormData()
+    formData.append('file', file, 'recording.wav')
+    formData.append('speaker_name', speakerName)
+    formData.append('provider', provider)
+    const { data } = await apiClient.post('/voice/upload-custom', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return data
+  },
 }
 
 export interface VoicePreflightResponse {

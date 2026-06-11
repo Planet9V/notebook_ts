@@ -20,6 +20,7 @@ class PodcastGenerationRequest(BaseModel):
     briefing_suffix: Optional[str] = None
     tts_engine: str = "default"  # "default" | "kokoro" | "openai"
     voice_mapping: Optional[Dict[str, str]] = None  # speaker_name → voice_id
+    target_duration: Optional[str] = None  # target duration string e.g. "30s" or "13m"
 
 
 class PodcastGenerationResponse(BaseModel):
@@ -45,6 +46,7 @@ class PodcastService:
         briefing_suffix: Optional[str] = None,
         tts_engine: str = "default",
         voice_mapping: Optional[Dict[str, str]] = None,
+        target_duration: Optional[str] = None,
     ) -> str:
         """Submit a podcast generation job for background processing"""
         try:
@@ -106,6 +108,7 @@ class PodcastService:
                 "notebook_id": notebook_id,
                 "tts_engine": tts_engine,
                 "voice_mapping": voice_mapping,
+                "target_duration": target_duration,
             }
 
             # Ensure command modules are imported before submitting

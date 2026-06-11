@@ -1,0 +1,12 @@
+-- Migration 48: Create custom_voice table and add metadata fields to user
+DEFINE TABLE custom_voice SCHEMALESS;
+DEFINE FIELD name ON TABLE custom_voice TYPE string;
+DEFINE FIELD voice_id ON TABLE custom_voice TYPE string;
+DEFINE FIELD provider ON TABLE custom_voice TYPE string;
+DEFINE FIELD local_path ON TABLE custom_voice TYPE string;
+DEFINE FIELD created ON TABLE custom_voice TYPE string;
+
+DEFINE FIELD IF NOT EXISTS first_name ON TABLE user TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS last_name ON TABLE user TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS email ON TABLE user TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS role ON TABLE user TYPE option<string>;

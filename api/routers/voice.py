@@ -27,6 +27,8 @@ from pydantic import BaseModel, Field, field_validator
 from open_notebook.domain.voice_settings import VoiceSettingsConfig
 from open_notebook.domain.notebook import Notebook, vector_search
 from open_notebook.utils.text_utils import extract_text_content
+from open_notebook.database.repository import repo_query
+from datetime import datetime
 
 router = APIRouter()
 
@@ -614,6 +616,19 @@ async def get_voice_registry():
             livekit_status = "healthy"
     except Exception:
         pass
+
+    # Merge custom voices from SurrealDB
+    try:
+        custom_voices = await repo_query("SELECT * FROM custom_voice ORDER BY created DESC;")
+        for cv in custom_voices:
+            vid = cv.get("voice_id")
+            vname = cv.get("name", "Unnamed Custom Voice")
+            prov = cv.get("provider", "kokoro")
+            for engine_info in tts_engines:
+                if engine_info.engine == prov:
+                    engine_info.voices.append(VoiceEntry(id=vid, name=vname, provider=prov))
+    except Exception as cv_err:
+        logger.error(f"Failed to load custom voices for registry: {cv_err}")
 
     return VoiceRegistryResponse(
         tts_engines=tts_engines,
@@ -1436,6 +1451,20 @@ async def upload_custom_voice(
                 )
 
             logger.info(f"ElevenLabs instant voice clone successful! Voice ID: {voice_id}")
+            
+            # Save custom voice in database
+            voice_record = {
+                "name": speaker_name,
+                "voice_id": voice_id,
+                "provider": provider,
+                "local_path": local_path,
+                "created": datetime.now().isoformat()
+            }
+            await repo_query(
+                "CREATE type::thing('custom_voice', $id) CONTENT $data;",
+                {"id": file_id, "data": voice_record}
+            )
+
             return {
                 "voice_id": voice_id,
                 "custom_voice_path": local_path,
@@ -1444,8 +1473,21 @@ async def upload_custom_voice(
 
         # Otherwise (Kokoro, OpenAI, Deepgram, etc.)
         # We save it locally, and return a mock/custom ID prefixing with custom_
+        voice_id = f"custom_{file_id}"
+        voice_record = {
+            "name": speaker_name,
+            "voice_id": voice_id,
+            "provider": provider,
+            "local_path": local_path,
+            "created": datetime.now().isoformat()
+        }
+        await repo_query(
+            "CREATE type::thing('custom_voice', $id) CONTENT $data;",
+            {"id": file_id, "data": voice_record}
+        )
+
         return {
-            "voice_id": f"custom_{file_id}",
+            "voice_id": voice_id,
             "custom_voice_path": local_path,
             "message": "Custom voice recording saved locally",
         }

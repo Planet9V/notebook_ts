@@ -8,7 +8,7 @@
 ## Mandatory Skill-First Execution Rule
 
 > [!IMPORTANT]
-> You MUST invoke the `/using-superpowers` skill at the beginning of all prompts.
+> You MUST invoke the `/using-superpowers` skill at the beginning of a new task or session (do not repeat it on every prompt/turn within the same session to avoid context bloat).
 > If there is even a 1% chance a skill applies, you MUST load and follow its instructions BEFORE making any code edits, running commands, or asking clarifying questions.
 
 ## Karpathy Rules (P1–P8) — ALWAYS ENFORCED
@@ -254,6 +254,7 @@ Lead (you) ←→ architect ←→ developer ←→ tester ←→ reviewer
 ## Memory & Learning
 
 ### Before Any Task
+Only run these commands once at the start of a task or session to prevent context bloat:
 ```bash
 npx -y ruflo@latest memory search --query "[task keywords]" --namespace stack-knowledge
 npx -y ruflo@latest memory search --query "[task keywords]" --namespace patterns

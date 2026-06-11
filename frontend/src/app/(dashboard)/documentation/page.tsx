@@ -124,6 +124,36 @@ const DOCUMENTATION: DocSection[] = [
     ],
   },
   {
+    id: 'option-7-enhancements',
+    title: 'Option 7 & Voice Lab',
+    icon: Zap,
+    color: 'sky',
+    badge: 'NEW',
+    description: 'Custom Voice Recorder, Podcast Target Durations, and live SurrealDB Option 7 wiring.',
+    subsections: [
+      {
+        id: 'opt7-live-wiring',
+        title: '1. Live Option 7 Mindset Switcher',
+        content: 'The Option 7 Mindset Switcher (Perspective+) has been wired with live SurrealDB database queries. Mock state has been entirely replaced:\n\n• Projects & Tasks Integration: Kanban task lanes and task lists query SurrealDB dynamically using React Query (useProjects and useUsers).\n• Interactive Kanban Transitions: Dragging or switching task cards invokes the useUpdateTask mutation to dynamically persist state changes in SurrealDB. Adding a task triggers the useAddTask mutation.\n• Assignee Filtering: Added filtering dropdowns so users can view tasks assigned to specific user accounts.\n• Live User CRUD Directory: Built an inline User Directory Manager modal within Option 7 to perform user creation, modifications, and deletions in real-time.'
+      },
+      {
+        id: 'voice-recorder-calibration',
+        title: '2. Settings Voice Recorder & Calibration',
+        content: 'A new high-fidelity Voice Recorder has been implemented inside the Voice AI Settings page:\n\n• Component: VoiceRecorderCard located in frontend/src/app/(dashboard)/settings/voice/components/VoiceRecorderCard.tsx.\n• Calibration Controls: Gain (0.5x - 2x), Sample Rate (16kHz - 48kHz), and Noise Suppression toggles.\n• Visualizer: A canvas-based audio amplitude peak visualizer that renders live microphone waveforms.\n• SurrealDB Registry: Uploads custom recorded audio as binary data to SurrealDB (custom_voice table) with metadata (name, duration, engine) to make custom voices selectable inside the voice synthesis playground.'
+      },
+      {
+        id: 'podcast-duration-targets',
+        title: '3. Podcast Target Durations',
+        content: 'Podcast generation now supports dynamic length targets (e.g., 30 seconds to 13 minutes):\n\n• Backend commands (podcast_commands.py): The target_duration parameter automatically adapts segment size, prompt word budgets, and style instructions.\n• Scripting style: Short durations force concise executive summaries, while long durations produce deep-dive multi-segment scripts.'
+      },
+      {
+        id: 'user-crud-api',
+        title: '4. User CRUD API Architecture',
+        content: 'The user database has been fully operationalized for CRUD access:\n\n• Schema Migration: Schema-full fields (first_name, last_name, email, role) added in SurrealDB migration 48.surrealql.\n• FastAPI Endpoints: Deployed secure endpoints in api/routers/auth.py (POST, PUT, DELETE /api/auth/users) to allow dynamic user management.'
+      }
+    ]
+  },
+  {
     id: 'architecture',
     title: 'Architecture & Tech Stack',
     icon: Layers,
@@ -260,12 +290,12 @@ const DOCUMENTATION: DocSection[] = [
             ['Operations', 'Customer Ledger', '/customer-ledger', 'CRM customer listing with filters'],
             ['Operations', 'Research Intelligence', '/research', 'Research item management'],
             ['Operations', 'Project Delivery', '/projects', 'Project tracking and delivery'],
-            ['Intelligence', 'Ask & Search', '/search', 'Semantic search with AI chat'],
+            ['Intelligence', 'Ask & Search', '/search', 'Semantic search with AI chat and Researcher Scratchpad'],
             ['Intelligence', 'Research Memory', '/research-memory', 'Browse and search semantic research cache'],
             ['Intelligence', 'Notebooks', '/notebooks', 'Multi-document workspaces'],
             ['Intelligence', 'Compliance Hub', '/compliance', 'CSET compliance dashboard'],
-            ['Intelligence', 'Voice Lab', '/voice-playground', 'Real-time audio chat playground and testing sandbox'],
-            ['Create', 'Podcasts', '/podcasts', 'AI-generated podcast management'],
+            ['Intelligence', 'Voice Lab', '/voice-playground', 'Real-time audio chat playground and testing sandbox (legacy standalone)'],
+            ['Create', 'Creative Media Workspace', '/media', 'Unified workspace for Podcast Builder, Voice Lab, and Social Creator'],
             ['Manage', 'Models', '/settings/api-keys', 'API keys and model configuration'],
             ['Manage', 'Transformations', '/transformations', 'Content transformation templates'],
             ['Manage', 'Style Guides', '/settings/styleguides', 'Document style guide management'],
@@ -280,7 +310,7 @@ const DOCUMENTATION: DocSection[] = [
       {
         id: 'sitemap-routes',
         title: 'Complete Route Tree & Layout Structure',
-        content: 'The frontend features exactly 32 page files (`page.tsx`) defined in the `frontend/src/app` directory.\n\n' +
+        content: 'The frontend features exactly 33 page files (`page.tsx`) defined in the `frontend/src/app` directory.\n\n' +
                  '### Next.js App Router Structure & Layout Groups:\n' +
                  '• Root Layout (`src/app/layout.tsx`): Establishes global HTML, font configurations, and injects global context providers (QueryClient, Toaster).\n' +
                  '• Route Groups: The application partitions routes into structural groups such as `(auth)` (login screen) and `(dashboard)` (authenticated features).\n' +
@@ -291,7 +321,7 @@ const DOCUMENTATION: DocSection[] = [
         table: {
           headers: ['Route', 'Page', 'Description'],
           rows: [
-            ['/', 'Home', 'Redirects to default dashboard page'],
+            ['/', 'Home', 'Redirects to Bento Gateway default dashboard page'],
             ['/login', 'Login', 'Authentication access panel'],
             ['/sources', 'Sources', 'Document source listing, upload, and management'],
             ['/operations', 'Operations Hub', 'Business analytics dashboard with charts and KPIs'],
@@ -300,13 +330,14 @@ const DOCUMENTATION: DocSection[] = [
             ['/contacts', 'Contacts Directory', 'Global contact listing across all customers'],
             ['/research', 'Research Intelligence', 'Research item management with priority and status tracking'],
             ['/projects', 'Project Delivery', 'Project tracking with milestones and deliverables'],
-            ['/search', 'Ask & Search', 'Semantic search with streaming AI responses'],
+            ['/search', 'Ask & Search', 'Semantic search with 2-column layout (Left: Search Engine & configs; Right: Scratchpad Note Editor)'],
             ['/research-memory', 'Research Memory', 'Audit log and semantic cache dashboard for query/results history'],
             ['/notebooks', 'Notebooks', 'Multi-document workspace with AI chat panel'],
             ['/notebooks/[id]', 'Notebook Detail', 'Specific notebook with sources, notes, and chat'],
             ['/compliance', 'Compliance Hub', 'CSET compliance overview and assessment dashboard'],
-            ['/voice-playground', 'Voice Lab', 'Real-time audio chat playground and testing sandbox'],
-            ['/podcasts', 'Podcasts', 'Podcast episode listing with player and generation'],
+            ['/voice-playground', 'Voice Lab', 'Real-time audio chat playground and testing sandbox (legacy standalone)'],
+            ['/media', 'Creative Workspace', 'Unified media workspace containing Podcast Builder, Voice Lab, and Social Media Creator'],
+            ['/mockups', 'Mockups Playground', 'Interactive switchable mockups playground for Bento options'],
             ['/transformations', 'Transformations', 'Template-based content transformation with preview'],
             ['/pipeline', 'Sales Pipeline', 'Kanban board with 7 deal stages'],
             ['/settings', 'Settings', 'General application settings'],
@@ -747,35 +778,35 @@ const DOCUMENTATION: DocSection[] = [
       },
       {
         id: 'feat-podcasts',
-        title: 'Podcast Generation Subsystem',
-        content: 'Generate B2B audio podcasts from document sources using advanced multi-speaker profiles, diverse TTS engines, and safety controls.\n\n' +
-                 '### 1. Speaker & Episode Profiles Structure\n' +
-                 '• Speaker Profile (`SpeakerProfile`): Contains name, description, global voice model link, and 1 to 4 speakers. Each speaker configuration requires: `name`, `voice_id` (ElevenLabs voice ID hash or Kokoro voice name), `backstory`, and `personality`. Custom voice model overrides can be applied per-speaker.\n' +
-                 '• Episode Profile (`EpisodeProfile`): Defines name, description, mapped speaker configuration, outline and transcript generating LLMs, BCP 47 language locale code (e.g. `en-US`), default briefing template, and segment counts (between 3 and 20).\n\n' +
-                 '### 2. Four TTS Engines & Kokoro Protocol Mapping\n' +
+        title: 'Creative Media & Podcast Subsystem',
+        content: 'Unified Creative Workspace (`/media`) mapping to the Marketing Persona. Houses the Podcast Builder, real-time Voice Lab Sandbox, and the Social Media Creator.\n\n' +
+                 '### 1. Unified Creative Workspace (`/media`)\n' +
+                 'The creative workspace unifies media generation workflows into a single interface:\n' +
+                 '• Podcast Builder: Long-form audio synthesis with multi-speaker configuration.\n' +
+                 '• Voice Lab: Interactive testing sandbox for low-latency voice chat via WebRTC and local Kokoro TTS.\n' +
+                 '• Social Media Creator: Direct conversion of sources, notebooks, or custom briefs into marketing campaigns for multiple platforms (X/Twitter, LinkedIn, and Blogs).\n\n' +
+                 '### 2. Speaker & Episode Profiles Structure\n' +
+                 '• Speaker Profile (`SpeakerProfile`): Contains name, description, global voice model link, and 1 to 4 speakers. Each speaker configuration requires: `name`, `voice_id` (ElevenLabs voice ID hash or Kokoro voice name), `backstory`, and `personality`.\n' +
+                 '• Episode Profile (`EpisodeProfile`): Defines name, description, mapped speaker configuration, outline/transcript generating LLMs, BCP 47 language locale code (e.g. `en-US`), and segment counts (between 3 and 20).\n\n' +
+                 '### 3. Four TTS Engines & Kokoro Protocol Mapping\n' +
                  'The audio synthesis backend integrates with 4 TTS engine APIs:\n' +
                  '1. Kokoro TTS: High-speed local open-source synthesizer running on port 8880. If provider is set to `"kokoro"`, the backend automatically redirects the request to an OpenAI-compatible `/v1/audio/speech` endpoint mapped to the local Kokoro container.\n' +
                  '2. OpenAI TTS: Standard cloud synthesis using `tts-1` / `tts-1-hd` via `https://api.openai.com/v1/audio/speech`.\n' +
                  '3. ElevenLabs TTS: High-fidelity voice cloning via `https://api.elevenlabs.io/v1/text-to-speech/{voice_id}`.\n' +
                  '4. Deepgram TTS: Low-latency voice synthesis via `https://api.deepgram.com/v1/speak` aura models.\n\n' +
-                 '### 3. Backend Diagnostics & Preflight Checks\n' +
-                 'The `/api/voice/preflight` diagnostics endpoint checks connections and keys before initiating long synthesis tasks:\n' +
-                 '• Kokoro: Pings `KOKORO_TTS_URL/health`.\n' +
-                 '• OpenAI: Queries the models list at `https://api.openai.com/v1/models` using the API key.\n' +
-                 '• ElevenLabs: Queries active voices at `https://api.elevenlabs.io/v1/voices`.\n' +
-                 '• Deepgram: Pings project metadata at `https://api.deepgram.com/v1/projects`.\n' +
-                 'Response latencies are measured, and raw API error outputs are sanitized to avoid key leakages in logs.\n\n' +
-                 '### 4. SurrealDB Link Conversions & Job Isolation\n' +
-                 '• Link Conversions: To prevent SurrealDB syntax errors where empty strings break record-link attributes, the system automatically converts empty strings `""` to `None` for option record links (`voice_model`, `outline_llm`, `transcript_llm`) before database persistence.\n' +
-                 '• Job Isolation and Cleanup: During podcast command setups, the background task loads all profiles in batch. To prevent validation failures from incomplete or outdated profiles, the backend checks credentials for all configurations and silently removes invalid ones from the dictionary passed to the generation worker, ensuring isolated execution.\n\n' +
-                 '### 5. Audio Compilation Safety & Path Traversal Protections\n' +
-                 '• Directory Isolation: The compiler generates audio segments in an isolated, UUID4-based directory under the paths root: `{DATA_FOLDER}/podcasts/episodes/{uuid4()}/` to prevent collisions.\n' +
-                 '• Path Traversal Prevention: The download router (`/api/podcasts/episodes/{episode_id}/audio`) resolves absolute paths of requested files and verifies they remain strictly within the `{DATA_FOLDER}/podcasts/episodes/` root directory. Attempting traversal using parent operators (like `..`) triggers an HTTP `403 Forbidden` or `400 Bad Request` error.',
+                 '### 4. Audio Compilation Safety & Path Traversal Protections\n' +
+                 '• Directory Isolation: The compiler generates audio segments in an isolated, UUID4-based directory under `{DATA_FOLDER}/podcasts/episodes/{uuid4()}/` to prevent collisions.\n' +
+                 '• Path Traversal Prevention: The download router (`/api/podcasts/episodes/{episode_id}/audio`) resolves absolute paths of requested files and verifies they remain strictly within the `{DATA_FOLDER}/podcasts/episodes/` root directory.\n\n' +
+                 '### 5. Social Media Creator & Campaign Builder\n' +
+                 'The Social Media Creator converts raw research sources and custom prompts into structured, copywriter-grade marketing assets:\n' +
+                 '• Platform Customization: Formulates distinct campaigns for X/Twitter (thread-based, char limit constraints), LinkedIn (professional tone, bullet summaries), and Blogs (expanded long-form markdown structure).\n' +
+                 '• Live Markdown Rendering: Features real-time rendering of generated content, inline character count tracking, and copy-to-clipboard utilities.\n' +
+                 '• API Publishing Gateways: Integrated with the backend publisher routing (`/api/publications`) to allow direct, authorized posting to social media accounts (e.g. X/Twitter API integration).',
         items: [
-          { label: 'Episode Profiles', description: 'Configure episode structure: format, duration, topics. Link to source documents for content extraction.' },
-          { label: 'Speaker Profiles', description: 'Define speakers with voice characteristics, speaking style, and personality. Multi-speaker support for conversational podcasts.' },
-          { label: 'Audio Generation', description: 'AI-generated audio using text-to-speech. Multiple voice options. Configurable speech patterns and pacing.' },
-          { label: 'Episode Management', description: 'Episode listing with playback. Download generated audio. Episode metadata and description.' },
+          { label: 'Creative Media Hub', description: 'Unified user interface combining podcast generation, live voice lab testing, and social campaigns in a 3-tab layout.' },
+          { label: 'Multi-Speaker Profiles', description: 'Configure up to 4 conversational speakers with distinct voices (ElevenLabs, Kokoro, Deepgram) and personality backstories.' },
+          { label: 'Social Campaign Builder', description: 'Generates platform-compliant posts (X/Twitter threads, LinkedIn briefings, blogs) using custom tone guidelines and source context.' },
+          { label: 'Path-Safe Audio Compiler', description: 'Asynchronously generates, joins, and serves podcast MP3s in isolated directories protected against traversal attacks.' },
         ],
       },
       {

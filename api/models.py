@@ -23,6 +23,25 @@ class UserResponse(BaseModel):
     id: str
     username: str
     email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: Optional[str] = None
+    organization: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: Optional[str] = None
+    organization: Optional[str] = None
+
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     role: Optional[str] = None
     organization: Optional[str] = None
 

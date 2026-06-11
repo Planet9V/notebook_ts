@@ -286,6 +286,8 @@ export interface User {
   id: string
   username: string
   email?: string | null
+  first_name?: string | null
+  last_name?: string | null
   role?: string | null
   organization?: string | null
 }
