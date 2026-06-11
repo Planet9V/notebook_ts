@@ -408,6 +408,8 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const [episodeProfileId, setEpisodeProfileId] = useState<string>('')
   const [episodeName, setEpisodeName] = useState('')
   const [instructions, setInstructions] = useState('')
+  const [targetDuration, setTargetDuration] = useState<string>('default')
+  const [customDuration, setCustomDuration] = useState<string>('')
   const [ttsEngine, setTtsEngine] = useState<string>('default')
   const [voiceMapping, setVoiceMapping] = useState<Record<string, string>>({})
   const [availableVoices, setAvailableVoices] = useState<KokoroVoice[]>([])
@@ -560,6 +562,8 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setVoiceMapping({})
     setTokenCount(0)
     setCharCount(0)
+    setTargetDuration('default')
+    setCustomDuration('')
   }, [])
 
   // Fetch voice service health when dialog opens
@@ -955,6 +959,9 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         voice_mapping: ttsEngine !== 'default' && Object.keys(voiceMapping).length > 0
           ? voiceMapping
           : undefined,
+        target_duration: targetDuration === 'custom'
+          ? (customDuration.trim() || null)
+          : (targetDuration !== 'default' ? targetDuration : null),
       }
 
       await generatePodcast.mutateAsync(payload)
@@ -1092,6 +1099,36 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                       className="min-h-[100px] text-xs"
                       autoComplete="off"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="target_duration">Target Duration</Label>
+                    <Select value={targetDuration} onValueChange={setTargetDuration}>
+                      <SelectTrigger id="target_duration" className="text-xs">
+                        <SelectValue placeholder="Select target duration..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Default (Unconstrained)</SelectItem>
+                        <SelectItem value="30s">30 Seconds (Concise summary)</SelectItem>
+                        <SelectItem value="1m">1 Minute</SelectItem>
+                        <SelectItem value="2m">2 Minutes</SelectItem>
+                        <SelectItem value="5m">5 Minutes</SelectItem>
+                        <SelectItem value="10m">10 Minutes</SelectItem>
+                        <SelectItem value="13m">13 Minutes (Deep-dive segment)</SelectItem>
+                        <SelectItem value="custom">Custom Duration...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {targetDuration === 'custom' && (
+                      <Input
+                        value={customDuration}
+                        onChange={(e) => setCustomDuration(e.target.value)}
+                        placeholder="e.g. 45s, 8m, 15 minutes"
+                        className="mt-2 text-xs"
+                      />
+                    )}
+                    <p className="text-[10px] text-muted-foreground">
+                      Influences the podcast structure, word count, and style (e.g. concise vs. detailed).
+                    </p>
                   </div>
 
                   {/* TTS Engine Selector with Health Status */}

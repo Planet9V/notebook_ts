@@ -74,6 +74,7 @@ export interface PodcastGenerationRequest {
   briefing_suffix?: string | null
   tts_engine?: string  // "default" | "kokoro" | "openai"
   voice_mapping?: Record<string, string>  // speaker_name → voice_id
+  target_duration?: string | null
 }
 
 export interface PodcastGenerationResponse {
