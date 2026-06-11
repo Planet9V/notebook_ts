@@ -19,6 +19,8 @@ import {
   ArrowUp,
   Terminal,
   Zap,
+  Database,
+  RefreshCw,
 } from 'lucide-react'
 
 // ─── DOCUMENTATION DATA ─────────────────────────────────────────────────────
@@ -160,6 +162,81 @@ const DOCUMENTATION: DocSection[] = [
         id: 'perspective-landing-page',
         title: '6. 7 Perspectives Landing Page Integration',
         content: 'The 7 Perspectives Selector Dashboard (Perspective+) has been configured as the primary landing page (`/`) of the application. This unified control desk provides direct, role-based entry points tailored to Sales, Delivery, Social Media, Researcher, and System Administrator personas, ensuring seamless access across the entire suite of capabilities.'
+      },
+      {
+        id: 'opt7-backup-restore',
+        title: '7. Unified Backup & Restore System',
+        content: 'The application features a secure, automated, and manual Backup & Restore system accessible on the Advanced Diagnostics page (`/advanced`):\n\n' +
+                 '• Unified ZIP Archives: Generates portable backup archives (`.zip`) containing the entire SurrealDB schema and records (via `/export`), source files stored in the `./data/uploads/` directory, and LangGraph checkpoints (`checkpoints.sqlite`). Vector database embeddings are omitted to keep backups compact.\n' +
+                 '• Manual Operations: Instantly trigger system backups and download them locally as ZIP files. Supports uploading a backup file to restore the entire system state with confirmation warnings.\n' +
+                 '• Automated Cron Scheduler: Configure custom cron backup schedules (e.g. daily, weekly, monthly) using a lightweight, pure-Python cron expression matcher that triggers backups automatically and keeps last-run logs in SurrealDB.\n' +
+                 '• Safe Overwrite Recovery: Restores are destructive and overwrite existing database tables and source directories. The system drops existing tables using dynamic `REMOVE TABLE` commands before importing the backup script, ensuring zero key conflicts.'
+      }
+    ]
+  },
+  {
+    id: 'backup-restore',
+    title: 'Backup & Restore',
+    icon: Database,
+    color: 'cyan',
+    badge: 'SYSTEM',
+    description: 'Data replication, manual/automated ZIP backups, and database state recovery.',
+    subsections: [
+      {
+        id: 'backup-under-the-hood',
+        title: '1. ZIP Archive Anatomy',
+        content: 'To facilitate simple and reliable state replication, backup archives are created as standard ZIP files containing three core files:\n\n' +
+                 '• db_backup.surrealql: A raw SQL dump generated via SurrealDB\'s GET /export endpoint. It contains the complete DDL schema definition and DML data insertion commands for all tables.\n' +
+                 '• uploads/: A replica of the local file uploads directory containing original ingested documents (PDF, DOCX, TXT, and audio sources).\n' +
+                 '• checkpoints.sqlite: The SQLite database managing agent state and conversation history for the LangGraph pipeline.\n\n' +
+                 'Vector database embeddings (cached in PostgreSQL ResearchMemory) are omitted from the archive to keep backups compact. They can be fully rebuilt at any time via the UI.'
+      },
+      {
+        id: 'backup-db-schemas',
+        title: '2. SurrealDB Database Schema',
+        content: 'Backups are managed inside SurrealDB using two strict schemafull tables defined in migration 49.surrealql:',
+        code: '-- Stores metadata for manual and automated backups\n' +
+              'DEFINE TABLE backup SCHEMAFULL;\n' +
+              'DEFINE FIELD filename ON TABLE backup TYPE string;\n' +
+              'DEFINE FIELD file_path ON TABLE backup TYPE string;\n' +
+              'DEFINE FIELD size ON TABLE backup TYPE int;\n' +
+              'DEFINE FIELD backup_type ON TABLE backup TYPE string; -- "manual" | "scheduled"\n' +
+              'DEFINE FIELD created_at ON TABLE backup TYPE datetime DEFAULT time::now();\n\n' +
+              '-- Stores backup execution jobs configured with cron expressions\n' +
+              'DEFINE TABLE backup_schedule SCHEMAFULL;\n' +
+              'DEFINE FIELD name ON TABLE backup_schedule TYPE string;\n' +
+              'DEFINE FIELD cron_expression ON TABLE backup_schedule TYPE string;\n' +
+              'DEFINE FIELD enabled ON TABLE backup_schedule TYPE bool DEFAULT true;\n' +
+              'DEFINE FIELD last_run_at ON TABLE backup_schedule TYPE option<datetime> DEFAULT NONE;\n' +
+              'DEFINE FIELD created_at ON TABLE backup_schedule TYPE datetime DEFAULT time::now();'
+      },
+      {
+        id: 'backup-cron-scheduler',
+        title: '3. Automated Background Cron Scheduler',
+        content: 'An automated background daemon checks backup schedules every 60 seconds. It parses the five-field cron expression of active schedules using a lightweight, dependency-free Python cron matcher:\n\n' +
+                 '• Execution Logic: Compares current system time against the cron pattern. If a job is due, it triggers a background create_backup(backup_type="scheduled") execution.\n' +
+                 '• History Tracker: Updates the last_run_at datetime field in backup_schedule to log the run execution.\n' +
+                 '• Default Seed: A weekly backup schedule named "Weekly System Backup" is seeded during database migration (cron pattern: "0 0 * * 0", running every Sunday at midnight).'
+      },
+      {
+        id: 'backup-restoration-safety',
+        title: '4. Safe Overwrite Restoration Mechanics',
+        content: 'Restoring a database is a destructive action that completely replaces current active tables. To avoid duplicate key conflicts, the recovery process implements a clean-slate procedure:\n\n' +
+                 '1. Active Table Discovery: Executes INFO FOR DB; to dynamically list all registered tables.\n' +
+                 '2. Table Drop Phase: Executes REMOVE TABLE <name> for each active table to cleanly wipe the database schema and data.\n' +
+                 '3. DDL/DML Import: Sends the SQL script from db_backup.surrealql to the SurrealDB POST /import HTTP endpoint to rebuild tables, schemas, and records.\n' +
+                 '4. Directory Overwrite: Deletes the existing uploads/ folder and extracts the backup uploads/ folder contents into place.\n' +
+                 '5. SRE Checkpoint Recovery: Restores checkpoints.sqlite to reset LangGraph agent memory.'
+      },
+      {
+        id: 'backup-restoration-directions',
+        title: '5. Backup & Restore User Manual',
+        content: 'To perform backup operations, navigate to Advanced Settings (/advanced) from the sidebar menu:\n\n' +
+                 '• Create Manual Backup: Click "Create Backup Now" in the Backup Manager card. A manual ZIP is immediately compiled, listed in the Backup History table, and stored in ./data/backups/.\n' +
+                 '• Download Backups: Click the Download icon next to any history entry. This downloads the ZIP via a secure API route.\n' +
+                 '• Restore Backup from History: Click the Restore icon next to a history entry. A confirmation dialog will warn you that current active data will be overwritten. Agree to proceed.\n' +
+                 '• Restore Backup from Upload: Drag and drop a backup ZIP file or click the upload zone. Confirm the overwrite warning dialog to restore state from the external archive.\n' +
+                 '• Delete Backups: Click the Trash icon next to any entry. This deletes the ZIP file from disk and removes its metadata record in SurrealDB.'
       }
     ]
   },
@@ -249,16 +326,12 @@ const DOCUMENTATION: DocSection[] = [
         id: 'arch-database',
         title: 'Database Architecture & Schema Layout',
         content: 'The database layer uses SurrealDB (version >= 1.0.4) as its primary datastore, supporting relational graphs, schemafull/schemaless tables, and document storage.\n\n' +
-                 '### Repository Architecture\n' +
-                 'The repository layer is defined in `open_notebook/database/repository.py` and manages connection pooling and generic query execution:\n' +
-                 '• Connection Context Manager (`db_connection`): Configures connection pooling using the official python `AsyncSurreal` client, and dynamically sets namespaces, credentials, and databases (SURREAL_URL, SURREAL_USER, SURREAL_PASSWORD, SURREAL_NAMESPACE, SURREAL_DATABASE).\n' +
-                 '• Generic CRUD wrappers: Exposes `repo_query` for arbitrary SurrealQL scripts, `repo_create` for insertions, `repo_update` for MERGE updates, `repo_relate` for graph edge creation, `repo_upsert` for idempotent adjustments, and `repo_delete` for removals.\n\n' +
                  '### Migrations\n' +
-                 'Migrations are managed in `open_notebook/database/migrations/`. The database evolution is tracked through 42 sequentially numbered migration scripts, each accompanied by a `*_down.surrealql` rollback script, totaling 84 migration files.\n\n' +
+                 'Migrations are managed in `open_notebook/database/migrations/`. The database evolution is tracked through 49 sequentially numbered migration scripts, each accompanied by a `*_down.surrealql` rollback script, totaling 98 migration files.\n\n' +
                  '### Table Schema Classifications\n' +
-                 'akf_trust_metadata: System maintains a total of 42 unique tables divided into three classifications:\n\n' +
-                 '1. SCHEMAFULL Tables (25 tables) - Strict schema constraints are enforced:\n' +
-                 '   `activity`, `agent_config`, `agent_execution`, `agent_log`, `asset`, `asset_edge`, `contact`, `credential`, `email_setting`, `episode`, `episode_profile`, `location`, `note`, `notebook`, `publication_metrics_history`, `scheduled_search`, `scheduled_post`, `skill_registry`, `source`, `source_embedding`, `source_insight`, `speaker_profile`, `sync_status`, `transformation`, `voice_settings`.\n\n' +
+                 'akf_trust_metadata: System maintains a total of 44 unique tables divided into three classifications:\n\n' +
+                 '1. SCHEMAFULL Tables (27 tables) - Strict schema constraints are enforced:\n' +
+                 '   `activity`, `agent_config`, `agent_execution`, `agent_log`, `asset`, `asset_edge`, `backup`, `backup_schedule`, `contact`, `credential`, `email_setting`, `episode`, `episode_profile`, `location`, `note`, `notebook`, `publication_metrics_history`, `scheduled_search`, `scheduled_post`, `skill_registry`, `source`, `source_embedding`, `source_insight`, `speaker_profile`, `sync_status`, `transformation`, `voice_settings`.\n\n' +
                  '2. SCHEMALESS Tables (14 tables) - Flexible JSON structures without validation constraints:\n' +
                  '   `assessment`, `assessment_answer`, `assessment_session`, `chat_session`, `customer`, `customer_project`, `customer_research`, `file_audit_log`, `organization`, `podcast_config`, `project`, `project_research`, `research_item`, `scheduled_episode`.\n\n' +
                  '3. Graph Relation (TYPE RELATION) Tables (3 tables) - Specialized SurrealDB graph edges linking nodes:\n' +
@@ -413,7 +486,8 @@ const DOCUMENTATION: DocSection[] = [
                  '• 🎙️ **Creative**\n' +
                  '  - **Creative Media Workspace** (`/media`)\n' +
                  '• 🛠️ **Settings**\n' +
-                 '  - **Settings Control Panel** (`/settings`)\n\n' +
+                 '  - **Settings Control Panel** (`/settings`)\n' +
+                 '  - **Docs Wiki** (`/documentation`)\n\n' +
                  '### B. Landing Page Navigation Cockpit (7 Perspectives)\n' +
                  'The landing page contains quick-link matrices mapped directly to respective mindsets:\n\n' +
                  '• 📈 **Sales CRM Mindset**\n' +
@@ -686,6 +760,26 @@ const DOCUMENTATION: DocSection[] = [
             ['POST', '/api/projects', 'Create project'],
             ['GET', '/api/styleguides', 'List style guides'],
             ['POST', '/api/styleguides', 'Create style guide'],
+          ],
+        },
+      },
+      {
+        id: 'api-backup',
+        title: 'Backup & Restore API',
+        content: 'System backup exports, restores, and cron schedules configuration.',
+        table: {
+          headers: ['Method', 'Path', 'Purpose'],
+          rows: [
+            ['GET', '/api/backup/list', 'List all backups'],
+            ['POST', '/api/backup/create', 'Trigger manual backup creation'],
+            ['GET', '/api/backup/download/{filename}', 'Download backup zip file securely'],
+            ['DELETE', '/api/backup/{id}', 'Delete backup record and file from disk'],
+            ['POST', '/api/backup/restore/{id}', 'Restore system state from backup ID'],
+            ['POST', '/api/backup/upload-restore', 'Restore system state from uploaded zip'],
+            ['GET', '/api/backup/schedules', 'List backup schedules'],
+            ['POST', '/api/backup/schedules', 'Create backup schedule'],
+            ['PUT', '/api/backup/schedules/{id}', 'Toggle or update backup schedule'],
+            ['DELETE', '/api/backup/schedules/{id}', 'Delete backup schedule'],
           ],
         },
       },

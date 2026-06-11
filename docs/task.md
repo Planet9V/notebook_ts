@@ -95,6 +95,27 @@
 
 ---
 
+## Phase 4: Reranker Controls, Sandbox Dashboard, and SOW Autopilot
+- [x] **Step 1: Reranker UI Toggle & Sliders** (save/load configs to localStorage, ranges for result limit and relevance threshold)
+- [x] **Step 2: Reranker Admin Sandbox Comparison Tool** (side-by-side raw vs rerank comparisons in advanced config page)
+- [x] **Step 3: CSET Historical Audit Logging** (store static overall/category scores snapshot on complete session)
+- [x] **Step 4: SOW Drafting Autocomplete Copilot** (rewrite/expand/autocomplete inline copilot above rich text editor)
+- [x] **Step 5: Run Phase 4 Verification Suite** (verify all integration tests pass successfully)
+
+---
+
+## Phase 5: Unified Backup & Restore System
+- [x] **Step 1: Define Database & Migration Schema** (SurrealDB tables backup and backup_schedule, seed weekly schedule)
+- [x] **Step 2: Build Low-Level Backup Background Worker** (zip compression, SurrealDB /export, uploads/ compression, checkpoints.sqlite)
+- [x] **Step 3: Implement Pure-Python Cron Scheduler** (evaluate standard 5-field cron, scheduler check run loop)
+- [x] **Step 4: Implement REST API Router Endpoints** (list, create, download, delete, restore, restore-upload)
+- [x] **Step 5: Create Advanced Diagnostics Backup UI** (history table, download/delete/restore actions, upload drag-zone)
+- [x] **Step 6: Add Warning Overwrite Dialog Confirmation** (protect against accidental destructive database restoration)
+- [x] **Step 7: Build & Verify Unit Test Suite** (7 passing test cases)
+- [x] **Step 8: Synchronize Application Documentation** (document site sitemap, menus, tables, and backup/restore user guide on Docs Wiki)
+
+---
+
 ## Verification Log
 | Item | Check | Result |
 |---|---|---|
@@ -109,3 +130,7 @@
 | Next.js E2E Production Build | `npx tsc --noEmit` inside frontend | ✅ Compiled Successfully with zero errors |
 | Phase 3 Integration Tests | `.venv/bin/pytest tests/test_phase3_compliance.py` | ✅ 2 Passed, 100% Clean (CRUD assets, answers patching, scoring aggregate queries verified) |
 | CIF Scoping E2E Verification | Playwright audit assertion | ✅ 100% Passed (IEC 62443 & CFATS RBPS present, NERC CIP filtered out successfully) |
+| Phase 4 Search Sandbox Tests | `.venv/bin/pytest tests/test_search_compare.py` / `test_cset_snapshot.py` / `test_draft_copilot.py` | ✅ 3 Passed, 100% Clean |
+| Phase 5 Backup & Restore Tests | `.venv/bin/pytest tests/test_backup_restore.py` | ✅ 7 Passed, 100% Clean |
+| E2E Production Build check | `npx tsc --noEmit` inside frontend | ✅ Compiled Successfully with 0 errors |
+

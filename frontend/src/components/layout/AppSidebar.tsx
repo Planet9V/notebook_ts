@@ -87,6 +87,7 @@ const getNavigation = (t: TFunction) => [
     title: t('navigation.manage', 'Settings'),
     items: [
       { name: 'Settings Control Panel', href: '/settings', icon: Settings },
+      { name: 'Docs Wiki', href: '/documentation', icon: BookOpen },
     ],
   },
 ] as const
@@ -304,8 +305,9 @@ export function AppSidebar() {
                     } else if (item.href === '/settings') {
                       isActive = pathname.startsWith('/settings') || 
                                  pathname.startsWith('/transformations') || 
-                                 pathname.startsWith('/documentation') || 
                                  pathname.startsWith('/advanced')
+                    } else if (item.href === '/documentation') {
+                      isActive = pathname.startsWith('/documentation')
                     }
                   }
                   const button = (

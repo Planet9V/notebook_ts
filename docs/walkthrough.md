@@ -339,3 +339,28 @@ From the visual evidence, I observe the following layout structures, design patt
 - Verified Next.js compilation type safety by running `npx tsc --noEmit` (Passed with 0 errors).
 - Rebuilt and restarted the `open_notebook` container successfully using `docker compose up -d --build open_notebook`.
 
+---
+
+## 15. Unified Backup & Restore System Integration
+
+We have built and verified a secure, portable, and scheduled Backup & Restore system for the platform:
+
+### 15.1 Architectural Components & Directory Layout
+- **ZIP Archives:** Created standard ZIP compression bundles containing:
+  1. `db_backup.surrealql` — raw SQL schema definitions and table records.
+  2. `uploads/` — ingested files stored locally under `./data/uploads/`.
+  3. `checkpoints.sqlite` — conversation and agent execution state memory under `./data/sqlite-db/`.
+- **Database Migrations:** Registered schemafull tables `backup` and `backup_schedule` under [49.surrealql](file:///Users/jimmcknney/notebook_tetrel/open_notebook/database/migrations/49.surrealql) with a default weekly cron schedule seed (`"0 0 * * 0"`).
+
+### 15.2 Background Workers & API Routing
+- **Worker Process:** [backup_worker.py](file:///Users/jimmcknney/notebook_tetrel/open_notebook/tasks/backup_worker.py) handles low-level ZIP exports/imports, folder overwriting, checkpoints copying, and standard 5-field cron parsing logic.
+- **REST Endpoints:** Router [backup.py](file:///Users/jimmcknney/notebook_tetrel/api/routers/backup.py) exposes REST APIs under `/api/backup/*` for listing, triggering manual snapshots, downloading files, deleting records, restoring from backup IDs, and uploading backup files.
+
+### 15.3 Frontend Dashboard & Safe Restoration Overwrite
+- **User Interface:** Added a glassmorphic **Backup & Restore Manager** card inside the Advanced Diagnostics page (`/advanced`), containing:
+  - Trigger buttons for manual snapshots.
+  - History log table with download/delete/restore actions.
+  - Drag-and-drop file upload zone.
+- **Warning Dialog:** Destructive database and file overrides are protected behind an interactive overlay modal warning the administrator before running recovery.
+
+

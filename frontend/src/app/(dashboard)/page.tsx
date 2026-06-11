@@ -61,7 +61,7 @@ import {
 type MockupType = 'gateway' | 'perspective' | 'customizable' | 'topological' | 'cockpit' | 'agent-swarm' | 'enhanced-perspective'
 
 export default function MockupsPage() {
-  const [activeMockup, setActiveMockup] = useState<MockupType>('gateway')
+  const [activeMockup, setActiveMockup] = useState<MockupType>('enhanced-perspective')
 
   // State for Mockup 2 (Perspective Selector)
   const [perspective, setPerspective] = useState<'sales' | 'research' | 'delivery' | 'marketing'>('sales')

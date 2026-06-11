@@ -1,0 +1,3 @@
+-- Migration 49 Down: Remove backup and backup_schedule tables
+REMOVE TABLE backup;
+REMOVE TABLE backup_schedule;

@@ -1,0 +1,21 @@
+-- Migration 49: Create backup and backup_schedule tables
+DEFINE TABLE backup SCHEMAFULL;
+DEFINE FIELD filename ON TABLE backup TYPE string;
+DEFINE FIELD file_path ON TABLE backup TYPE string;
+DEFINE FIELD size ON TABLE backup TYPE int;
+DEFINE FIELD backup_type ON TABLE backup TYPE string;
+DEFINE FIELD created_at ON TABLE backup TYPE datetime DEFAULT time::now();
+
+DEFINE TABLE backup_schedule SCHEMAFULL;
+DEFINE FIELD name ON TABLE backup_schedule TYPE string;
+DEFINE FIELD cron_expression ON TABLE backup_schedule TYPE string;
+DEFINE FIELD enabled ON TABLE backup_schedule TYPE bool DEFAULT true;
+DEFINE FIELD last_run_at ON TABLE backup_schedule TYPE option<datetime> DEFAULT NONE;
+DEFINE FIELD created_at ON TABLE backup_schedule TYPE datetime DEFAULT time::now();
+
+-- Seed a default weekly schedule (Sunday at midnight: "0 0 * * 0")
+CREATE backup_schedule:weekly SET
+  name = "Weekly System Backup",
+  cron_expression = "0 0 * * 0",
+  enabled = true,
+  created_at = time::now();

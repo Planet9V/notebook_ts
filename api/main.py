@@ -63,6 +63,7 @@ from api.routers import (
     publications,
     research_memory,
     system_logs,
+    backup,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -182,12 +183,13 @@ async def lifespan(app: FastAPI):
     search_task = asyncio.create_task(_periodic_searches_check())
     podcast_task = asyncio.create_task(_periodic_podcasts_check())
     research_items_task = asyncio.create_task(_periodic_research_items_check())
+    backup_task = asyncio.create_task(_periodic_backups_check())
 
     # Yield control to the application
     yield
 
     # Shutdown: cancel background tasks
-    for task in [sync_task, pub_task, search_task, podcast_task, research_items_task]:
+    for task in [sync_task, pub_task, search_task, podcast_task, research_items_task, backup_task]:
         task.cancel()
         try:
             await task
@@ -329,6 +331,30 @@ async def _periodic_research_items_check():
         except Exception as e:
             logger.error(f"Error in periodic research items check: {e}")
         await asyncio.sleep(300)
+
+
+async def _periodic_backups_check():
+    """
+    Run every 60 seconds to check for due scheduled backups.
+    """
+    try:
+        from open_notebook.tasks.backup_worker import check_and_run_scheduled_backups
+    except ImportError as e:
+        logger.error(f"Failed to import backup worker task: {e}")
+        return
+
+    # Sleep initially to let the server start up
+    await asyncio.sleep(25)
+    while True:
+        try:
+            logger.info("Background backup worker checking for due schedules...")
+            await check_and_run_scheduled_backups()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in periodic backups check: {e}")
+        await asyncio.sleep(60)
+
 
 
 app = FastAPI(
@@ -512,6 +538,7 @@ app.include_router(mcp.router, prefix="/api", tags=["mcp"])
 app.include_router(publications.router, prefix="/api", tags=["publications"])
 app.include_router(research_memory.router, prefix="/api", tags=["research-memory"])
 app.include_router(system_logs.router, prefix="/api", tags=["system-logs"])
+app.include_router(backup.router, prefix="/api", tags=["backup"])
 
 
 @app.get("/")
