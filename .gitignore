@@ -167,3 +167,5 @@ agentdb.rvf.lock
 *.pre-ruflo
 /package.json
 /package-lock.json
+# AI tool config symlinks — local only, created by make setup-hooks
+/CLAUDE.md

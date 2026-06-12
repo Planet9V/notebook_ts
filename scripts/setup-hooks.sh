@@ -86,7 +86,23 @@ HOOK
 chmod +x "$HOOKS_DIR/pre-commit"
 echo "✅ pre-commit hook installed at $HOOKS_DIR/pre-commit"
 
+# ----- agent config symlinks -----
 echo ""
+echo "🔗 Setting up AI tool config symlinks..."
+cd "$REPO_ROOT"
+
+# CLAUDE.md → GEMINI.md  (Claude Code reads CLAUDE.md, Antigravity reads GEMINI.md)
+# Both now read the same file — zero drift possible
+if [ -L CLAUDE.md ]; then
+  echo "   CLAUDE.md symlink already exists"
+elif [ -f CLAUDE.md ]; then
+  echo "⚠️  CLAUDE.md is a regular file (not a symlink). It may be out of sync."
+  echo "   To fix: git rm CLAUDE.md && ln -sf GEMINI.md CLAUDE.md"
+else
+  ln -sf GEMINI.md CLAUDE.md
+  echo "✅ CLAUDE.md → GEMINI.md symlink created"
+fi
+
 echo "🎉 All hooks installed. Session hygiene rules enforced:"
 echo "   • No planning .md files in repo root (use docs/plans/)"
 echo "   • No *.pre-ruflo files (RuFlo backup artifacts)"
