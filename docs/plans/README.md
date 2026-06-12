@@ -24,9 +24,7 @@ This directory contains all planning artifacts for the Tetrel Notebook project.
 
 ## Active Plans
 
-| File | Topic | Status |
-|---|---|---|
-| `reranker-toggle.md` | Search page reranker toggle UI | 📋 Tracked |
+Future work is tracked in **[GitHub Issues](https://github.com/Planet9V/notebook_ts/issues)**, not committed markdown files (Karpathy P4).
 
 ## Archive
 
