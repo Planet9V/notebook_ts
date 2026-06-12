@@ -1,6 +1,10 @@
-# API Module
+# API Layer — Developer Reference
 
-FastAPI-based REST backend exposing services for notebooks, sources, notes, chat, podcasts, and AI model management.
+> **Last updated: 2026-06-12** | **47 registered routers** | **50 SurrealDB migrations**
+> This is the single authoritative reference for the `api/` directory.
+
+FastAPI-based REST backend exposing services for notebooks, sources, notes, chat, podcasts, voice AI, CRM, and content management.
+
 
 ## Purpose
 
