@@ -302,7 +302,24 @@ export function TTSConfigCard({ config, settings, onRefresh }: TTSConfigCardProp
                           <span className="flex items-center gap-2">
                             <span className="font-mono text-xs">{v}</span>
                             <span className="text-muted-foreground text-[10px]">
-                              {v.startsWith('af_') ? 'American Female' : v.startsWith('am_') ? 'American Male' : v.startsWith('bf_') ? 'British Female' : 'British Male'}
+                              {v.startsWith('af_') ? 'American Female'
+                                : v.startsWith('am_') ? 'American Male'
+                                : v.startsWith('bf_') ? 'British Female'
+                                : v.startsWith('bm_') ? 'British Male'
+                                : v.startsWith('ef_') ? 'Spanish Female'
+                                : v.startsWith('em_') ? 'Spanish Male'
+                                : v.startsWith('ff_') ? 'French Female'
+                                : v.startsWith('hf_') ? 'Hindi Female'
+                                : v.startsWith('hm_') ? 'Hindi Male'
+                                : v.startsWith('if_') ? 'Italian Female'
+                                : v.startsWith('im_') ? 'Italian Male'
+                                : v.startsWith('jf_') ? 'Japanese Female'
+                                : v.startsWith('jm_') ? 'Japanese Male'
+                                : v.startsWith('pf_') ? 'Portuguese Female'
+                                : v.startsWith('pm_') ? 'Portuguese Male'
+                                : v.startsWith('zf_') ? 'Chinese Female'
+                                : v.startsWith('zm_') ? 'Chinese Male'
+                                : 'Voice'}
                             </span>
                           </span>
                         </SelectItem>

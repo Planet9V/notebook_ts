@@ -8,6 +8,7 @@ from loguru import logger
 
 from open_notebook.database.repository import repo_query, repo_update
 from open_notebook.domain.credential import Credential
+from open_notebook.domain.voice_settings import VoiceSettingsConfig
 
 router = APIRouter()
 
@@ -30,12 +31,19 @@ async def synthesize_text_to_base64(text: str) -> Optional[str]:
     """Synthesize speech using Kokoro and return base64-encoded WAV data."""
     try:
         url = os.getenv("KOKORO_TTS_URL", "http://kokoro-tts:8880")
+        # Load user-configured voice from DB; fall back to af_heart if unavailable
+        voice = "af_heart"
+        try:
+            config = await VoiceSettingsConfig.get_instance()
+            voice = config.kokoro_default_voice or "af_heart"
+        except Exception as cfg_err:
+            logger.warning(f"Could not load voice settings, using default: {cfg_err}")
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 f"{url}/v1/audio/speech",
                 json={
                     "input": text,
-                    "voice": "af_heart",
+                    "voice": voice,
                     "model": "kokoro",
                     "response_format": "wav",
                 },

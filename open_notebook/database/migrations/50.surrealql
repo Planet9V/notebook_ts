@@ -1,0 +1,3 @@
+-- Migration 50: Enforce unique voice names in custom_voice table
+-- Voices must have unique names so clients can reliably reference them by name.
+DEFINE INDEX idx_custom_voice_name_unique ON TABLE custom_voice COLUMNS name UNIQUE;
