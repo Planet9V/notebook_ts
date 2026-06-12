@@ -29,3 +29,15 @@ else:
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Skip E2E Playwright tests when playwright is not installed.
+# These tests require `playwright install` and a running browser —
+# they are integration/E2E tests, not unit tests.
+try:
+    import playwright  # noqa: F401
+except ImportError:
+    collect_ignore = [
+        "test_bento_enhancements.py",
+        "test_bento_mockup.py",
+        "test_loom_mockup.py",
+    ]
