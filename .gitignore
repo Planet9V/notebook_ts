@@ -161,3 +161,9 @@ agentdb.rvf
 agentdb.rvf.lock
 .claude-flow/
 .swarm/
+
+# Tool scaffolding artifacts (RuFlo, agentic-flow, etc.)
+# These are created by AI tooling and must NOT be committed.
+*.pre-ruflo
+/package.json
+/package-lock.json
