@@ -51,7 +51,6 @@ class TestRecurringResearchWorker:
         assert due_items[1].name == "Due Recurring Task 2"
         mock_repo_query.assert_called_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("api.routers.research_items.background_run_research")
     def test_run_due_endpoint(self, mock_background_run, mock_ri_cls, client):

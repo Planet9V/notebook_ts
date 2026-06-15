@@ -100,7 +100,6 @@ class TestDeepResearchAPI:
                 assert events[3]["type"] == "answer"
                 assert events[3]["content"] == "security regulations."
 
-    @pytest.mark.asyncio
     @patch("open_notebook.domain.notebook.vector_search", new_callable=AsyncMock)
     @patch("open_notebook.ai.provision.provision_langchain_model", new_callable=AsyncMock)
     def test_hybrid_research_stream(self, mock_provision, mock_vector, client):
