@@ -6,7 +6,6 @@ from open_notebook.database.repository import repo_query, repo_delete
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
 def test_canvas_quiz_linkage():
     # 1. Create a unique customer
     cust_res = client.post("/api/customers", json={"name": "Canvas Quiz Linkage Test Customer"})

@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -133,7 +134,7 @@ class TestPipelineWorker:
     @patch("open_notebook.domain.pipeline_worker.Note")
     @patch("open_notebook.domain.pipeline_worker.Source")
     @patch("open_notebook.domain.pipeline_worker.Asset")
-    async def test_run_pipeline_automation_crawl(
+    def test_run_pipeline_automation_crawl(
         self,
         mock_asset_cls,
         mock_source_cls,
@@ -183,7 +184,7 @@ class TestPipelineWorker:
         mock_note_cls.return_value = mock_note
 
         # Run background worker
-        await run_pipeline_automation("notebook:nb123", "research")
+        asyncio.run(run_pipeline_automation("notebook:nb123", "research"))
 
         # Verify crawl calls
         mock_crawl.assert_called_once_with("https://example.com")
@@ -216,7 +217,7 @@ class TestPipelineWorker:
     @patch("open_notebook.domain.pipeline_worker.provision_langchain_model")
     @patch("open_notebook.domain.pipeline_worker.Note")
     @patch("open_notebook.domain.pipeline_worker.Source")
-    async def test_run_pipeline_automation_search(
+    def test_run_pipeline_automation_search(
         self,
         mock_source_cls,
         mock_note_cls,
@@ -269,7 +270,7 @@ class TestPipelineWorker:
         mock_note_cls.return_value = mock_note
 
         # Run background worker
-        await run_pipeline_automation("notebook:nb123", "research")
+        asyncio.run(run_pipeline_automation("notebook:nb123", "research"))
 
         # Verify search execution
         mock_search.assert_called_once_with("Competitors of Test Client Corp", search_engine="default")

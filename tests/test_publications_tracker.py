@@ -1,11 +1,11 @@
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
-async def test_publications_metrics_history_tracking():
+def test_publications_metrics_history_tracking():
     """
     Test creating a published post, triggering the metrics tracking worker
     via HTTP trigger, and validating metrics updates and timeseries history.

@@ -1,14 +1,14 @@
 from unittest.mock import AsyncMock, patch
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
 @patch("api.routers.assessments.repo_query")
 @patch("api.routers.assessments.repo_update")
-async def test_session_complete_snapshot(mock_repo_update, mock_repo_query):
+def test_session_complete_snapshot(mock_repo_update, mock_repo_query):
     # Mock session lookup
     mock_repo_query.side_effect = [
         # 1. sess_check in complete_session

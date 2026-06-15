@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,10 @@ import { useLocations, useCreateLocation, useLocation } from '@/lib/hooks/use-lo
 import { useActivities, useCreateActivity } from '@/lib/hooks/use-activities'
 import { useSearch } from '@/lib/hooks/use-search'
 import { useScheduledEpisodes } from '@/lib/hooks/use-podcasts'
+import { useVoiceRegistry } from '@/lib/hooks/use-voice-registry'
+import { useTransformations, useExecuteTransformation } from '@/lib/hooks/use-transformations'
+import { usePublicationsCalendar } from '@/lib/hooks/use-publications'
+import { useResearchMemoryStats } from '@/lib/hooks/use-research-memory'
 import { sourcesApi } from '@/lib/api/sources'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'sonner'
@@ -57,7 +62,8 @@ import {
   Loader2,
 } from 'lucide-react'
 
-export default function MockupsPage() {
+export default function DashboardPage() {
+  const router = useRouter()
 
 
   // State for Mockup 7 (Enhanced Perspective Selector)
@@ -71,6 +77,8 @@ export default function MockupsPage() {
   const { data: customersList = [] } = useCustomers()
   const { data: notebooksList = [] } = useNotebooks()
   const { data: scheduledEpisodes = [] } = useScheduledEpisodes()
+  const { data: calendarPosts = [] } = usePublicationsCalendar()
+  const { data: rmemStats } = useResearchMemoryStats()
 
   const { data: globalSources = [], refetch: refetchGlobalSources } = useQuery({
     queryKey: ['sources', 'global'],
@@ -96,7 +104,14 @@ export default function MockupsPage() {
 
   const { data: locationsList = [], refetch: refetchLocations } = useLocations()
   const createLocationMutation = useCreateLocation()
-  const { data: activitiesList = [], refetch: refetchActivities } = useActivities(projectsList[0]?.customer_id || customersList[0]?.id)
+
+  // Selected project — reactive state so user can switch active project in kanban
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const activeDbProject = projectsList.find(p => p.id === activeProjectId) || projectsList[0]
+
+  const { data: activitiesList = [], refetch: refetchActivities } = useActivities(
+    activeDbProject?.customer_id || customersList[0]?.id
+  )
   const createActivityMutation = useCreateActivity()
 
   const { data: containerStatus, refetch: refetchContainers } = useQuery({
@@ -108,11 +123,22 @@ export default function MockupsPage() {
     refetchInterval: 10000,
   })
 
-  // Selected project (default to the first project in database)
-  const activeDbProject = projectsList[0]
-  
   // Selected user filter
   const [userFilter, setUserFilter] = useState<string>('all')
+
+  // Research hub — notebook scoping
+  const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null)
+
+  // New Customer dialog state
+  const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false)
+  const [newCustomerName, setNewCustomerName] = useState('')
+  const [newCustomerIndustry, setNewCustomerIndustry] = useState('')
+  const [newCustomerWebsite, setNewCustomerWebsite] = useState('')
+
+  // Compliance override confirmation state
+  const [pendingOverrideCustomerId, setPendingOverrideCustomerId] = useState<string | null>(null)
+  const [pendingOverrideCustomerName, setPendingOverrideCustomerName] = useState<string>('')
+  const [isOverrideConfirmOpen, setIsOverrideConfirmOpen] = useState(false)
 
   // Dynamic CRM calculations
   const totalLeads = customersList.length
@@ -328,12 +354,10 @@ export default function MockupsPage() {
     }
   }
   
-  // Sales CRM Mindset State
-  const [salesCampaigns] = useState([
-    { id: 'camp-s1', name: 'NIST CSF v2 Awareness Outreach', channel: 'LinkedIn', targetAccount: 'Acme Security Corp', status: 'Running', leadsGenerated: 12 },
-    { id: 'camp-s2', name: 'SCADA Segments Security Webinar', channel: 'Email', targetAccount: 'Apex Networks', status: 'Planned', leadsGenerated: 0 },
-    { id: 'camp-s3', name: 'Federal Threat Intel Feed Promo', channel: 'X/Twitter', targetAccount: 'Global Logistics', status: 'Running', leadsGenerated: 8 },
-  ])
+  // Sales CRM Mindset State — salesCampaigns replaced by live scheduledEpisodes from API
+  const { data: voiceRegistry } = useVoiceRegistry()
+  const executeTransformationMutation = useExecuteTransformation()
+  const { data: transformationsList = [] } = useTransformations()
 
   // Research Mindset State
   const [researchSearchQuery, setResearchSearchQuery] = useState('')
@@ -341,37 +365,12 @@ export default function MockupsPage() {
   const [researchSearchResults, setResearchSearchResults] = useState<any[]>([])
   const [selectedResearchDoc, setSelectedResearchDoc] = useState<any>(null)
   const [activeCitationPopover, setActiveCitationPopover] = useState<string | null>(null)
-  const [researchDocsList, setResearchDocsList] = useState([
-    { id: 'doc-1', name: 'nist_sp_800_82_rev3.pdf', size: '2.4 MB', type: 'PDF', addedBy: 'Researcher Agent', date: '2026-06-03', textPreview: 'Industrial Control Systems (ICS) security policies require logical segment isolation, cryptographic boundaries, and offline simulation logs...' },
-    { id: 'doc-2', name: 'cisa_scada_hardening_guidelines.pdf', size: '1.5 MB', type: 'PDF', addedBy: 'Data Agent', date: '2026-06-04', textPreview: 'Hardening SCADA networks involves disabling unused protocol ports, setting up pgvector similarity caching, and auditing supervisor logs hourly...' },
-    { id: 'doc-3', name: 'nist_csf_v2_core.pdf', size: '3.1 MB', type: 'PDF', addedBy: 'SRE Agent', date: '2026-06-05', textPreview: 'The NIST Cybersecurity Framework Version 2.0 covers six core functions: Govern, Identify, Protect, Detect, Respond, and Recover...' }
-  ])
+  // researchDocsList removed — document tree renders from live globalSources
 
   // Delivery Mindset State
-  const [deliveryNestedTree, setDeliveryNestedTree] = useState({
-    name: 'ACME Operations Portfolio',
-    isOpen: true,
-    projects: [
-      {
-        id: 'proj-d1',
-        name: 'NIST CSF v2 Compliance Alignment',
-        isOpen: true,
-        facilities: [
-          { id: 'fac-1', name: 'Texas Petrochemical Refining Plant', SREConfig: 'Cluster: tx-ref-01 | Nodes: 20 | RBAC: Enforced', complianceScore: '92%', docName: 'nist_csf_v2_core.pdf' },
-          { id: 'fac-2', name: 'Ohio Nuclear Generation Station', SREConfig: 'Cluster: oh-gen-02 | Nodes: 30 | RBAC: Multi-Factor', complianceScore: '87%', docName: 'cisa_scada_hardening_guidelines.pdf' },
-        ]
-      },
-      {
-        id: 'proj-d2',
-        name: 'SCADA Network Insulation',
-        isOpen: false,
-        facilities: [
-          { id: 'fac-3', name: 'California Solar Distribution Grid', SREConfig: 'Cluster: ca-solar-04 | Nodes: 12 | RBAC: Basic', complianceScore: '94%', docName: 'nist_sp_800_82_rev3.pdf' }
-        ]
-      }
-    ]
-  })
-  
+  // deliveryNestedTree removed — tree renders from live projectsList grouped by customer_id
+  // deliveryTasksList removed — kanban/table read from activeDbProject.tasks (live)
+
   const [selectedFacilityId, setSelectedFacilityId] = useState<string>('')
   const { data: activeLocation } = useLocation(selectedFacilityId, !!selectedFacilityId)
 
@@ -380,27 +379,17 @@ export default function MockupsPage() {
       setSelectedFacilityId(locationsList[0].id)
     }
   }, [locationsList, selectedFacilityId])
-  const [deliveryTasksList, setDeliveryTasksList] = useState([
-    { id: 'task-d1', name: 'Isolate SCADA protocol ports', stage: 'In Progress', dueDate: '2026-06-15', assignee: 'SRE Agent Alpha', priority: 'High' },
-    { id: 'task-d2', name: 'Seed CISA validation framework questions', stage: 'Done', dueDate: '2026-06-08', assignee: 'SRE Agent Beta', priority: 'Medium' },
-    { id: 'task-d3', name: 'Audit PostgreSQL pgvector memory usage', stage: 'Todo', dueDate: '2026-06-20', assignee: 'System Agent', priority: 'Low' },
-    { id: 'task-d4', name: 'Verify backup failover recovery script', stage: 'In Review', dueDate: '2026-06-12', assignee: 'SRE Agent Alpha', priority: 'High' }
-  ])
   const [deliveryTasksView, setDeliveryTasksView] = useState<'kanban' | 'table'>('kanban')
   const [openProjectIds, setOpenProjectIds] = useState<Record<string, boolean>>({})
 
   // Marketing Mindset State
   const [marketingAudioScript, setMarketingAudioScript] = useState('NIST CSF v2 updates include Govern and Recover functions.')
-  const [selectedMarketingVoice, setSelectedMarketingVoice] = useState('v1')
+  // selectedMarketingVoiceId is the actual voice_id from the API (e.g. 'am_adam')
+  const [selectedMarketingVoiceId, setSelectedMarketingVoiceId] = useState('am_adam')
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
   const [isAudioGenerated, setIsAudioGenerated] = useState(false)
   const [marketingAudioUrl, setMarketingAudioUrl] = useState<string | null>(null)
-  const [socialSchedulerPosts, setSocialSchedulerPosts] = useState([
-    { id: 'sch-1', platform: 'LinkedIn', title: 'NIST CSF v2 Compliance Audit takeaways', date: '2026-06-12 09:00', status: 'Active' },
-    { id: 'sch-2', platform: 'X/Twitter', title: 'Securing SCADA networks under NIST SP 800-82 Rev 3', date: '2026-06-13 14:00', status: 'Queued' },
-    { id: 'sch-3', platform: 'Blog', title: 'Deep dive: How vector databases accelerate threat intelligence', date: '2026-06-15 10:00', status: 'Queued' },
-    { id: 'sch-4', platform: 'LinkedIn', title: 'Why pgvector hybrid search outperforms simple keyword queries', date: '2026-06-10 08:30', status: 'Published' },
-  ])
+  // socialSchedulerPosts removed — marketingPosts derives only from live scheduledEpisodes
 
   // State for Mockup 3 (Customizable Bento)
   const [layout, setLayout] = useState<string[]>([
@@ -513,91 +502,98 @@ export default function MockupsPage() {
     setRenameValue('')
   }
 
-  // Mock Delivery Matrix State
-  const [deliveryLayout, setDeliveryLayout] = useState<'table' | 'kanban'>('table')
-  const [deliveries, setDeliveries] = useState([
-    { id: 'del-1', client: 'Acme Security Corp', project: 'NIST CSF v2 Alignment', progress: 70, status: 'In Progress', manager: 'SRE Agent Alpha' },
-    { id: 'del-2', client: 'Apex Networks', project: 'SCADA Segment Insulation', progress: 40, status: 'In Progress', manager: 'SRE Agent Beta' },
-    { id: 'del-3', client: 'Cyber Sentinel', project: 'Cloud Vulnerability Remediation', progress: 100, status: 'Completed', manager: 'System Agent' },
-  ])
-
-  // Mock Marketing Studio State
-  const [campaigns, setCampaigns] = useState([
-    { id: 'camp-1', title: 'NIST CSF v2 Compliance Campaign', status: 'Active', platform: 'LinkedIn', scheduledTime: '2026-06-12 09:00' },
-    { id: 'camp-2', title: 'SCADA Security Threats Podcast Ep 4', status: 'Queued', platform: 'Blog', scheduledTime: '2026-06-15 14:00' },
-  ])
+  // deliveries mock removed — progress computed from project.tasks in render
+  // campaigns mock removed — scheduler queue comes from live scheduledEpisodes API
   const [showPostGenerator, setShowPostGenerator] = useState(false)
   const [marketingPlatform, setMarketingPlatform] = useState<'LinkedIn' | 'X/Twitter' | 'Blog'>('LinkedIn')
   const [marketingSourceText, setMarketingSourceText] = useState('NIST SP 800-82 standard details secure industrial control systems (ICS).')
   const [generatedPost, setGeneratedPost] = useState('')
   const [isGeneratingPost, setIsGeneratingPost] = useState(false)
 
-  const generatePostText = () => {
+  const generatePostText = async () => {
+    if (!marketingSourceText.trim()) return
     setIsGeneratingPost(true)
-    setTimeout(() => {
-      setIsGeneratingPost(false)
-      const dateStr = new Date().toLocaleDateString()
-      if (marketingPlatform === 'LinkedIn') {
-        setGeneratedPost(`📊 Compliance Update (${dateStr}): Analyzing the latest NIST SP 800-82 rev3 guidelines. Takeaways for securing ICS/SCADA:\n1. Insulation of critical segments\n2. Mandatory microservice security gates.\n#Cybersecurity #NIST #OTSecurity`)
-      } else if (marketingPlatform === 'X/Twitter') {
-        setGeneratedPost(`🔒 Securing ICS/SCADA under NIST SP 800-82 Rev 3 thread:\n1/ Segment insulation is key.\n2/ Rebuild threat intelligence indices with pgvector vector-search caches.\n3/ Run audits hourly in your devops dashboard. 🚀`)
-      } else {
-        setGeneratedPost(`# Deep Dive: NIST SP 800-82 Rev 3 and OT Security\n\nIndustrial Control Systems (ICS) require robust security policies. By deploying isolated microservices and utilizing vector-based similarity index search, enterprise networks can proactively defend against SCADA segment intrusion...`)
-      }
-    }, 1000)
-  }
-
-  const addCampaign = () => {
-    if (!generatedPost) return
-    const newCamp = {
-      id: `camp-${Date.now()}`,
-      title: generatedPost.slice(0, 40) + '...',
-      status: 'Queued' as const,
-      platform: marketingPlatform,
-      scheduledTime: new Date(Date.now() + 86400000).toLocaleString()
-    }
-    setCampaigns(prev => [...prev, newCamp])
-    setShowPostGenerator(false)
     setGeneratedPost('')
+    try {
+      const firstTransformation = (transformationsList as any[])[0]
+      if (firstTransformation) {
+        const res = await executeTransformationMutation.mutateAsync({
+          transformation_id: firstTransformation.id,
+          input_text: `Platform: ${marketingPlatform}\n\n${marketingSourceText}`,
+          model_id: firstTransformation.model_id,
+        })
+        setGeneratedPost(res.output || '')
+      } else {
+        toast.error('No AI transformation configured — set one up to generate posts.')
+        router.push('/transformations')
+      }
+    } catch {
+      // Error handled by useExecuteTransformation onError
+    } finally {
+      setIsGeneratingPost(false)
+    }
   }
 
-  // Mock Admin Panel / Container states
-  const [containers, setContainers] = useState([
-    { id: 'cont-surreal', name: 'surrealdb', status: 'running', port: 8000 },
-    { id: 'cont-postgres', name: 'postgres', status: 'running', port: 5433 },
-    { id: 'cont-opennotebook', name: 'open_notebook', status: 'running', port: 8502 },
-    { id: 'cont-kokoro', name: 'kokoro-tts', status: 'running', port: 8880 },
-  ])
+  const addCampaign = async () => {
+    if (!generatedPost) return
+    try {
+      await apiClient.post('/publications/schedule', {
+        title: generatedPost.slice(0, 80),
+        content: generatedPost,
+        platform: marketingPlatform,
+        scheduled_time: new Date(Date.now() + 86400000).toISOString(),
+        status: 'queued',
+      })
+      toast.success('Post added to publication schedule.')
+      setShowPostGenerator(false)
+      setGeneratedPost('')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to schedule post.')
+    }
+  }
+
+  // Admin Panel state — containers sourced entirely from API (no hardcoded list)
   const [isRebuildingIndex, setIsRebuildingIndex] = useState(false)
   const [rebuildProgress, setRebuildProgress] = useState(0)
   const [restartingContainers, setRestartingContainers] = useState<Record<string, boolean>>({})
   const rebuildIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Memoized live container status mapping
+  // liveContainers: all containers returned by the API, normalized shape
   const liveContainers = useMemo(() => {
-    if (!containerStatus?.containers) {
-      return containers
-    }
-    return containers.map((mc) => {
-      const live = containerStatus.containers.find((c: any) => c.name === mc.name)
-      return {
-        ...mc,
-        status: live ? (live.state === 'running' ? 'running' : 'stopped') : mc.status
-      }
-    })
-  }, [containerStatus, containers])
+    if (!containerStatus?.containers) return []
+    return (containerStatus.containers as any[]).map((c) => ({
+      id: c.name,
+      name: c.name,
+      status: c.state === 'running' ? 'running' : 'stopped',
+      // ports is a string (e.g. "0.0.0.0:8502->8502/tcp, ...") — use directly, not as array
+      port: (typeof c.ports === 'string' ? c.ports : '') || c.port || '',
+    }))
+  }, [containerStatus])
 
-  // Memoized live scheduled marketing episodes + static scheduler posts
+  // marketingPosts: merge live scheduled episodes + calendar posts for full marketing queue
   const marketingPosts = useMemo(() => {
-    const dbPosts = scheduledEpisodes.map((ep: any) => ({
+    const episodes = scheduledEpisodes.map((ep: any) => ({
       id: ep.id,
       platform: ep.platform || 'Podcast',
+      channel: ep.platform || 'Podcast',
       title: ep.title,
-      date: ep.scheduled_time || ep.created || '2026-06-12 09:00',
+      date: ep.scheduled_time || ep.created || '',
       status: ep.status || 'Queued'
     }))
-    return [...dbPosts, ...socialSchedulerPosts]
-  }, [scheduledEpisodes, socialSchedulerPosts])
+    const posts = calendarPosts.map((p: any) => ({
+      id: p.id,
+      // normalise channel → platform for counter filters
+      platform: p.channel === 'linkedin' ? 'LinkedIn'
+        : p.channel === 'twitter' ? 'X/Twitter'
+        : p.channel === 'blog' ? 'Blog'
+        : p.channel || 'Post',
+      channel: p.channel,
+      title: p.title || p.content?.slice(0, 60),
+      date: p.scheduled_time || '',
+      status: p.status || 'queued'
+    }))
+    return [...episodes, ...posts]
+  }, [scheduledEpisodes, calendarPosts])
 
   const handleRestartContainer = async (name: string) => {
     const confirmed = window.confirm(`WARNING: Restarting the container "${name}" will cause temporary service interruption. Proceed?`)
@@ -621,10 +617,10 @@ export default function MockupsPage() {
     setIsAudioGenerated(false)
 
     try {
-      const voicePreset = selectedMarketingVoice === 'v2' ? 'af_bella' : selectedMarketingVoice === 'v3' ? 'am_michael' : 'am_adam'
+      // Use actual voice_id from registry selection
       const response = await apiClient.post('/voice/tts/synthesize', {
         input: marketingAudioScript.trim(),
-        voice: voicePreset,
+        voice: selectedMarketingVoiceId,
       }, { responseType: 'blob' })
 
       if (marketingAudioUrl) {
@@ -743,35 +739,54 @@ export default function MockupsPage() {
   const [aiProcessing, setAiProcessing] = useState(false)
   const [aiResponse, setAiResponse] = useState<string | null>(null)
 
-  const handleRunAiCommand = (e: React.FormEvent) => {
+  const handleRunAiCommand = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!aiCommand.trim()) return
 
     setAiProcessing(true)
     setAiResponse(null)
 
-    setTimeout(() => {
-      setAiProcessing(false)
+    try {
+      // Use real hybrid search — POST /api/search
+      const res = await searchMutation.mutateAsync({
+        query: aiCommand,
+        type: 'hybrid',
+        limit: 5,
+        search_sources: true,
+        search_notes: true,
+        minimum_score: 0.0,
+      })
+      const results: any[] = res?.results ?? []
+
+      // Auto-switch mindset based on query keywords
       const cmd = aiCommand.toLowerCase()
-      if (cmd.includes('sales') || cmd.includes('pipeline') || cmd.includes('deal')) {
-        setAiResponse('Routing you to Sales CRM. Pre-populating pipeline forecast analysis...')
+      if (cmd.includes('sales') || cmd.includes('pipeline') || cmd.includes('deal') || cmd.includes('customer')) {
         setEnhancedPerspective('sales')
-      } else if (cmd.includes('research') || cmd.includes('search') || cmd.includes('notes') || cmd.includes('nist')) {
-        setAiResponse('Searching compliance repository. Synthesizing briefing across indexed sources...')
-        setEnhancedPerspective('research')
-      } else if (cmd.includes('container') || cmd.includes('sre') || cmd.includes('logs') || cmd.includes('project')) {
-        setAiResponse('Querying project delivery view. All microservices running stably.')
-        setEnhancedPerspective('delivery')
-      } else if (cmd.includes('podcast') || cmd.includes('audio') || cmd.includes('marketing') || cmd.includes('campaign')) {
-        setAiResponse('Switching to Marketing view. Campaign pipeline loaded.')
+      } else if (cmd.includes('podcast') || cmd.includes('audio') || cmd.includes('marketing') || cmd.includes('campaign') || cmd.includes('post')) {
         setEnhancedPerspective('marketing')
-      } else if (cmd.includes('admin') || cmd.includes('user') || cmd.includes('config') || cmd.includes('settings')) {
-        setAiResponse('Opening Administrator view. System configuration ready.')
+      } else if (cmd.includes('container') || cmd.includes('sre') || cmd.includes('project') || cmd.includes('delivery') || cmd.includes('facility')) {
+        setEnhancedPerspective('delivery')
+      } else if (cmd.includes('admin') || cmd.includes('user') || cmd.includes('config') || cmd.includes('settings') || cmd.includes('logs')) {
         setEnhancedPerspective('admin')
       } else {
-        setAiResponse('Searching across all mindsets... Fetching context from pgvector index.')
+        // Default: research mindset for document/note queries
+        setEnhancedPerspective('research')
       }
-    }, 1200)
+
+      if (results.length > 0) {
+        const preview = results.slice(0, 2)
+          .map((r) => r.title || (r.content as string)?.slice(0, 50))
+          .filter(Boolean)
+          .join(' · ')
+        setAiResponse(`Found ${results.length} result${results.length > 1 ? 's' : ''}: ${preview}`)
+      } else {
+        setAiResponse('No matching documents found. Try adding sources in the Research Hub.')
+      }
+    } catch {
+      setAiResponse('Search unavailable. Ensure the API service is running.')
+    } finally {
+      setAiProcessing(false)
+    }
   }
 
   // Helper to reorder layout (simulating drag and drop)
@@ -923,16 +938,25 @@ export default function MockupsPage() {
                             </div>
                           </div>
                           
-                          {/* Campaigns Linkage list */}
+                          {/* S1: Active Marketing Campaigns — from publications calendar */}
                           <div className="space-y-2 pt-2 border-t border-white/5">
-                            <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Active Marketing Campaigns Linked</label>
+                            <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Scheduled Publications</label>
                             <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
-                              {notebooksList.map(notebook => (
-                                <div key={notebook.id} className="p-2 bg-slate-950/40 rounded border border-white/5 flex items-center justify-between text-[10px] font-mono">
-                                  <span className="text-slate-300 font-bold truncate max-w-[140px]">{notebook.name}</span>
+                              {calendarPosts.length === 0 ? (
+                                <div className="text-[9px] font-mono text-slate-500 py-2 text-center border border-dashed border-white/5 rounded-lg">
+                                  No posts scheduled —{' '}
+                                  <button onClick={() => setEnhancedPerspective('marketing')} className="text-violet-400 hover:underline">
+                                    open Marketing Studio →
+                                  </button>
+                                </div>
+                              ) : calendarPosts.map((post: any) => (
+                                <div key={post.id} className="p-2 bg-slate-950/40 rounded border border-white/5 flex items-center justify-between text-[10px] font-mono">
+                                  <span className="text-slate-300 font-bold truncate max-w-[140px]">{post.title || post.content?.slice(0, 40)}</span>
                                   <div className="flex items-center gap-2">
-                                    <Badge className="bg-slate-800 text-slate-400 text-[8.5px] uppercase">{notebook.stage || 'prospect'}</Badge>
-                                    <span className="text-emerald-400 font-bold">${(notebook.estimated_value || 0).toLocaleString()}</span>
+                                    <Badge className="bg-violet-500/20 text-violet-400 text-[8.5px] uppercase">{post.channel || 'post'}</Badge>
+                                    <span className="text-slate-500 text-[8.5px]">
+                                      {post.scheduled_time ? new Date(post.scheduled_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                    </span>
                                   </div>
                                 </div>
                               ))}
@@ -962,7 +986,17 @@ export default function MockupsPage() {
                               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <Users className="h-4 w-4" /> Active Accounts & Compliance
                               </span>
-                              <Badge className="bg-slate-800 text-slate-400 text-[9px] font-mono">{customersList.length} Accounts</Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-slate-800 text-slate-400 text-[9px] font-mono">{customersList.length} Accounts</Badge>
+                                {/* S2: New Customer Button */}
+                                <Button
+                                  size="sm"
+                                  onClick={() => setIsNewCustomerOpen(true)}
+                                  className="h-5 px-2 text-[8px] font-mono uppercase bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 rounded-md"
+                                >
+                                  + New
+                                </Button>
+                              </div>
                             </div>
 
                             <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
@@ -1017,20 +1051,14 @@ export default function MockupsPage() {
                                     {/* Failed compliance reason / Override */}
                                     {complianceState === 'Failed' && (
                                       <div className="mt-1 p-2 bg-red-950/15 border border-red-500/20 text-red-400 rounded text-[9px] font-mono space-y-1.5 leading-relaxed">
-                                        <div><strong>Compliance Block:</strong> Requires manual override: Foreign jurisdiction regulatory hold (EU GDPR compliance review)</div>
+                                        <div><strong>Compliance Block:</strong> {acc.compliance_notes || acc.description || 'Manual override required — compliance review pending.'}</div>
                                         <Button 
                                           size="sm" 
                                           variant="outline" 
                                           onClick={() => {
-                                            updateCustomerMutation.mutate({
-                                              id: acc.id,
-                                              data: { status: 'active' }
-                                            }, {
-                                              onSuccess: () => {
-                                                queryClient.invalidateQueries({ queryKey: ['customers'] })
-                                                toast.success(`Override applied: ${acc.name} compliance status updated!`)
-                                              }
-                                            })
+                                            setPendingOverrideCustomerId(acc.id)
+                                            setPendingOverrideCustomerName(acc.name)
+                                            setIsOverrideConfirmOpen(true)
                                           }}
                                           className="h-6 text-[8.5px] uppercase text-red-400 border-red-500/20 bg-red-950/20 hover:bg-red-950/30"
                                         >
@@ -1064,6 +1092,28 @@ export default function MockupsPage() {
 
                         {/* Query bar */}
                         <div className="space-y-3">
+                          {/* R2: Notebook scope selector — visual filter, narrows intent for future API support */}
+                          {notebooksList.length > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-mono text-slate-400 uppercase">Scope:</span>
+                              <select
+                                value={selectedNotebookId || ''}
+                                onChange={(e) => setSelectedNotebookId(e.target.value || null)}
+                                className="flex-1 bg-slate-950/80 border border-white/10 text-[9px] font-mono rounded-md px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500/50"
+                                title="Filter results by notebook (coming soon — currently shows global results)"
+                              >
+                                <option value="">Global (all notebooks)</option>
+                                {notebooksList.map((nb: any) => (
+                                  <option key={nb.id} value={nb.id}>
+                                    {nb.name.length > 28 ? nb.name.slice(0, 28) + '…' : nb.name}
+                                  </option>
+                                ))}
+                              </select>
+                              {selectedNotebookId && (
+                                <span className="text-[8px] font-mono text-amber-400/70 whitespace-nowrap">(preview)</span>
+                              )}
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <div className="relative flex-1">
                               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1128,6 +1178,13 @@ export default function MockupsPage() {
                                     className="text-sky-400 hover:text-sky-300 font-bold hover:underline"
                                   >
                                     [Inspect Citation]
+                                  </button>
+                                  {' '}
+                                  <button
+                                    onClick={() => router.push('/research')}
+                                    className="text-emerald-400 hover:text-emerald-300 font-bold hover:underline"
+                                  >
+                                    Open Research Hub →
                                   </button>
                                 </div>
                               </div>
@@ -1354,6 +1411,20 @@ export default function MockupsPage() {
                           
                           {projectsList.length > 0 && (
                             <div className="flex items-center gap-2">
+                              {/* D1: Project Selector */}
+                              <select
+                                value={activeProjectId || ''}
+                                onChange={(e) => setActiveProjectId(e.target.value || null)}
+                                className="bg-slate-950/80 border border-white/10 text-[9px] font-mono rounded-md px-2 py-0.5 text-emerald-300 focus:outline-none focus:border-emerald-500/50"
+                                title="Switch active project"
+                              >
+                                {projectsList.map((p: any) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name.length > 22 ? p.name.slice(0, 22) + '…' : p.name}
+                                  </option>
+                                ))}
+                              </select>
+
                               {/* User Filter Dropdown */}
                               <select
                                 value={userFilter}
@@ -1529,11 +1600,15 @@ export default function MockupsPage() {
                                 )
                               })
                             ) : (
-                              <>
-                                <div><span className="text-slate-500">[17:02]</span> <strong className="text-slate-200">Email:</strong> Sarah Connor Approved SCADA insulation blueprints for Facility 1.</div>
-                                <div><span className="text-slate-500">[16:45]</span> <strong className="text-emerald-400">Slack:</strong> SRE Agent Alpha successfully verified backup configuration on Facility 2.</div>
-                                <div><span className="text-slate-500">[15:10]</span> <strong className="text-slate-200">Email:</strong> CISO Bruce Banner requested audit log download link for compliance validation.</div>
-                              </>
+                              <div className="py-4 text-center text-[9px] font-mono text-slate-500 italic border border-dashed border-white/5 rounded-lg">
+                                No activity logged for this account yet.{' '}
+                                <button
+                                  onClick={handleSeedCRM}
+                                  className="text-cyan-400 hover:text-cyan-300 hover:underline not-italic"
+                                >
+                                  Seed sample data →
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1597,23 +1672,34 @@ export default function MockupsPage() {
                         <div className="space-y-2">
                           <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Visual Schedule Timeline</label>
                           <div className="space-y-1.5 max-h-[170px] overflow-y-auto pr-1">
-                            {marketingPosts.map((post: any) => (
+                            {marketingPosts.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 text-center space-y-2 border border-dashed border-white/10 rounded-xl bg-slate-950/40 p-4">
+                                <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">No posts scheduled yet</span>
+                                <button
+                                  onClick={() => setEnhancedPerspective('marketing')}
+                                  className="text-[9px] font-mono text-violet-400 hover:text-violet-300 underline"
+                                >Schedule your first post below →</button>
+                              </div>
+                            ) : marketingPosts.map((post: any) => (
                               <div key={post.id} className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5 flex items-center justify-between gap-3 text-[10px] font-mono">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <Badge className="bg-violet-500/20 text-violet-400 text-[8px] uppercase">{post.platform}</Badge>
-                                  <span className="text-slate-200 font-bold truncate max-w-[160px]">{post.title}</span>
+                                  <Badge className="bg-violet-500/20 text-violet-400 text-[8px] uppercase">{post.platform || post.channel || 'Post'}</Badge>
+                                  <span className="text-slate-200 font-bold truncate max-w-[160px]">{post.title || post.name}</span>
                                 </div>
-                                
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[8.5px] text-slate-500">{post.date.split(' ')[0]}</span>
+                                  <span className="text-[8.5px] text-slate-500">
+                                    {post.scheduled_at || post.date
+                                      ? new Date(post.scheduled_at || post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                      : '—'}
+                                  </span>
                                   <Badge className={
-                                    post.status === 'Published' 
-                                      ? 'bg-emerald-500/20 text-emerald-400 text-[8.5px] border border-emerald-500/30' 
-                                      : post.status === 'Active' || post.status === 'running'
+                                    post.status === 'Published' || post.status === 'sent'
+                                      ? 'bg-emerald-500/20 text-emerald-400 text-[8.5px] border border-emerald-500/30'
+                                      : post.status === 'Active' || post.status === 'running' || post.status === 'pending'
                                         ? 'bg-cyan-500/20 text-cyan-400 text-[8.5px] border border-cyan-500/30 animate-pulse'
                                         : 'bg-slate-800 text-slate-400 text-[8.5px]'
                                   }>
-                                    {post.status.toUpperCase()}
+                                    {(post.status || 'queued').toUpperCase()}
                                   </Badge>
                                 </div>
                               </div>
@@ -1645,28 +1731,31 @@ export default function MockupsPage() {
                           />
                         </div>
 
-                        {/* Voice actor selection */}
+                        {/* Voice actor selection — dynamic from /api/voice/registry */}
                         <div className="space-y-2">
-                          <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Voice Actor (Speaker profile)</label>
-                          <div className="flex gap-3 items-center justify-center">
-                            {[
-                              { id: 'v1', name: 'Adam (ElevenLabs)', init: 'A', color: 'bg-violet-600' },
-                              { id: 'v2', name: 'Bella (Kokoro)', init: 'B', color: 'bg-cyan-600' },
-                              { id: 'v3', name: 'Charlie (Kokoro)', init: 'C', color: 'bg-emerald-600' },
-                            ].map(voice => (
-                              <button 
-                                key={voice.id}
-                                onClick={() => setSelectedMarketingVoice(voice.id)}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-slate-100 font-bold border transition-all ${
-                                  selectedMarketingVoice === voice.id 
-                                    ? 'border-violet-400 scale-115 ring-2 ring-violet-500/20' 
-                                    : 'border-white/10 opacity-70 hover:opacity-100'
-                                } ${voice.color}`}
-                              >
-                                {voice.init}
-                              </button>
-                            ))}
-                          </div>
+                          <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Voice Actor (Speaker Profile)</label>
+                          {voiceRegistry?.tts_engines && voiceRegistry.tts_engines.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 items-center justify-center max-h-[80px] overflow-y-auto pr-1">
+                              {voiceRegistry.tts_engines.flatMap((engine: any) => engine.voices).map((voice: any) => (
+                                <button
+                                  key={voice.id}
+                                  onClick={() => setSelectedMarketingVoiceId(voice.id)}
+                                  title={`${voice.name} (${voice.provider})`}
+                                  className={`px-2.5 py-1 rounded-lg text-[9px] font-mono border transition-all ${
+                                    selectedMarketingVoiceId === voice.id
+                                      ? 'border-violet-400 bg-violet-500/20 text-violet-200 font-bold'
+                                      : 'border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                                  }`}
+                                >
+                                  {voice.name}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-[9px] font-mono text-slate-500 italic p-2 bg-slate-950/40 rounded border border-white/5">
+                              {voiceRegistry === undefined ? 'Loading voices...' : 'No voices available. Check Kokoro TTS service.'}
+                            </div>
+                          )}
                         </div>
 
                         {/* Generate audio / wave animation */}
@@ -1720,11 +1809,24 @@ export default function MockupsPage() {
                         <div className="space-y-2">
                           <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Container Status Dashboard</label>
                           <div className="grid grid-cols-1 gap-2">
-                            {liveContainers.map((cont: any) => (
+                            {liveContainers.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 text-center space-y-3 border border-dashed border-white/10 rounded-xl bg-slate-950/40 p-4">
+                                <Server className="h-7 w-7 text-slate-600" />
+                                <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Docker service not reachable</span>
+                                <button
+                                  onClick={() => refetchContainers()}
+                                  className="text-[9px] font-mono text-cyan-400 hover:text-cyan-300 underline"
+                                >Retry</button>
+                                <button
+                                  onClick={() => router.push('/settings/containers')}
+                                  className="text-[9px] font-mono text-slate-400 hover:text-slate-200 underline"
+                                >Open Container Settings →</button>
+                              </div>
+                            ) : liveContainers.map((cont: any) => (
                               <div key={cont.id} className="p-2.5 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between font-mono text-[10px]">
                                 <div>
                                   <span className="font-bold text-slate-200 block truncate max-w-[120px]">{cont.name}</span>
-                                  <span className="text-[8.5px] text-slate-500 block">Port: {cont.port}</span>
+                                  <span className="text-[8.5px] text-slate-500 block">Port: {cont.ports || '—'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <Badge className={`text-[8px] scale-90 ${
@@ -1747,7 +1849,8 @@ export default function MockupsPage() {
                                   </Button>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                            }
                           </div>
                         </div>
                       </div>
@@ -1767,12 +1870,12 @@ export default function MockupsPage() {
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-mono">Index Metrics</span>
                           <div className="grid grid-cols-2 gap-4 font-mono text-[9.5px] text-slate-400">
                             <div>
-                              <div>Model: <strong className="text-slate-200">text-embedding-3-small</strong></div>
-                              <div>Dims: <strong className="text-slate-200">1536</strong></div>
+                              <div>Documents: <strong className="text-slate-200">{rmemStats?.total_documents ?? '—'}</strong></div>
+                              <div>Storage: <strong className="text-slate-200">{rmemStats?.table_size ?? '—'}</strong></div>
                             </div>
                             <div>
-                              <div>RAM: <strong className="text-slate-200">14.2 MB</strong></div>
-                              <div>Cache: <strong className="text-emerald-400 font-bold">92.4%</strong></div>
+                              <div>Types: <strong className="text-slate-200">{rmemStats ? Object.keys(rmemStats.source_types).join(', ') || 'none' : '—'}</strong></div>
+                              <div>Newest: <strong className="text-slate-200">{rmemStats?.newest ? new Date(rmemStats.newest).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</strong></div>
                             </div>
                           </div>
                         </div>
@@ -1822,7 +1925,7 @@ export default function MockupsPage() {
                         onClick={() => {
                           if (enhancedPerspective === 'sales') setAiCommand('Calculate pipeline conversion funnel')
                           if (enhancedPerspective === 'research') setAiCommand('Query document tree metadata')
-                          if (enhancedPerspective === 'delivery') setAiCommand('Trace ACME Texas plant SRE config')
+                          if (enhancedPerspective === 'delivery') setAiCommand(`Summarize open tasks for project: ${activeDbProject?.name || 'current project'}`)
                           if (enhancedPerspective === 'marketing') setAiCommand('Schedule upcoming LinkedIn post')
                           if (enhancedPerspective === 'admin') setAiCommand('Restart all backend containers')
                         }}
@@ -1830,7 +1933,7 @@ export default function MockupsPage() {
                       >
                         {enhancedPerspective === 'sales' && 'Calculate pipeline conversion funnel'}
                         {enhancedPerspective === 'research' && 'Query document tree metadata'}
-                        {enhancedPerspective === 'delivery' && 'Trace ACME Texas plant SRE config'}
+                        {enhancedPerspective === 'delivery' && `Summarize open tasks for: ${activeDbProject?.name || 'current project'}`}
                         {enhancedPerspective === 'marketing' && 'Schedule upcoming LinkedIn post'}
                         {enhancedPerspective === 'admin' && 'Restart all backend containers'}
                       </button>
@@ -2052,6 +2155,122 @@ export default function MockupsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsUserModalOpen(false)} className="text-xs">Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* S2: New Customer Dialog */}
+        <Dialog open={isNewCustomerOpen} onOpenChange={setIsNewCustomerOpen}>
+          <DialogContent className="bg-slate-950 border-white/10 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-cyan-400 font-mono uppercase text-sm">New Customer Account</DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">Create a new CRM account in the database.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Company Name *</Label>
+                <Input
+                  placeholder="Acme Corp"
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  className="bg-slate-900 border-white/10 text-xs font-mono h-8"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Industry</Label>
+                <Input
+                  placeholder="e.g. Cybersecurity"
+                  value={newCustomerIndustry}
+                  onChange={(e) => setNewCustomerIndustry(e.target.value)}
+                  className="bg-slate-900 border-white/10 text-xs font-mono h-8"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Website</Label>
+                <Input
+                  placeholder="example.com"
+                  value={newCustomerWebsite}
+                  onChange={(e) => setNewCustomerWebsite(e.target.value)}
+                  className="bg-slate-900 border-white/10 text-xs font-mono h-8"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNewCustomerOpen(false)} className="text-xs border-white/10">Cancel</Button>
+              <Button
+                disabled={!newCustomerName.trim() || createCustomerMutation.isPending}
+                onClick={async () => {
+                  if (!newCustomerName.trim()) return
+                  try {
+                    await createCustomerMutation.mutateAsync({
+                      name: newCustomerName.trim(),
+                      industry: newCustomerIndustry.trim() || undefined,
+                      website: newCustomerWebsite.trim() || undefined,
+                      status: 'active',
+                    })
+                    queryClient.invalidateQueries({ queryKey: ['customers'] })
+                    toast.success(`${newCustomerName} added to CRM!`)
+                    setNewCustomerName('')
+                    setNewCustomerIndustry('')
+                    setNewCustomerWebsite('')
+                    setIsNewCustomerOpen(false)
+                  } catch {
+                    toast.error('Failed to create customer.')
+                  }
+                }}
+                className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-xs"
+              >
+                {createCustomerMutation.isPending ? 'Creating…' : 'Create Account'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* CG3: Compliance Override Confirmation Dialog */}
+        <Dialog open={isOverrideConfirmOpen} onOpenChange={setIsOverrideConfirmOpen}>
+          <DialogContent className="bg-slate-950 border-red-500/30 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-400 font-mono uppercase text-sm">Confirm Audit Override</DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">
+                This action will be permanently logged in the audit trail.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-3 px-1 space-y-2 text-xs font-mono">
+              <div className="p-3 bg-red-950/20 border border-red-500/20 rounded-lg text-red-300">
+                You are about to override the compliance block for{' '}
+                <strong className="text-red-200">{pendingOverrideCustomerName}</strong>.
+                Their status will be set to <strong>Active</strong>.
+              </div>
+              <div className="text-slate-400 text-[10px]">This override and your identity will be recorded in the compliance ledger.</div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsOverrideConfirmOpen(false)} className="text-xs border-white/10">Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!pendingOverrideCustomerId) return
+                  updateCustomerMutation.mutate(
+                    { id: pendingOverrideCustomerId, data: { status: 'active' } },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['customers'] })
+                        toast.success(`Override applied: ${pendingOverrideCustomerName} compliance status updated.`)
+                        createActivityMutation.mutate({
+                          customer_id: pendingOverrideCustomerId,
+                          activity_type: 'custom',
+                          description: `Compliance audit override applied via dashboard.`,
+                          actor: 'Dashboard Operator',
+                        })
+                        setIsOverrideConfirmOpen(false)
+                        setPendingOverrideCustomerId(null)
+                      },
+                    }
+                  )
+                }}
+                className="text-xs"
+              >
+                Confirm Override
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

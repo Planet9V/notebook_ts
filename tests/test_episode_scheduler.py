@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
@@ -5,9 +6,8 @@ from api.main import app
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
 @patch("api.routers.podcasts.PodcastService.submit_generation_job", new_callable=AsyncMock)
-async def test_scheduled_episode_crud(mock_submit):
+def test_scheduled_episode_crud(mock_submit):
     # Setup mock return value
     mock_submit.return_value = "command:test_job_123"
 

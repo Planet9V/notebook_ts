@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
@@ -45,8 +46,7 @@ def test_asset_persistence_crud():
     assert "plc-node-1" not in node_ids
 
 
-@pytest.mark.asyncio
-async def test_assessment_session_quiz_and_report():
+def test_assessment_session_quiz_and_report():
     from open_notebook.database.repository import repo_upsert, repo_query, repo_delete
     import uuid
 
@@ -64,32 +64,32 @@ async def test_assessment_session_quiz_and_report():
 
     # 3. Create mock regulation & questions directly in DB
     # Create regulation
-    await repo_upsert("regulation", reg_record_id, {
+    asyncio.run(repo_upsert("regulation", reg_record_id, {
         "name": f"Framework {unique_id}",
         "fullName": f"Full Framework {unique_id}",
         "description": "Mock Test Framework",
         "questionCount": 2
-    })
+    }))
 
     # Create two questions
     q1_id = f"question:q1_{unique_id}"
     q2_id = f"question:q2_{unique_id}"
-    await repo_upsert("question", q1_id, {
+    asyncio.run(repo_upsert("question", q1_id, {
         "regulation_id": reg_record_id,
         "standard_code": "SR 1.1",
         "question_text": "Is access control configured?",
         "description": "Access Control Test",
         "purdue_level": 2,
         "category": "Access Control"
-    })
-    await repo_upsert("question", q2_id, {
+    }))
+    asyncio.run(repo_upsert("question", q2_id, {
         "regulation_id": reg_record_id,
         "standard_code": "SR 1.2",
         "question_text": "Is boundary protection configured?",
         "description": "Boundary Control Test",
         "purdue_level": 4,
         "category": "Boundary Protection"
-    })
+    }))
 
     try:
         # 4. Create assessment link
@@ -159,20 +159,20 @@ async def test_assessment_session_quiz_and_report():
         assert block_res.json()["detail"] == "Cannot edit answers inside a completed audit session"
     finally:
         # 10. Cleanup
-        await repo_delete(customer_id)
-        await repo_delete(reg_record_id)
-        await repo_delete(q1_id)
-        await repo_delete(q2_id)
+        asyncio.run(repo_delete(customer_id))
+        asyncio.run(repo_delete(reg_record_id))
+        asyncio.run(repo_delete(q1_id))
+        asyncio.run(repo_delete(q2_id))
         try:
-            await repo_delete(assessment_id)
+            asyncio.run(repo_delete(assessment_id))
         except NameError:
             pass
         try:
-            await repo_delete(session_id)
+            asyncio.run(repo_delete(session_id))
         except NameError:
             pass
         try:
-            await repo_query("DELETE assessment_answer WHERE session_id = $sess_id", {"sess_id": session_id})
+            asyncio.run(repo_query("DELETE assessment_answer WHERE session_id = $sess_id", {"sess_id": session_id}))
         except Exception:
             pass
 

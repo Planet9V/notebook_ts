@@ -1,14 +1,14 @@
 from unittest.mock import AsyncMock, MagicMock, patch
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
 @patch("open_notebook.utils.embedding.generate_embedding", new_callable=AsyncMock)
 @patch("open_notebook.ai.models.model_manager.get_default_model", new_callable=AsyncMock)
-async def test_search_comparison_endpoint(mock_get_default_model, mock_generate_embedding):
+def test_search_comparison_endpoint(mock_get_default_model, mock_generate_embedding):
     # Setup mock embedding
     mock_generate_embedding.return_value = [0.1, 0.2, 0.3]
 

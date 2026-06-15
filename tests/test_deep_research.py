@@ -22,8 +22,7 @@ def is_live_valyu() -> bool:
 class TestDeepResearchAPI:
     """Test suite for the Unified Deep Research endpoint."""
 
-    @pytest.mark.asyncio
-    async def test_perplexity_research_stream(self, client):
+    def test_perplexity_research_stream(self, client):
         """Test that perplexity research stream returns citations and content chunks correctly.
         
         Runs actual Valyu queries if API key is present; otherwise mocks the SDK client.
@@ -104,7 +103,7 @@ class TestDeepResearchAPI:
     @pytest.mark.asyncio
     @patch("open_notebook.domain.notebook.vector_search", new_callable=AsyncMock)
     @patch("open_notebook.ai.provision.provision_langchain_model", new_callable=AsyncMock)
-    async def test_hybrid_research_stream(self, mock_provision, mock_vector, client):
+    def test_hybrid_research_stream(self, mock_provision, mock_vector, client):
         """Test that Hybrid deep research fetches from Local KB + Valyu, then synthesizes."""
         # Mock local KB vector search
         mock_vector.return_value = [
