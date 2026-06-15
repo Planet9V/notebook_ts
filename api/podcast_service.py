@@ -64,34 +64,14 @@ class PodcastService:
             if not content and notebook_id:
                 try:
                     notebook = await Notebook.get(notebook_id)
-                    # Build context from notebook's sources and notes
-                    parts = [f"Notebook: {notebook.name}"]
-                    if notebook.description:
-                        parts.append(f"Description: {notebook.description}")
-
-                    try:
-                        sources = await notebook.get_sources()
-                        for src in sources[:10]:
-                            title = src.title or "Untitled"
-                            parts.append(f"Source: {title}")
-                    except Exception as src_err:
-                        logger.warning(f"Failed to get notebook sources: {src_err}")
-
-                    try:
-                        notes = await notebook.get_notes()
-                        for note in notes[:10]:
-                            title = note.title or "Untitled"
-                            note_content = (note.content or "")[:500]
-                            parts.append(f"Note: {title}\n{note_content}")
-                    except Exception as note_err:
-                        logger.warning(f"Failed to get notebook notes: {note_err}")
-
-                    content = "\n\n".join(parts)
+                    # Use Notebook.get_context() which fetches full source text and note content
+                    content = await notebook.get_context()
                 except Exception as e:
                     logger.warning(
                         f"Failed to get notebook content, using notebook_id as content: {e}"
                     )
                     content = f"Notebook ID: {notebook_id}"
+
 
             if not content:
                 raise ValueError(
