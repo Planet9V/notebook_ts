@@ -130,7 +130,18 @@ class ContextBuilder:
             self.prioritize()
 
             if self.max_tokens:
+                # Truncate to fit the token budget, logging what gets dropped.
+                # This guards podcast generation and other non-chat callers from
+                # overflowing their model context. Chat uses a separate explicit
+                # context_config path that does not call build() directly.
+                before = len(self.items)
                 self.truncate_to_fit(self.max_tokens)
+                after = len(self.items)
+                if after < before:
+                    logger.warning(
+                        f"Context truncated: {before - after} item(s) dropped to fit "
+                        f"{self.max_tokens} token budget. Consider using a larger context model."
+                    )
 
             # Format and return response
             return self._format_response()
@@ -481,9 +492,9 @@ async def build_mixed_context(
     """
     context_config = ContextConfig(max_tokens=max_tokens)
 
-    # Configure sources
+    # Configure sources \u2014 always include full document text, not just AI-generated insights.
     if source_ids:
-        context_config.sources = {sid: "insights" for sid in source_ids}
+        context_config.sources = {sid: "full content" for sid in source_ids}
 
     # Configure notes
     if note_ids:

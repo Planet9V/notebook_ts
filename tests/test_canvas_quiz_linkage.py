@@ -1,12 +1,13 @@
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
-from open_notebook.database.repository import repo_upsert, repo_query, repo_delete
+from open_notebook.database.repository import repo_query, repo_delete
 
 client = TestClient(app)
 
 @pytest.mark.asyncio
-async def test_canvas_quiz_linkage():
+def test_canvas_quiz_linkage():
     # 1. Create a unique customer
     cust_res = client.post("/api/customers", json={"name": "Canvas Quiz Linkage Test Customer"})
     assert cust_res.status_code == 200
@@ -26,7 +27,7 @@ async def test_canvas_quiz_linkage():
         notebook_id = nb_data["id"]
 
         # Ensure the asset table is clean for this notebook
-        await repo_query("DELETE asset WHERE notebook_id = $nb_id", {"nb_id": notebook_id})
+        asyncio.run(repo_query("DELETE asset WHERE notebook_id = $nb_id", {"nb_id": notebook_id}))
 
         # 3. Create assessment for regulation:Components
         assess_res = client.post("/api/assessments", json={
@@ -135,12 +136,12 @@ async def test_canvas_quiz_linkage():
 
     finally:
         # Cleanup database records
-        await repo_delete(customer_id)
+        asyncio.run(repo_delete(customer_id))
         if 'notebook_id' in locals():
-            await repo_delete(notebook_id)
-            await repo_query("DELETE asset WHERE notebook_id = $nb_id", {"nb_id": notebook_id})
+            asyncio.run(repo_delete(notebook_id))
+            asyncio.run(repo_query("DELETE asset WHERE notebook_id = $nb_id", {"nb_id": notebook_id}))
         if 'assessment_id' in locals():
-            await repo_delete(assessment_id)
+            asyncio.run(repo_delete(assessment_id))
         if 'session_id' in locals():
-            await repo_delete(session_id)
-            await repo_query("DELETE assessment_answer WHERE session_id = $sess_id", {"sess_id": session_id})
+            asyncio.run(repo_delete(session_id))
+            asyncio.run(repo_query("DELETE assessment_answer WHERE session_id = $sess_id", {"sess_id": session_id}))

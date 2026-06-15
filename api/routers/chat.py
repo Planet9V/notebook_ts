@@ -494,11 +494,13 @@ async def build_context(request: BuildContextRequest):
                     logger.warning(f"Error processing note {note_id}: {str(e)}")
                     continue
         else:
-            # Default behavior - include all sources and notes with short context
+            # Default: full document text for all sources and notes.
+            # 'short' (title + insights only) was the old default and caused the LLM
+            # to answer questions without seeing document content.
             sources = await notebook.get_sources()
             for source in sources:
                 try:
-                    source_context = await source.get_context(context_size="short")
+                    source_context = await source.get_context(context_size="long")
                     context_data["sources"].append(source_context)
                     total_content += str(source_context)
                 except Exception as e:
@@ -508,7 +510,7 @@ async def build_context(request: BuildContextRequest):
             notes = await notebook.get_notes()
             for note in notes:
                 try:
-                    note_context = note.get_context(context_size="short")
+                    note_context = note.get_context(context_size="long")
                     context_data["notes"].append(note_context)
                     total_content += str(note_context)
                 except Exception as e:

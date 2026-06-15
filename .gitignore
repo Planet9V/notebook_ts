@@ -169,3 +169,7 @@ agentdb.rvf.lock
 /package-lock.json
 # AI tool config symlinks — local only, created by make setup-hooks
 /CLAUDE.md
+docs/plans/dashboard-wiring-plan.md
+docs/plans/dashboard_findings.md
+docs/plans/dashboard_progress.md
+docs/plans/dashboard_task_plan.md

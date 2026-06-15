@@ -76,21 +76,17 @@ export default function NotebookPage() {
     notes: {}
   })
 
-  // Initialize and update selections when sources load or change
+  // Initialize context selections when sources load — always default to 'full'
+  // so the LLM receives the complete document text, not just AI-generated insight summaries.
   useEffect(() => {
     if (sources && sources.length > 0) {
       setContextSelections(prev => {
         const newSourceSelections = { ...prev.sources }
         sources.forEach(source => {
-          const currentMode = newSourceSelections[source.id]
-          const hasInsights = source.insights_count > 0
-
-          if (currentMode === undefined) {
-            // Initial setup - default based on insights availability
-            newSourceSelections[source.id] = hasInsights ? 'insights' : 'full'
-          } else if (currentMode === 'full' && hasInsights) {
-            // Source gained insights while in 'full' mode - auto-switch to 'insights'
-            newSourceSelections[source.id] = 'insights'
+          // Only set for new sources — never downgrade an existing selection.
+          // Default is always 'full': the entire document text goes to the LLM.
+          if (newSourceSelections[source.id] === undefined) {
+            newSourceSelections[source.id] = 'full'
           }
         })
         return { ...prev, sources: newSourceSelections }
