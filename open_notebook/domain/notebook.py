@@ -647,6 +647,8 @@ class Note(ObjectModel):
     title: Optional[str] = None
     note_type: Optional[Literal["human", "ai"]] = None
     content: Optional[str] = None
+    content_format: Optional[str] = "markdown"
+    content_markdown_backup: Optional[str] = None
 
     @field_validator("content")
     @classmethod

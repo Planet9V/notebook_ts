@@ -553,12 +553,16 @@ class NoteCreate(BaseModel):
     customer_id: Optional[str] = Field(
         None, description="Customer/organization ID to attach the note to"
     )
+    content_format: Optional[str] = Field("markdown", description="Format of content (markdown, block)")
+    content_markdown_backup: Optional[str] = Field(None, description="Backup of markdown content")
 
 
 class NoteUpdate(BaseModel):
     title: Optional[str] = Field(None, description="Note title")
     content: Optional[str] = Field(None, description="Note content")
     note_type: Optional[str] = Field(None, description="Type of note (human, ai)")
+    content_format: Optional[str] = Field(None, description="Format of content (markdown, block)")
+    content_markdown_backup: Optional[str] = Field(None, description="Backup of markdown content")
 
 
 class NoteResponse(BaseModel):
@@ -572,6 +576,8 @@ class NoteResponse(BaseModel):
     location_id: Optional[str] = None
     location_name: Optional[str] = None
     customer_id: Optional[str] = None
+    content_format: Optional[str] = "markdown"
+    content_markdown_backup: Optional[str] = None
 
 
 class LocationNotesRollup(BaseModel):

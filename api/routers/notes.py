@@ -36,6 +36,8 @@ async def get_notes(
                 note_type=note.note_type,
                 created=str(note.created),
                 updated=str(note.updated),
+                content_format=note.content_format if isinstance(getattr(note, "content_format", None), str) else "markdown",
+                content_markdown_backup=note.content_markdown_backup if isinstance(getattr(note, "content_markdown_backup", None), str) else None,
             )
             for note in notes
         ]
@@ -84,6 +86,8 @@ async def create_note(note_data: NoteCreate):
             title=title,
             content=note_data.content,
             note_type=note_type,
+            content_format=note_data.content_format,
+            content_markdown_backup=note_data.content_markdown_backup,
         )
         command_id = await new_note.save()
 
@@ -147,6 +151,8 @@ async def create_note(note_data: NoteCreate):
             created=str(new_note.created),
             updated=str(new_note.updated),
             command_id=str(command_id) if command_id else None,
+            content_format=new_note.content_format if isinstance(getattr(new_note, "content_format", None), str) else "markdown",
+            content_markdown_backup=new_note.content_markdown_backup if isinstance(getattr(new_note, "content_markdown_backup", None), str) else None,
         )
     except HTTPException:
         raise
@@ -172,6 +178,8 @@ async def get_note(note_id: str):
             note_type=note.note_type,
             created=str(note.created),
             updated=str(note.updated),
+            content_format=note.content_format if isinstance(getattr(note, "content_format", None), str) else "markdown",
+            content_markdown_backup=note.content_markdown_backup if isinstance(getattr(note, "content_markdown_backup", None), str) else None,
         )
     except HTTPException:
         raise
@@ -200,6 +208,10 @@ async def update_note(note_id: str, note_update: NoteUpdate):
                 raise HTTPException(
                     status_code=400, detail="note_type must be 'human' or 'ai'"
                 )
+        if note_update.content_format is not None:
+            note.content_format = note_update.content_format
+        if note_update.content_markdown_backup is not None:
+            note.content_markdown_backup = note_update.content_markdown_backup
 
         command_id = await note.save()
 
@@ -211,6 +223,8 @@ async def update_note(note_id: str, note_update: NoteUpdate):
             created=str(note.created),
             updated=str(note.updated),
             command_id=str(command_id) if command_id else None,
+            content_format=note.content_format if isinstance(getattr(note, "content_format", None), str) else "markdown",
+            content_markdown_backup=note.content_markdown_backup if isinstance(getattr(note, "content_markdown_backup", None), str) else None,
         )
     except HTTPException:
         raise
@@ -312,6 +326,8 @@ async def get_location_notes(location_id: str):
                 updated=str(n.get("updated", "")),
                 location_id=str(rec_id),
                 location_name=loc_check[0].get("facility_name", ""),
+                content_format=n.get("content_format", "markdown"),
+                content_markdown_backup=n.get("content_markdown_backup"),
             ))
 
         # Sort by updated desc
@@ -363,6 +379,8 @@ async def get_customer_notes(customer_id: str):
                 created=str(n.get("created", "")),
                 updated=str(n.get("updated", "")),
                 customer_id=str(rec_id),
+                content_format=n.get("content_format", "markdown"),
+                content_markdown_backup=n.get("content_markdown_backup"),
             ))
 
         notes.sort(key=lambda x: x.updated, reverse=True)
@@ -498,6 +516,8 @@ async def get_customer_notes_rollup(customer_id: str):
                 created=str(n.get("created", "")),
                 updated=str(n.get("updated", "")),
                 customer_id=str(rec_id),
+                content_format=n.get("content_format", "markdown"),
+                content_markdown_backup=n.get("content_markdown_backup"),
             ))
         direct_notes.sort(key=lambda x: x.updated, reverse=True)
 
@@ -536,6 +556,8 @@ async def get_customer_notes_rollup(customer_id: str):
                 updated=str(n.get("updated", "")),
                 location_id=loc_key,
                 location_name=parent_loc.get("facility_name", ""),
+                content_format=n.get("content_format", "markdown"),
+                content_markdown_backup=n.get("content_markdown_backup"),
             ))
 
         # Build location rollups

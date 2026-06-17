@@ -1,0 +1,13 @@
+-- 57.surrealql (Path C)
+DEFINE TABLE IF NOT EXISTS entity_link TYPE RELATION
+  FROM notebook | note | source | task | project | customer | contact | campaign | research_item
+  TO   notebook | note | source | task | project | customer | contact | campaign | research_item;
+
+DEFINE FIELD IF NOT EXISTS link_type ON TABLE entity_link TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS created   ON TABLE entity_link TYPE string DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_entity_link_in  ON TABLE entity_link FIELDS in;
+DEFINE INDEX IF NOT EXISTS idx_entity_link_out ON TABLE entity_link FIELDS out;
+
+-- Define backup field on Note table for migration backup
+DEFINE FIELD IF NOT EXISTS content_markdown_backup ON TABLE note TYPE option<string>;
