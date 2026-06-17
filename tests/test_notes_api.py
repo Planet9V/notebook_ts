@@ -120,15 +120,19 @@ class TestEntityLinks:
 
     @patch("open_notebook.database.repository.repo_query")
     def test_get_entity_links(self, mock_query, client):
-        mock_query.return_value = [
-            {
-                "id": "entity_link:link1",
-                "in": "note:note1",
-                "out": "source:source1",
-                "link_type": "references",
-                "created": "2026-01-01T00:00:00Z"
-            }
-        ]
+        def mock_query_side_effect(query, vars=None):
+            if "task_spec_link" in query:
+                return []
+            return [
+                {
+                    "id": "entity_link:link1",
+                    "in": "note:note1",
+                    "out": "source:source1",
+                    "link_type": "references",
+                    "created": "2026-01-01T00:00:00Z"
+                }
+            ]
+        mock_query.side_effect = mock_query_side_effect
 
         response = client.get("/api/notes/links")
         assert response.status_code == 200
