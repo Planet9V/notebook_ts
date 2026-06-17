@@ -143,6 +143,12 @@ const KanbanBoard = dynamic(() => import('./components/KanbanBoard').then(mod =>
   ssr: false,
 })
 
+// DeliveryTree — shows Org → Location hierarchy alongside the projects board
+const DeliveryTree = dynamic(
+  () => import('@/components/delivery/DeliveryTree').then(mod => mod.DeliveryTree),
+  { ssr: false }
+)
+
 const RESEARCH_STAGE_ICONS: Record<string, typeof Clock> = {
   queued: Clock,
   researching: Loader2,
@@ -1109,7 +1115,18 @@ function OperationsCenter({
 
             {/* Project Delivery Workspace */}
             {activeTab === 'projects' && (
-              <div className="space-y-6">
+              <div className="flex gap-6 items-start">
+                {/* Delivery Hierarchy Sidebar */}
+                <div className="w-60 shrink-0 min-h-[400px]">
+                  <DeliveryTree
+                    activeLocationId={null}
+                    onSelectLocation={() => {}}
+                    onAttachDocument={() => {}}
+                  />
+                </div>
+
+                {/* Projects Board */}
+                <div className="flex-1 space-y-6">
                 {/* Filters */}
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1 max-w-md">
@@ -1374,6 +1391,7 @@ function OperationsCenter({
                     emptyMessage="No projects found"
                   />
                 )}
+                </div>
               </div>
             )}
           </div>

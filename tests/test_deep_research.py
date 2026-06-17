@@ -15,8 +15,8 @@ def client():
 
 
 def is_live_valyu() -> bool:
-    """Check if we have a real Valyu API key set in the environment."""
-    return bool(os.environ.get("VALYU_API_KEY"))
+    """Check if we have a real Valyu API key set in the environment and explicitly enabled."""
+    return bool(os.environ.get("VALYU_API_KEY")) and bool(os.environ.get("RUN_LIVE_VALYU"))
 
 
 class TestDeepResearchAPI:
@@ -51,9 +51,8 @@ class TestDeepResearchAPI:
             assert "status" in event_types
             assert "complete" in event_types
             assert any(e["type"] == "answer" for e in events)
-        else:
             # ── Mock Mode ──
-            with patch("api.routers.search.Valyu") as mock_valyu_cls:
+            with patch("valyu.Valyu") as mock_valyu_cls:
                 mock_client = MagicMock()
                 mock_valyu_cls.return_value = mock_client
 
@@ -239,7 +238,6 @@ class TestResearchItemDeepResearch:
                 assert updated_ri.stage == "review_enhance"
                 assert len(updated_ri.results_content) > 0
                 assert len(updated_ri.deep_research_events) > 0
-            else:
                 # ── Mock Mode ──
                 mock_res = {
                     "output": "# NIST CSF Report\n\nNIST CSF provides guidelines [Source 1].\n\n## Bibliography\n- [Source 1]: http://example.com/source1",
@@ -248,7 +246,7 @@ class TestResearchItemDeepResearch:
                     "elapsed_seconds": 12.5,
                     "deepresearch_id": "mock_task_123"
                 }
-                with patch("api.routers.research_items.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
+                with patch("open_notebook.search.deep_research.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
                     mock_run_dr.return_value = mock_res
 
                     await background_run_research(ri.id)
@@ -283,7 +281,6 @@ class TestResearchItemDeepResearch:
                 updated_ri = await ResearchItem.get(ri.id)
                 assert updated_ri.stage == "review_enhance"
                 assert len(updated_ri.results_content) > 0
-            else:
                 # ── Mock Mode ──
                 mock_res = {
                     "output": "# Final Report with citation [Source 1]\n\n## Sources\n- [Source 1]: http://perplexity.com",
@@ -292,7 +289,7 @@ class TestResearchItemDeepResearch:
                     "elapsed_seconds": 5.0,
                     "deepresearch_id": "mock_resilience"
                 }
-                with patch("api.routers.research_items.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
+                with patch("open_notebook.search.deep_research.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
                     mock_run_dr.return_value = mock_res
 
                     await background_run_research(ri.id)

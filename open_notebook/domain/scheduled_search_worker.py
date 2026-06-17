@@ -146,8 +146,8 @@ async def _save_results_as_source(
     results: List[Dict[str, Any]],
     transformation_id: str = None,
 ) -> str:
-    """Save search results as a text source in the notebook."""
-    from open_notebook.domain.notebook import Source
+    """Save search results as a text source in the notebook and create an auto-note summary."""
+    from open_notebook.domain.notebook import Note, Source
 
     # Build markdown content from results
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -184,6 +184,38 @@ async def _save_results_as_source(
     # Link source to notebook
     if notebook_id:
         await source.relate("reference", notebook_id)
+
+    # Auto-create a summary note linked to the same notebook
+    if notebook_id and results:
+        note_lines = [
+            f"**Scheduled Search Auto-Summary**",
+            f"Query: *{query}* | Engine: {engine} | {now_str}",
+            "",
+            "**Top Results:**",
+        ]
+        for i, r in enumerate(results[:5], 1):
+            title = r.get("title", f"Result {i}")
+            url = r.get("url", "")
+            snippet = (r.get("content", "") or "")[:200].strip()
+            note_lines.append(f"{i}. **{title}**")
+            if url:
+                note_lines.append(f"   {url}")
+            if snippet:
+                note_lines.append(f"   {snippet}…")
+        note_content = "\n".join(note_lines)
+
+        try:
+            note = Note(
+                title=f"[Auto] {engine.upper()}: {query[:60]} ({now_str})",
+                note_type="ai",
+                content=note_content,
+            )
+            await note.save()
+            await note.add_to_notebook(notebook_id)
+            logger.info(f"Auto-created note {note.id} for scheduled search '{query}'")
+        except Exception as note_err:
+            # Non-fatal: log but don't fail the whole search run
+            logger.warning(f"Could not create auto-note for scheduled search: {note_err}")
 
     return source.id
 

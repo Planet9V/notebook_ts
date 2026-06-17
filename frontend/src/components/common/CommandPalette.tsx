@@ -30,6 +30,9 @@ import {
   Loader2,
   ShieldCheck,
   Users,
+  User,
+  ClipboardList,
+  Link as LinkIcon,
 } from 'lucide-react'
 import apiClient from '@/lib/api/client'
 import { useTranslation } from '@/lib/hooks/use-translation'
@@ -142,12 +145,24 @@ export function CommandPalette() {
   const { setTheme } = useTheme()
   const { data: notebooks, isLoading: notebooksLoading } = useNotebooks(false)
 
-  // Fetch customers when palette opens
+  // Fetch customers, contacts, projects, and sources when palette opens
   const [customers, setCustomers] = useState<{id: string, name: string}[]>([])
+  const [contacts, setContacts] = useState<{id: string, name: string, title?: string, customer_id?: string}[]>([])
+  const [projects, setProjects] = useState<{id: string, name: string, stage?: string}[]>([])
+  const [sources, setSources] = useState<{id: string, title?: string, url?: string}[]>([])
   useEffect(() => {
     if (open) {
       apiClient.get('/customers').then(res => {
-        setCustomers((res.data || []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })))
+        setCustomers((res.data || []).slice(0, 10).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })))
+      }).catch(() => {})
+      apiClient.get('/contacts').then(res => {
+        setContacts((res.data || []).slice(0, 10).map((c: { id: string; name: string; title?: string; customer_id?: string }) => ({ id: c.id, name: c.name, title: c.title, customer_id: c.customer_id })))
+      }).catch(() => {})
+      apiClient.get('/projects').then(res => {
+        setProjects((res.data || []).slice(0, 10).map((p: { id: string; name: string; stage?: string }) => ({ id: p.id, name: p.name, stage: p.stage })))
+      }).catch(() => {})
+      apiClient.get('/sources').then(res => {
+        setSources((res.data || []).slice(0, 10).map((s: { id: string; title?: string; url?: string }) => ({ id: s.id, title: s.title, url: s.url })))
       }).catch(() => {})
     }
   }, [open])
@@ -217,7 +232,7 @@ export function CommandPalette() {
     handleSelect(() => setTheme(theme))
   }, [handleSelect, setTheme])
 
-  // Check if query matches any command (navigation, create, theme, or notebook)
+  // Check if query matches any command (navigation, create, theme, notebook, customer, contact, project, source)
   const queryLower = query.toLowerCase().trim()
   const hasCommandMatch = useMemo(() => {
     if (!queryLower) return false
@@ -244,9 +259,20 @@ export function CommandPalette() {
       ) ||
       customers.some(c =>
         c.name.toLowerCase().includes(queryLower)
+      ) ||
+      contacts.some(c =>
+        c.name.toLowerCase().includes(queryLower) ||
+        (c.title && c.title.toLowerCase().includes(queryLower))
+      ) ||
+      projects.some(p =>
+        p.name.toLowerCase().includes(queryLower)
+      ) ||
+      sources.some(s =>
+        (s.title && s.title.toLowerCase().includes(queryLower)) ||
+        (s.url && s.url.toLowerCase().includes(queryLower))
       )
     )
-  }, [queryLower, notebooks, customers, navigationItems, createItems, themeItems])
+  }, [queryLower, notebooks, customers, contacts, projects, sources, navigationItems, createItems, themeItems])
 
   // Determine if we should show the Search/Ask section at the top
   const showSearchFirst = query.trim() && !hasCommandMatch
@@ -351,6 +377,56 @@ export function CommandPalette() {
               >
                 <Users className="h-4 w-4" />
                 <span>{c.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {/* Contacts */}
+        {contacts.length > 0 && (
+          <CommandGroup heading="Contacts">
+            {contacts.map((c) => (
+              <CommandItem
+                key={c.id}
+                value={`contact ${c.name} ${c.title || ''}`}
+                onSelect={() => handleNavigate(`/contacts/${c.id}`)}
+              >
+                <User className="h-4 w-4" />
+                <span>{c.name}</span>
+                {c.title && <span className="ml-auto text-xs text-muted-foreground">{c.title}</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {/* Projects */}
+        {projects.length > 0 && (
+          <CommandGroup heading="Projects">
+            {projects.map((p) => (
+              <CommandItem
+                key={p.id}
+                value={`project ${p.name} ${p.stage || ''}`}
+                onSelect={() => handleNavigate(`/pipeline?tab=projects&project=${p.id}`)}
+              >
+                <ClipboardList className="h-4 w-4" />
+                <span>{p.name}</span>
+                {p.stage && <span className="ml-auto text-xs text-muted-foreground">{p.stage}</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {/* Sources */}
+        {sources.length > 0 && (
+          <CommandGroup heading="Sources">
+            {sources.map((s) => (
+              <CommandItem
+                key={s.id}
+                value={`source ${s.title || ''} ${s.url || ''}`}
+                onSelect={() => handleNavigate(`/sources/${s.id}`)}
+              >
+                <LinkIcon className="h-4 w-4" />
+                <span>{s.title || s.url || s.id}</span>
               </CommandItem>
             ))}
           </CommandGroup>

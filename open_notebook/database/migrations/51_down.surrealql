@@ -1,0 +1,2 @@
+-- Migration 51 DOWN: Remove content_format field from note table
+REMOVE FIELD IF EXISTS content_format ON TABLE note;

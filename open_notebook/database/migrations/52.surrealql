@@ -1,0 +1,26 @@
+-- Migration 52: First-class task table
+-- Replaces Project.tasks JSON blob with queryable, assignable, relatable records.
+DEFINE TABLE task SCHEMAFULL;
+
+DEFINE FIELD title         ON TABLE task TYPE string;
+DEFINE FIELD description   ON TABLE task TYPE option<string>;
+DEFINE FIELD status        ON TABLE task TYPE string DEFAULT 'todo';
+  -- Allowed: 'todo' | 'in_progress' | 'review' | 'done' | 'cancelled'
+DEFINE FIELD priority      ON TABLE task TYPE option<string> DEFAULT 'medium';
+  -- Allowed: 'low' | 'medium' | 'high' | 'critical'
+DEFINE FIELD due_date      ON TABLE task TYPE option<string>;
+DEFINE FIELD project_id    ON TABLE task TYPE option<record<project>>;
+DEFINE FIELD customer_id   ON TABLE task TYPE option<record<customer>>;
+DEFINE FIELD notebook_id   ON TABLE task TYPE option<record<notebook>>;
+DEFINE FIELD assigned_to   ON TABLE task TYPE option<record<user>>;
+DEFINE FIELD created_by    ON TABLE task TYPE option<record<user>>;
+DEFINE FIELD tags          ON TABLE task TYPE option<array<string>>;
+DEFINE FIELD created       ON TABLE task TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated       ON TABLE task TYPE datetime DEFAULT time::now();
+
+-- Indexes for common query patterns
+DEFINE INDEX idx_task_project   ON TABLE task FIELDS project_id;
+DEFINE INDEX idx_task_customer  ON TABLE task FIELDS customer_id;
+DEFINE INDEX idx_task_status    ON TABLE task FIELDS status;
+DEFINE INDEX idx_task_assigned  ON TABLE task FIELDS assigned_to;
+DEFINE INDEX idx_task_due       ON TABLE task FIELDS due_date;

@@ -331,4 +331,7 @@ def cleanup_test_table():
             await repo_query(f"DELETE _test_integration;")
         except Exception:
             pass
-    asyncio.get_event_loop().run_until_complete(_cleanup())
+    try:
+        asyncio.run(_cleanup())
+    except Exception:
+        pass

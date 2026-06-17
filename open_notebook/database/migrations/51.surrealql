@@ -1,0 +1,7 @@
+-- Migration 51: Add content_format discriminator to note table
+-- Purpose: Architecture lock-in for Path C Tiptap block editor adoption.
+-- 'markdown' default ensures ALL existing notes are unaffected.
+-- 'block' = Tiptap JSON (Path C, opt-in conversion only — never forced).
+DEFINE FIELD IF NOT EXISTS content_format ON TABLE note
+  TYPE option<string>
+  DEFAULT 'markdown';

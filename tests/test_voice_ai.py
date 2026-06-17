@@ -250,14 +250,16 @@ class TestCustomVoiceUpload:
     @patch("api.routers.voice._get_provider_api_key")
     def test_upload_custom_voice_local(self, mock_get_api_key, client, tmp_path):
         """Uploading a custom voice with local provider (kokoro) should save to data/custom_voices and return custom_ ID."""
+        import uuid
         mock_get_api_key.return_value = None
+        speaker_name = f"Host Alice {uuid.uuid4().hex[:8]}"
         
         # Override DATA_FOLDER to tmp_path for isolated testing
         with patch("open_notebook.config.DATA_FOLDER", str(tmp_path)):
             audio_data = b"RIFF" + b"\x00" * 50
             response = client.post(
                 "/api/voice/upload-custom",
-                data={"speaker_name": "Host Alice", "provider": "kokoro"},
+                data={"speaker_name": speaker_name, "provider": "kokoro"},
                 files={"file": ("recording.wav", io.BytesIO(audio_data), "audio/wav")},
             )
             
@@ -276,7 +278,9 @@ class TestCustomVoiceUpload:
     @patch("api.routers.voice.httpx.AsyncClient")
     def test_upload_custom_voice_elevenlabs(self, mock_async_client, mock_get_api_key, client, tmp_path):
         """Uploading a custom voice with ElevenLabs should invoke instant voice cloning API."""
+        import uuid
         mock_get_api_key.return_value = "fake_elevenlabs_key"
+        speaker_name = f"Host Bob {uuid.uuid4().hex[:8]}"
         
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -292,7 +296,7 @@ class TestCustomVoiceUpload:
             audio_data = b"RIFF" + b"\x00" * 50
             response = client.post(
                 "/api/voice/upload-custom",
-                data={"speaker_name": "Host Bob", "provider": "elevenlabs"},
+                data={"speaker_name": speaker_name, "provider": "elevenlabs"},
                 files={"file": ("recording.wav", io.BytesIO(audio_data), "audio/wav")},
             )
             
