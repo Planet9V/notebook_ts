@@ -42,3 +42,11 @@ export interface UpdateTaskTableRequest {
   created_by?: string
   tags?: string[]
 }
+
+export interface TaskSpecLink {
+  id: string
+  task_id: string
+  spec_id: string
+  created_at: string
+}
+

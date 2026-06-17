@@ -27,6 +27,14 @@ export interface BlockEditorProps {
   placeholder?: string
   className?: string
   height?: number
+  onTemplateSelect?: (category: string) => void
+}
+
+const TEMPLATES = {
+  sales: `<h3>Service Definition</h3><ul><li><strong>Price</strong>: $0.00</li><li><strong>Market Segment</strong>: </li><li><strong>Sales Executive</strong>: </li></ul>`,
+  marketing: `<h3>Campaign Plan</h3><ul><li><strong>Target Audience</strong>: </li><li><strong>Budget</strong>: $0.00</li><li><strong>Channels</strong>: </li></ul>`,
+  delivery: `<h3>Scope & Compliance</h3><ul><li><strong>Division</strong>: </li><li><strong>Framework</strong>: NIST CSF v2</li><li><strong>SRE Owner</strong>: </li></ul>`,
+  research: `<h3>Audit Finding</h3><ul><li><strong>ICS Protocol</strong>: Modbus</li><li><strong>Threat Level</strong>: </li><li><strong>CVE Reference</strong>: </li></ul>`
 }
 
 export function BlockEditor({
@@ -34,7 +42,8 @@ export function BlockEditor({
   onChange,
   placeholder = 'Write something...',
   className,
-  height = 400
+  height = 400,
+  onTemplateSelect
 }: BlockEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -134,6 +143,12 @@ export function BlockEditor({
     },
   ]
 
+  const handleInsertTemplate = (category: keyof typeof TEMPLATES) => {
+    const html = TEMPLATES[category]
+    editor.chain().focus().insertContent(html).run()
+    onTemplateSelect?.(category)
+  }
+
   const characters = editor.storage.characterCount.characters()
   const words = editor.storage.characterCount.words()
 
@@ -147,7 +162,7 @@ export function BlockEditor({
     >
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-1 p-2 border-b bg-muted/30 border-border/50">
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           {buttons.map((btn, idx) => {
             const Icon = btn.icon
             const active = btn.isActive()
@@ -166,6 +181,25 @@ export function BlockEditor({
               </button>
             )
           })}
+
+          <div className="h-4 w-px bg-border/80 mx-1" />
+          <select
+            onChange={(e) => {
+              const val = e.target.value as keyof typeof TEMPLATES
+              if (val) {
+                handleInsertTemplate(val)
+                e.target.value = ""
+              }
+            }}
+            defaultValue=""
+            className="h-7 text-[10px] bg-background border border-border/60 rounded px-1.5 text-muted-foreground focus:outline-none cursor-pointer hover:bg-muted hover:text-foreground transition-all duration-200 font-medium"
+          >
+            <option value="">Insert Template...</option>
+            <option value="sales">Sales Service</option>
+            <option value="marketing">Marketing Campaign</option>
+            <option value="delivery">Project Delivery Scope</option>
+            <option value="research">Research Finding</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-1">

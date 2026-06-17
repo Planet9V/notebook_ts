@@ -1,0 +1,3 @@
+-- Migration 60 Down: SRE Project Delivery Persona Feature Suite
+REMOVE TABLE IF EXISTS task_spec_link;
+REMOVE INDEX IF EXISTS idx_activity_actor_desc ON TABLE activity;

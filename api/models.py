@@ -563,6 +563,8 @@ class NoteUpdate(BaseModel):
     note_type: Optional[str] = Field(None, description="Type of note (human, ai)")
     content_format: Optional[str] = Field(None, description="Format of content (markdown, block)")
     content_markdown_backup: Optional[str] = Field(None, description="Backup of markdown content")
+    location_id: Optional[str] = Field(None, description="Location/facility ID to attach the note to")
+    customer_id: Optional[str] = Field(None, description="Customer/organization ID to attach the note to")
 
 
 class NoteResponse(BaseModel):
@@ -2362,6 +2364,45 @@ class CampaignResponse(BaseModel):
     notebook_id: Optional[str] = None
     created: str
     updated: str
+
+
+class TagCreate(BaseModel):
+    name: str
+    category_type: Optional[str] = None
+
+
+class TagResponse(BaseModel):
+    id: str
+    name: str
+    category_type: Optional[str] = None
+
+
+class NodeLayoutCreate(BaseModel):
+    node_id: str
+    x: float
+    y: float
+    view_type: str
+
+
+class NodeLayoutResponse(BaseModel):
+    id: str
+    node_id: str
+    x: float
+    y: float
+    view_type: str
+
+
+class TaskSpecLinkRequest(BaseModel):
+    task_id: str
+    spec_id: str
+
+
+class TaskSpecLinkResponse(BaseModel):
+    id: str
+    task_id: str
+    spec_id: str
+    created_at: str
+
 
 
 

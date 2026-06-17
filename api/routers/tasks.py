@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 
 from api.auth import require_role
-from api.models import TaskTableCreate, TaskTableResponse, TaskTableUpdate
+from api.models import TaskTableCreate, TaskTableResponse, TaskTableUpdate, TaskSpecLinkRequest, TaskSpecLinkResponse
 from open_notebook.domain.task import Task
 from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, NotFoundError
 
@@ -128,6 +128,7 @@ async def update_task(task_id: str, data: TaskTableUpdate, _ = Depends(require_r
     """Update a task."""
     try:
         task = await Task.get(task_id)
+        old_status = task.status
         update_data = data.model_dump(exclude_unset=True)
 
         for key, value in update_data.items():
@@ -135,6 +136,21 @@ async def update_task(task_id: str, data: TaskTableUpdate, _ = Depends(require_r
                 setattr(task, key, value)
 
         await task.save()
+
+        # Log SRE status transition to activity table
+        if "status" in update_data and old_status != task.status:
+            from open_notebook.database.repository import repo_query
+            desc = f"moved Task '{task.title}' from {old_status} to {task.status}"
+            cust_id = str(task.customer_id) if task.customer_id else ""
+            try:
+                await repo_query(
+                    "CREATE activity SET customer_id = $cust_id, activity_type = 'task_move', "
+                    "description = $desc, actor = 'SRE', created = time::now(), updated = time::now();",
+                    {"cust_id": cust_id, "desc": desc}
+                )
+            except Exception as act_err:
+                logger.warning(f"Could not log task transition activity: {act_err}")
+
         return _build_task_response(task)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -164,3 +180,78 @@ async def delete_task(task_id: str, _ = Depends(require_role("editor"))):
     except Exception as e:
         logger.error(f"Error deleting task: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/tasks/spec-links", response_model=TaskSpecLinkResponse, status_code=201)
+async def create_task_spec_link(request: TaskSpecLinkRequest, _ = Depends(require_role("editor"))):
+    """Link a Task to a compliance spec (Note or Source)."""
+    try:
+        from open_notebook.database.repository import repo_relate, ensure_record_id, repo_query
+        
+        res = await repo_relate(
+            ensure_record_id(request.task_id),
+            "task_spec_link",
+            ensure_record_id(request.spec_id),
+        )
+        
+        link_id = ""
+        created_at = ""
+        if res and isinstance(res, list) and len(res) > 0:
+            link_id = str(res[0].get("id") or "")
+            created_at = str(res[0].get("created_at") or "")
+        
+        if not link_id:
+            # Fallback query
+            links = await repo_query(
+                "SELECT id, created_at FROM task_spec_link WHERE in = $task_id AND out = $spec_id",
+                {"task_id": ensure_record_id(request.task_id), "spec_id": ensure_record_id(request.spec_id)}
+            )
+            if links:
+                link_id = str(links[0]["id"])
+                created_at = str(links[0].get("created_at") or "")
+                
+        return TaskSpecLinkResponse(
+            id=link_id,
+            task_id=request.task_id,
+            spec_id=request.spec_id,
+            created_at=created_at
+        )
+    except Exception as e:
+        logger.error(f"Error creating task spec link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/tasks/spec-links/{link_id}")
+async def delete_task_spec_link(link_id: str, _ = Depends(require_role("editor"))):
+    """Delete a Task-to-Spec linkage."""
+    try:
+        from open_notebook.database.repository import repo_delete
+        await repo_delete(link_id)
+        return {"message": "Link deleted", "id": link_id}
+    except Exception as e:
+        logger.error(f"Error deleting task spec link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tasks/{task_id}/spec-links", response_model=List[TaskSpecLinkResponse])
+async def list_task_spec_links(task_id: str):
+    """List all compliance specifications linked to a task."""
+    try:
+        from open_notebook.database.repository import repo_query, ensure_record_id
+        results = await repo_query(
+            "SELECT id, in, out, created_at FROM task_spec_link WHERE in = $task_id",
+            {"task_id": ensure_record_id(task_id)}
+        )
+        return [
+            TaskSpecLinkResponse(
+                id=str(r["id"]),
+                task_id=str(r["in"]),
+                spec_id=str(r["out"]),
+                created_at=str(r.get("created_at") or "")
+            )
+            for r in results
+        ]
+    except Exception as e:
+        logger.error(f"Error listing task spec links: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

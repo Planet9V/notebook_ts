@@ -125,3 +125,76 @@ export function useMarkNotificationRead() {
   })
 }
 
+export function useTags() {
+  return useQuery({
+    queryKey: ['tags'],
+    queryFn: () => notesApi.listTags(),
+  })
+}
+
+export function useCreateTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { name: string; category_type?: string }) => notesApi.createTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] })
+    },
+  })
+}
+
+export function useDeleteTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => notesApi.deleteTag(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] })
+    },
+  })
+}
+
+export function useLinkTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ noteId, tagId }: { noteId: string; tagId: string }) => notesApi.linkTag(noteId, tagId),
+    onSuccess: (_, { noteId }) => {
+      queryClient.invalidateQueries({ queryKey: ['note_tags', noteId] })
+    },
+  })
+}
+
+export function useUnlinkTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ noteId, tagId }: { noteId: string; tagId: string }) => notesApi.unlinkTag(noteId, tagId),
+    onSuccess: (_, { noteId }) => {
+      queryClient.invalidateQueries({ queryKey: ['note_tags', noteId] })
+    },
+  })
+}
+
+export function useNoteTags(noteId: string) {
+  return useQuery({
+    queryKey: ['note_tags', noteId],
+    queryFn: () => notesApi.getNoteTags(noteId),
+    enabled: !!noteId,
+  })
+}
+
+export function useNodeLayouts(viewType: string) {
+  return useQuery({
+    queryKey: ['node_layouts', viewType],
+    queryFn: () => notesApi.getNodeLayouts(viewType),
+    enabled: !!viewType,
+  })
+}
+
+export function useSaveNodeLayout() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { node_id: string; x: number; y: number; view_type: string }) => notesApi.saveNodeLayout(data),
+    onSuccess: (_, { view_type }) => {
+      queryClient.invalidateQueries({ queryKey: ['node_layouts', view_type] })
+    },
+  })
+}
+

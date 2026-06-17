@@ -1,0 +1,7 @@
+-- Migration 60: SRE Project Delivery Persona Feature Suite
+DEFINE TABLE IF NOT EXISTS task_spec_link TYPE RELATION
+  FROM task
+  TO note, source;
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE task_spec_link TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_task_spec_link_unique ON TABLE task_spec_link FIELDS in, out UNIQUE;
+DEFINE INDEX IF NOT EXISTS idx_activity_actor_desc ON TABLE activity FIELDS actor, description;

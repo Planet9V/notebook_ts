@@ -382,6 +382,61 @@ async def execute_chat(request: ExecuteChatRequest):
         state_values["notebook"] = notebook
         state_values["model_override"] = model_override
 
+        # Check for user-facing slash commands
+        if request.message.startswith("/"):
+            from open_notebook.commands.slash_commands import (
+                execute_deep_research,
+                execute_planning_with_files,
+            )
+            from langchain_core.messages import AIMessage, HumanMessage
+
+            notebook_id_str = str(notebook.id) if notebook else ""
+            cmd_text = request.message.strip()
+            
+            if cmd_text.startswith("/deep-research "):
+                query = cmd_text[len("/deep-research "):].strip()
+                response_content = await execute_deep_research(notebook_id_str, query)
+            elif cmd_text.startswith("/planning-with-files"):
+                arg_str = cmd_text[len("/planning-with-files"):].strip()
+                response_content = await execute_planning_with_files(notebook_id_str, arg_str)
+            else:
+                # Help text for unsupported slash commands
+                response_content = (
+                    "### 🛠️ Chat Commands Guide\n\n"
+                    "The following slash commands are supported in this chat:\n"
+                    "- **/deep-research <query>** - Run deep search and compile a structured report.\n"
+                    "- **/planning-with-files [init | status | sync]** - Manage the project roadmap note checklist.\n"
+                )
+
+            user_message = HumanMessage(content=request.message)
+            ai_message = AIMessage(content=response_content)
+
+            current_messages = list(state_values.get("messages", []))
+            current_messages.append(user_message)
+            current_messages.append(ai_message)
+
+            await chat_graph.aupdate_state(
+                config=RunnableConfig(
+                    configurable={"thread_id": full_session_id}
+                ),
+                values={"messages": current_messages},
+            )
+
+            await session.save()
+
+            messages = []
+            for msg in current_messages:
+                messages.append(
+                    ChatMessage(
+                        id=getattr(msg, "id", None) or f"msg_{len(messages)}",
+                        type=msg.type if hasattr(msg, "type") else "unknown",
+                        content=msg.content if hasattr(msg, "content") else str(msg),
+                        timestamp=None,
+                    )
+                )
+
+            return ExecuteChatResponse(session_id=request.session_id, messages=messages)
+
         # Add user message to state
         from langchain_core.messages import HumanMessage
 
@@ -403,7 +458,7 @@ async def execute_chat(request: ExecuteChatRequest):
         await session.save()
 
         # Convert messages to response format
-        messages: list[ChatMessage] = []
+        messages = []
         for msg in result.get("messages", []):
             messages.append(
                 ChatMessage(

@@ -32,4 +32,19 @@ export const tasksApi = {
     const response = await apiClient.delete<{ message: string }>(`/tasks/${id}`)
     return response.data
   },
+  
+  listSpecLinks: async (taskId: string): Promise<any[]> => {
+    const response = await apiClient.get<any[]>(`/tasks/${taskId}/spec-links`)
+    return response.data
+  },
+
+  createSpecLink: async (taskId: string, specId: string): Promise<any> => {
+    const response = await apiClient.post<any>('/tasks/spec-links', { task_id: taskId, spec_id: specId })
+    return response.data
+  },
+
+  deleteSpecLink: async (linkId: string): Promise<{ message: string }> => {
+    const response = await apiClient.delete<{ message: string }>(`/tasks/spec-links/${linkId}`)
+    return response.data
+  },
 }

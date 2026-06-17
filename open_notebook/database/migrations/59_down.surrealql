@@ -1,0 +1,4 @@
+-- Rollback Migration 59
+REMOVE TABLE IF EXISTS note_tag;
+REMOVE TABLE IF EXISTS tag;
+REMOVE TABLE IF EXISTS node_layout;

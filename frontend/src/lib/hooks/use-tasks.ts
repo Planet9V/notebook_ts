@@ -104,3 +104,59 @@ export function useDeleteTask() {
     },
   })
 }
+
+export function useTaskSpecLinks(taskId: string) {
+  return useQuery({
+    queryKey: ['tasks', 'spec-links', taskId],
+    queryFn: () => tasksApi.listSpecLinks(taskId),
+    enabled: !!taskId,
+  })
+}
+
+export function useCreateTaskSpecLink() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: ({ taskId, specId }: { taskId: string; specId: string }) =>
+      tasksApi.createSpecLink(taskId, specId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'spec-links', variables.taskId] })
+      toast({
+        title: 'Success',
+        description: 'Linked task to specification',
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Error creating task spec link',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useDeleteTaskSpecLink(taskId: string) {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: (linkId: string) => tasksApi.deleteSpecLink(linkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'spec-links', taskId] })
+      toast({
+        title: 'Success',
+        description: 'Removed task specification link',
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Error deleting task spec link',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+

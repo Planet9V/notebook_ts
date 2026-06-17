@@ -160,6 +160,8 @@ export interface UpdateNoteRequest {
   note_type?: string
   content_format?: 'markdown' | 'block'
   content_markdown_backup?: string | null
+  customer_id?: string
+  location_id?: string
 }
 
 export interface UpdateSourceRequest {

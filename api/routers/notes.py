@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
 
-from api.models import NoteCreate, NoteResponse, NoteUpdate, LocationNotesRollup, CustomerNotesRollup
+from api.models import NoteCreate, NoteResponse, NoteUpdate, LocationNotesRollup, CustomerNotesRollup, TagCreate, TagResponse, NodeLayoutCreate, NodeLayoutResponse
 from open_notebook.domain.notebook import Note
 from open_notebook.exceptions import InvalidInputError
 
@@ -27,10 +27,29 @@ async def get_notes(
             notebook = await Notebook.get(notebook_id)
             if not notebook:
                 raise HTTPException(status_code=404, detail="Notebook not found")
-            notes = await notebook.get_notes()
+            notes = await notebook.get_notes(include_content=True)
         else:
             # Get all notes
             notes = await Note.get_all(order_by="updated desc")
+
+        # Batch query all entity_note relations to fetch location/customer for each note
+        from open_notebook.database.repository import repo_query
+        relations = await repo_query(
+            "SELECT in, out, out.facility_name AS facility_name FROM entity_note;"
+        )
+        
+        # Map note ID to its location and customer info
+        note_relations = {}
+        for r in relations:
+            nid = str(r.get("in", ""))
+            out_val = str(r.get("out", ""))
+            if nid not in note_relations:
+                note_relations[nid] = {"location_id": None, "location_name": None, "customer_id": None}
+            if out_val.startswith("location:"):
+                note_relations[nid]["location_id"] = out_val
+                note_relations[nid]["location_name"] = r.get("facility_name")
+            elif out_val.startswith("customer:"):
+                note_relations[nid]["customer_id"] = out_val
 
         return [
             NoteResponse(
@@ -42,6 +61,9 @@ async def get_notes(
                 updated=str(note.updated),
                 content_format=note.content_format if isinstance(getattr(note, "content_format", None), str) else "markdown",
                 content_markdown_backup=note.content_markdown_backup if isinstance(getattr(note, "content_markdown_backup", None), str) else None,
+                location_id=note_relations.get(note.id, {}).get("location_id") if note.id else None,
+                location_name=note_relations.get(note.id, {}).get("location_name") if note.id else None,
+                customer_id=note_relations.get(note.id, {}).get("customer_id") if note.id else None,
             )
             for note in notes
         ]
@@ -193,16 +215,39 @@ async def get_entity_links(notebook_id: Optional[str] = Query(None)):
         else:
             results = await repo_query("SELECT id, in, out, link_type, created FROM entity_link;")
         
-        return [
-            {
+        # Query task_spec_link records
+        task_spec_results = []
+        try:
+            if notebook_id:
+                task_query = """
+                SELECT id, in, out, created_at FROM task_spec_link 
+                WHERE 
+                    in.notebook_id = $nb OR out.notebook_id = $nb;
+                """
+                task_spec_results = await repo_query(task_query, {"nb": notebook_id})
+            else:
+                task_spec_results = await repo_query("SELECT id, in, out, created_at FROM task_spec_link;")
+        except Exception as te:
+            logger.warning(f"Could not fetch task spec links in get_entity_links: {te}")
+
+        combined = []
+        for r in results:
+            combined.append({
                 "id": str(r["id"]),
                 "in": str(r["in"]),
                 "out": str(r["out"]),
                 "link_type": r.get("link_type", "references"),
                 "created": str(r.get("created", "")),
-            }
-            for r in results
-        ]
+            })
+        for r in task_spec_results:
+            combined.append({
+                "id": str(r["id"]),
+                "in": str(r["in"]),
+                "out": str(r["out"]),
+                "link_type": "task_spec",
+                "created": str(r.get("created_at", "")),
+            })
+        return combined
     except Exception as e:
         logger.error(f"Error fetching entity links: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -240,7 +285,7 @@ async def delete_entity_link(link_id: str):
     from open_notebook.database.repository import repo_delete
     try:
         full_id = link_id
-        if not link_id.startswith("entity_link:"):
+        if not link_id.startswith("entity_link:") and not link_id.startswith("task_spec_link:"):
             full_id = f"entity_link:{link_id}"
         success = await repo_delete(full_id)
         if not success:
@@ -248,6 +293,216 @@ async def delete_entity_link(link_id: str):
         return {"success": True}
     except Exception as e:
         logger.error(f"Error deleting entity link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class SuggestedLinkResponse(BaseModel):
+    source_id: str
+    target_id: str
+    reason: str
+    link_type: str = "references"
+
+
+async def generate_relationship_reason(note_content: str, source_text: str, shared_terms: list[str]) -> str:
+    """Generate a single-sentence explanation of how a note and source are related using the local LLM."""
+    from open_notebook.ai.provision import provision_langchain_model
+    from open_notebook.utils.text_utils import extract_text_content
+    from langchain_core.messages import SystemMessage, HumanMessage
+
+    note_snippet = note_content[:800]
+    source_snippet = source_text[:800]
+
+    prompt = f"""You are an industrial compliance analyst. Explain in one short, clear sentence how this audit note and engineering source document are related.
+
+Audit Note:
+"{note_snippet}"
+
+Source Document:
+"{source_snippet}"
+
+Shared Technical Terms:
+{', '.join(shared_terms)}
+
+Provide ONLY the one-sentence explanation. Do not include introductory text or markdown formatting."""
+
+    try:
+        llm = await provision_langchain_model(
+            content=prompt,
+            model_id=None,
+            default_type="chat"
+        )
+        response = await llm.ainvoke([
+            SystemMessage(content="Write a single concise sentence explaining the connection."),
+            HumanMessage(content=prompt)
+        ])
+        return extract_text_content(response).strip()
+    except Exception as e:
+        logger.warning(f"Failed to generate LLM relationship reason: {e}")
+        return f"Shared terms: {', '.join(shared_terms)}"
+
+
+@router.get("/notes/suggested-links", response_model=List[SuggestedLinkResponse])
+async def get_suggested_links(notebook_id: str):
+    """Retrieve suggested links between notes and sources in a notebook based on content overlap and customer/facility hierarchy."""
+    from open_notebook.domain.notebook import Notebook
+    from open_notebook.database.repository import repo_query
+    import asyncio
+
+    try:
+        notebook = await Notebook.get(notebook_id)
+        if not notebook:
+            raise HTTPException(status_code=404, detail="Notebook not found")
+
+        notes = await notebook.get_notes(include_content=True)
+        sources = await notebook.get_sources(include_full_text=True)
+
+        # Retrieve existing links to filter out
+        existing_links_raw = await repo_query("SELECT in, out FROM entity_link;")
+        linked_pairs = set()
+        for link in existing_links_raw:
+            in_id = str(link.get("in", ""))
+            out_id = str(link.get("out", ""))
+            if in_id and out_id:
+                linked_pairs.add((in_id, out_id))
+                linked_pairs.add((out_id, in_id))
+
+        # Try fetching hierarchy mapping (fallback to empty if database tables aren't present)
+        loc_parent = {}
+        loc_names = {}
+        cust_names = {}
+        entity_rel = {}
+        
+        try:
+            from collections import defaultdict
+            locations_raw = await repo_query("SELECT id, facility_name, customer_id FROM location;")
+            for l in locations_raw:
+                lid = str(l["id"])
+                loc_names[lid] = l.get("facility_name") or "Facility"
+                if l.get("customer_id"):
+                    loc_parent[lid] = str(l["customer_id"])
+
+            customers_raw = await repo_query("SELECT id, name FROM customer;")
+            for c in customers_raw:
+                cust_names[str(c["id"])] = c.get("name") or "Customer"
+
+            entity_notes_raw = await repo_query("SELECT in, out FROM entity_note;")
+            entity_rel = defaultdict(set)
+            for row in entity_notes_raw:
+                in_id = str(row.get("in", ""))
+                out_id = str(row.get("out", ""))
+                if in_id and out_id:
+                    entity_rel[in_id].add(out_id)
+        except Exception as ex:
+            logger.warning(f"Could not load customer/location hierarchy for suggested links: {ex}")
+            # Fallback is active, maps remain empty
+
+        # Heuristic term overlap match
+        raw_suggestions = []
+
+        # Standard English stopwords to filter out
+        standard_stopwords = {
+            "the", "a", "an", "and", "or", "but", "if", "then", "else", "when", "at", "by",
+            "from", "for", "with", "in", "on", "to", "of", "about", "this", "that", "these",
+            "those", "is", "was", "were", "are", "be", "been", "being", "have", "has", "had",
+            "do", "does", "did", "not", "no", "yes", "some", "any", "all", "each", "every",
+            "both", "such", "other", "another", "more", "most", "some", "such", "than",
+            "too", "very", "can", "will", "just", "only", "here", "there", "what", "which",
+            "who", "whom", "whose", "why", "how", "as", "into", "onto", "out", "over", "under",
+            "again", "further", "then", "once", "here", "there", "when", "where", "why", "how",
+            "all", "any", "both", "each", "few", "more", "most", "other", "some", "such",
+            "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t",
+            "can", "will", "just", "don", "should", "now"
+        }
+
+        def extract_words(text: str) -> set[str]:
+            if not text:
+                return set()
+            # Find all words of length >= 4 (only letters) and lowercase
+            words = re.findall(r"\b[a-zA-Z]{4,}\b", text.lower())
+            return {w for w in words if w not in standard_stopwords}
+
+        # Entities list to match
+        entities = []
+        for n in notes:
+            if n.id:
+                entities.append((n.id, n.content or "", extract_words(n.content or "")))
+        for s in sources:
+            if s.id:
+                text = getattr(s, "full_text", "") or ""
+                entities.append((s.id, text, extract_words(text)))
+
+        # Compare pairs
+        for i in range(len(entities)):
+            for j in range(i + 1, len(entities)):
+                id1, content1, words1 = entities[i]
+                id2, content2, words2 = entities[j]
+
+                # Check if already linked
+                if (id1, id2) in linked_pairs:
+                    continue
+
+                # Check shared relations
+                rel1 = entity_rel.get(id1, set()) if entity_rel else set()
+                rel2 = entity_rel.get(id2, set()) if entity_rel else set()
+
+                shared_locs = {r for r in rel1 if r.startswith("location:")}.intersection(
+                    {r for r in rel2 if r.startswith("location:")}
+                )
+                shared_custs = {r for r in rel1 if r.startswith("customer:")}.intersection(
+                    {r for r in rel2 if r.startswith("customer:")}
+                )
+
+                hierarchical_match = False
+                matched_hierarchy_reason = ""
+                for r1 in rel1:
+                    if r1.startswith("location:") and r1 in loc_parent:
+                        p = loc_parent[r1]
+                        if p in rel2:
+                            hierarchical_match = True
+                            matched_hierarchy_reason = f"Facility '{loc_names.get(r1, 'Facility')}' under Customer '{cust_names.get(p, 'Customer')}'"
+                for r2 in rel2:
+                    if r2.startswith("location:") and r2 in loc_parent:
+                        p = loc_parent[r2]
+                        if p in rel1:
+                            hierarchical_match = True
+                            matched_hierarchy_reason = f"Facility '{loc_names.get(r2, 'Facility')}' under Customer '{cust_names.get(p, 'Customer')}'"
+
+                # Intersection of words
+                overlap = words1.intersection(words2)
+                should_suggest = len(overlap) >= 2 or shared_locs or shared_custs or hierarchical_match
+
+                if should_suggest:
+                    sorted_terms = sorted(list(overlap))
+                    raw_suggestions.append({
+                        "source_id": id1,
+                        "target_id": id2,
+                        "content1": content1,
+                        "content2": content2,
+                        "shared_terms": sorted_terms,
+                    })
+
+        # Process top matches concurrently using asyncio.gather to avoid latency
+        raw_suggestions = raw_suggestions[:10]
+        
+        async def process_suggestion(sugg):
+            reason_text = await generate_relationship_reason(
+                sugg["content1"],
+                sugg["content2"],
+                sugg["shared_terms"]
+            )
+            return SuggestedLinkResponse(
+                source_id=sugg["source_id"],
+                target_id=sugg["target_id"],
+                reason=reason_text,
+                link_type="references"
+            )
+
+        suggestions = await asyncio.gather(*(process_suggestion(s) for s in raw_suggestions))
+        return list(suggestions)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating suggested links: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -259,6 +514,23 @@ async def get_note(note_id: str):
         if not note:
             raise HTTPException(status_code=404, detail="Note not found")
 
+        from open_notebook.database.repository import repo_query, ensure_record_id
+        nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
+        linked_entities = await repo_query(
+            "SELECT out, out.facility_name AS facility_name FROM entity_note WHERE in = $note_id;",
+            {"note_id": nid}
+        )
+        location_id = None
+        location_name = None
+        customer_id = None
+        for row in linked_entities:
+            out_val = str(row.get("out", ""))
+            if out_val.startswith("location:"):
+                location_id = out_val
+                location_name = row.get("facility_name")
+            elif out_val.startswith("customer:"):
+                customer_id = out_val
+
         return NoteResponse(
             id=note.id or "",
             title=note.title,
@@ -268,6 +540,9 @@ async def get_note(note_id: str):
             updated=str(note.updated),
             content_format=note.content_format if isinstance(getattr(note, "content_format", None), str) else "markdown",
             content_markdown_backup=note.content_markdown_backup if isinstance(getattr(note, "content_markdown_backup", None), str) else None,
+            location_id=location_id,
+            location_name=location_name,
+            customer_id=customer_id,
         )
     except HTTPException:
         raise
@@ -303,6 +578,71 @@ async def update_note(note_id: str, note_update: NoteUpdate):
 
         command_id = await note.save()
 
+        # Handle updating linked location/customer
+        from open_notebook.database.repository import repo_query, ensure_record_id
+        nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
+
+        if note_update.location_id is not None or note_update.customer_id is not None:
+            # Get current linkages to evaluate changes and enforce mutual exclusivity
+            linked_entities = await repo_query(
+                "SELECT out FROM entity_note WHERE in = $note_id;",
+                {"note_id": nid}
+            )
+            current_loc_id = None
+            current_cust_id = None
+            for row in linked_entities:
+                out_val = str(row.get("out", ""))
+                if out_val.startswith("location:"):
+                    current_loc_id = out_val
+                elif out_val.startswith("customer:"):
+                    current_cust_id = out_val
+
+            # Decide new values: if update parameter is passed, use it. Otherwise use current database value.
+            new_loc_id = note_update.location_id if note_update.location_id is not None else current_loc_id
+            new_cust_id = note_update.customer_id if note_update.customer_id is not None else current_cust_id
+
+            # Empty strings are treated as clearing the relationship
+            if new_loc_id == "":
+                new_loc_id = None
+            if new_cust_id == "":
+                new_cust_id = None
+
+            if new_loc_id and new_cust_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot attach a note to both a location and a customer simultaneously",
+                )
+
+            # Delete old location/customer edges
+            await repo_query(
+                "DELETE entity_note WHERE in = $note_id AND (out STARTS WITH 'location:' OR out STARTS WITH 'customer:');",
+                {"note_id": nid}
+            )
+
+            # Re-create linkages if new values exist
+            if new_loc_id:
+                loc_id_clean = new_loc_id if ":" in new_loc_id else f"location:{new_loc_id}"
+                await note.add_to_location(loc_id_clean)
+            elif new_cust_id:
+                cust_id_clean = new_cust_id if ":" in new_cust_id else f"customer:{new_cust_id}"
+                await note.add_to_customer(cust_id_clean)
+
+        # Retrieve the final state of linked entities for response
+        linked_entities = await repo_query(
+            "SELECT out, out.facility_name AS facility_name FROM entity_note WHERE in = $note_id;",
+            {"note_id": nid}
+        )
+        location_id = None
+        location_name = None
+        customer_id = None
+        for row in linked_entities:
+            out_val = str(row.get("out", ""))
+            if out_val.startswith("location:"):
+                location_id = out_val
+                location_name = row.get("facility_name")
+            elif out_val.startswith("customer:"):
+                customer_id = out_val
+
         if note.id:
             await trigger_mentions(note.id, note.content, note.title)
 
@@ -316,6 +656,9 @@ async def update_note(note_id: str, note_update: NoteUpdate):
             command_id=str(command_id) if command_id else None,
             content_format=note.content_format if isinstance(getattr(note, "content_format", None), str) else "markdown",
             content_markdown_backup=note.content_markdown_backup if isinstance(getattr(note, "content_markdown_backup", None), str) else None,
+            location_id=location_id,
+            location_name=location_name,
+            customer_id=customer_id,
         )
     except HTTPException:
         raise
@@ -791,5 +1134,191 @@ async def mark_notification_read(notification_id: str):
         return {"success": True}
     except Exception as e:
         logger.error(f"Error marking notification as read: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Tag & Node Layout Endpoints ---
+
+@router.get("/tags", response_model=List[TagResponse])
+async def list_tags():
+    """List all global tags."""
+    from open_notebook.database.repository import repo_query
+    try:
+        results = await repo_query("SELECT id, name, category_type FROM tag ORDER BY name;")
+        return [
+            TagResponse(
+                id=str(row["id"]),
+                name=row["name"],
+                category_type=row.get("category_type")
+            )
+            for row in results
+        ]
+    except Exception as e:
+        logger.error(f"Error listing tags: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/tags", response_model=TagResponse)
+async def create_tag(tag_data: TagCreate):
+    """Create a new global tag."""
+    from open_notebook.database.repository import repo_query
+    try:
+        # Check if tag already exists
+        existing = await repo_query("SELECT id, name, category_type FROM tag WHERE name = $name LIMIT 1;", {"name": tag_data.name})
+        if existing:
+            return TagResponse(
+                id=str(existing[0]["id"]),
+                name=existing[0]["name"],
+                category_type=existing[0].get("category_type")
+            )
+
+        # Create new tag
+        results = await repo_query(
+            "CREATE tag SET name = $name, category_type = $category_type;",
+            {"name": tag_data.name, "category_type": tag_data.category_type}
+        )
+        if not results:
+            raise HTTPException(status_code=500, detail="Failed to create tag")
+        return TagResponse(
+            id=str(results[0]["id"]),
+            name=results[0]["name"],
+            category_type=results[0].get("category_type")
+        )
+    except Exception as e:
+        logger.error(f"Error creating tag: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/tags/{tag_id}")
+async def delete_tag(tag_id: str):
+    """Delete a global tag and its note associations."""
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    try:
+        tid = ensure_record_id(tag_id if ":" in tag_id else f"tag:{tag_id}")
+        # Delete note_tag edges first
+        await repo_query("DELETE note_tag WHERE out = $tag_id;", {"tag_id": tid})
+        # Delete the tag
+        await repo_query("DELETE $tag_id;", {"tag_id": tid})
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error deleting tag: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/notes/{note_id}/tags/{tag_id}")
+async def link_tag_to_note(note_id: str, tag_id: str):
+    """Link a tag to a note."""
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    try:
+        nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
+        tid = ensure_record_id(tag_id if ":" in tag_id else f"tag:{tag_id}")
+        
+        # Verify both exist
+        note_exists = await repo_query("SELECT id FROM $note_id LIMIT 1;", {"note_id": nid})
+        if not note_exists:
+            raise HTTPException(status_code=404, detail="Note not found")
+        tag_exists = await repo_query("SELECT id FROM $tag_id LIMIT 1;", {"tag_id": tid})
+        if not tag_exists:
+            raise HTTPException(status_code=404, detail="Tag not found")
+
+        # Relate
+        await repo_query("RELATE $note_id->note_tag->$tag_id UNIQUE;", {"note_id": nid, "tag_id": tid})
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error linking tag to note: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/notes/{note_id}/tags/{tag_id}")
+async def unlink_tag_from_note(note_id: str, tag_id: str):
+    """Unlink a tag from a note."""
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    try:
+        nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
+        tid = ensure_record_id(tag_id if ":" in tag_id else f"tag:{tag_id}")
+        
+        await repo_query("DELETE note_tag WHERE in = $note_id AND out = $tag_id;", {"note_id": nid, "tag_id": tid})
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error unlinking tag from note: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/notes/{note_id}/tags", response_model=List[TagResponse])
+async def get_note_tags(note_id: str):
+    """Get all tags linked to a note."""
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    try:
+        nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
+        results = await repo_query("SELECT out.id AS id, out.name AS name, out.category_type AS category_type FROM note_tag WHERE in = $note_id;", {"note_id": nid})
+        return [
+            TagResponse(
+                id=str(row["id"]),
+                name=row["name"],
+                category_type=row.get("category_type")
+            )
+            for row in results
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching note tags: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/node-layout/{view_type}", response_model=List[NodeLayoutResponse])
+async def get_node_layouts(view_type: str):
+    """Get node coordinates for a view."""
+    from open_notebook.database.repository import repo_query
+    try:
+        results = await repo_query(
+            "SELECT id, node_id, x, y, view_type FROM node_layout WHERE view_type = $view_type;",
+            {"view_type": view_type}
+        )
+        return [
+            NodeLayoutResponse(
+                id=str(row["id"]),
+                node_id=row["node_id"],
+                x=float(row["x"]),
+                y=float(row["y"]),
+                view_type=row["view_type"]
+            )
+            for row in results
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching node layouts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/node-layout", response_model=NodeLayoutResponse)
+async def save_node_layout(layout_data: NodeLayoutCreate):
+    """Save/upsert coordinate layout for a node."""
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    try:
+        node_id_clean = layout_data.node_id.replace(":", "_").replace("-", "_")
+        layout_id = f"node_layout:{node_id_clean}_{layout_data.view_type}"
+        lid = ensure_record_id(layout_id)
+
+        results = await repo_query(
+            "UPSERT $id SET node_id = $node_id, x = $x, y = $y, view_type = $view_type;",
+            {
+                "id": lid,
+                "node_id": layout_data.node_id,
+                "x": layout_data.x,
+                "y": layout_data.y,
+                "view_type": layout_data.view_type
+            }
+        )
+        if not results:
+            raise HTTPException(status_code=500, detail="Failed to save node layout")
+        return NodeLayoutResponse(
+            id=str(results[0]["id"]),
+            node_id=results[0]["node_id"],
+            x=float(results[0]["x"]),
+            y=float(results[0]["y"]),
+            view_type=results[0]["view_type"]
+        )
+    except Exception as e:
+        logger.error(f"Error saving node layout: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

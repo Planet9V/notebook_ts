@@ -40,3 +40,13 @@ export function useDeleteEntityLink(notebookId?: string) {
     },
   })
 }
+
+export function useSuggestedLinks(notebookId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['suggested-links', notebookId],
+    queryFn: () => notesApi.getSuggestedLinks(notebookId),
+    enabled: !!notebookId && enabled,
+    staleTime: 10000,
+  })
+}
+

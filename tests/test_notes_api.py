@@ -251,3 +251,38 @@ class TestMentionsAndNotifications:
         data = response.json()
         assert data["success"] is True
 
+    @patch("open_notebook.database.repository.repo_query")
+    @patch("open_notebook.domain.notebook.Notebook")
+    def test_get_suggested_links(self, mock_notebook_cls, mock_query, client):
+        """Test getting suggested links based on content overlaps."""
+        from unittest.mock import MagicMock
+        mock_notebook = AsyncMock()
+        mock_notebook.id = "notebook:nb1"
+        mock_notebook.name = "Test Notebook"
+        
+        mock_note_a = MagicMock()
+        mock_note_a.id = "note:noteA"
+        mock_note_a.content = "This is a note about artificial intelligence and neural networks."
+        
+        mock_note_b = MagicMock()
+        mock_note_b.id = "note:noteB"
+        mock_note_b.content = "Another note about neural networks and machine learning models."
+        
+        mock_source = MagicMock()
+        mock_source.id = "source:sourceA"
+        mock_source.full_text = "This source discusses artificial intelligence, machine learning, and deep learning neural networks."
+        
+        mock_notebook.get_notes.return_value = [mock_note_a, mock_note_b]
+        mock_notebook.get_sources.return_value = [mock_source]
+        mock_notebook_cls.get = AsyncMock(return_value=mock_notebook)
+        
+        mock_query.return_value = []
+        
+        response = client.get("/api/notes/suggested-links?notebook_id=notebook:nb1")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) > 0
+        assert data[0]["source_id"] in ["note:noteA", "note:noteB"]
+        assert len(data[0]["reason"]) > 0
+
+

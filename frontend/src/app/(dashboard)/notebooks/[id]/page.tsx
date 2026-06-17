@@ -18,10 +18,11 @@ import { useIsDesktop } from '@/lib/hooks/use-media-query'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, StickyNote, MessageSquare, Mic } from 'lucide-react'
+import { FileText, StickyNote, MessageSquare, Mic, Network } from 'lucide-react'
 import { VoiceChatPanel } from '@/components/voice/VoiceChatPanel'
 import { Button } from '@/components/ui/button'
 import { useBreadcrumbLabel } from '@/lib/hooks/use-breadcrumb-label'
+import { RelationsGraph } from '@/components/notebooks/RelationsGraph'
 
 export type ContextMode = 'off' | 'insights' | 'full'
 
@@ -61,11 +62,14 @@ export default function NotebookPage() {
   // Detect desktop to avoid double-mounting ChatColumn
   const isDesktop = useIsDesktop()
 
-  // Mobile tab state (Sources, Notes, Chat, or Voice)
-  const [mobileActiveTab, setMobileActiveTab] = useState<'sources' | 'notes' | 'chat' | 'voice'>('chat')
+  // Mobile tab state (Sources, Notes, Chat, Voice, or Relations)
+  const [mobileActiveTab, setMobileActiveTab] = useState<'sources' | 'notes' | 'chat' | 'voice' | 'relations'>('chat')
 
   // B2B Drafting Mode toggle
   const [isB2BMode, setIsB2BMode] = useState<boolean>(false)
+
+  // Relations panel state
+  const [showRelations, setShowRelations] = useState(false)
 
   // Voice panel state (desktop overlay)
   const [showVoicePanel, setShowVoicePanel] = useState(false)
@@ -150,6 +154,8 @@ export default function NotebookPage() {
             notebook={notebook} 
             isB2BMode={isB2BMode}
             onToggleB2BMode={() => setIsB2BMode(!isB2BMode)}
+            showRelations={showRelations}
+            onToggleRelations={() => setShowRelations(!showRelations)}
           />
         </div>
 
@@ -169,8 +175,8 @@ export default function NotebookPage() {
               {!isDesktop && (
                 <>
                   <div className="lg:hidden mb-4">
-                    <Tabs value={mobileActiveTab} onValueChange={(value) => setMobileActiveTab(value as 'sources' | 'notes' | 'chat' | 'voice')}>
-                      <TabsList className="grid w-full grid-cols-4">
+                    <Tabs value={mobileActiveTab} onValueChange={(value) => setMobileActiveTab(value as 'sources' | 'notes' | 'chat' | 'voice' | 'relations')}>
+                      <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="sources" className="gap-2">
                           <FileText className="h-4 w-4" />
                           {t('navigation.sources')}
@@ -186,6 +192,10 @@ export default function NotebookPage() {
                         <TabsTrigger value="voice" className="gap-2">
                           <Mic className="h-4 w-4" />
                           Voice
+                        </TabsTrigger>
+                        <TabsTrigger value="relations" className="gap-2">
+                          <Network className="h-4 w-4" />
+                          Relations
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
@@ -235,82 +245,110 @@ export default function NotebookPage() {
                         />
                       </div>
                     )}
+                    {mobileActiveTab === 'relations' && (
+                      <div className="flex-1 h-full overflow-hidden min-h-[350px]">
+                        <RelationsGraph
+                          notebookId={notebookId}
+                          notebookName={notebook?.name}
+                        />
+                      </div>
+                    )}
                   </div>
                 </>
               )}
 
-              {/* Desktop: Collapsible columns layout */}
-              <div className={cn(
-                'hidden lg:flex h-full min-h-0 gap-6 transition-all duration-150',
-                'flex-row'
-              )}>
-                {/* Sources Column */}
+              {/* Desktop layout: Toggle between three collapsible columns and visual relations graph */}
+              {showRelations ? (
+                <div className="hidden lg:flex h-full min-h-0 gap-6 transition-all duration-150 flex-row">
+                  <div className="flex-none basis-1/3 min-w-[320px]">
+                    <NotesColumn
+                      notes={notes}
+                      isLoading={notesLoading}
+                      notebookId={notebookId}
+                      contextSelections={contextSelections.notes}
+                      onContextModeChange={(noteId, mode) => handleContextModeChange(noteId, mode, 'note')}
+                    />
+                  </div>
+                  <div className="flex-1 h-full min-h-[400px] border rounded-xl overflow-hidden bg-background">
+                    <RelationsGraph
+                      notebookId={notebookId}
+                      notebookName={notebook?.name}
+                    />
+                  </div>
+                </div>
+              ) : (
                 <div className={cn(
-                  'transition-all duration-150',
-                  sourcesCollapsed ? 'w-12 flex-shrink-0' : 'flex-none basis-1/3'
+                  'hidden lg:flex h-full min-h-0 gap-6 transition-all duration-150',
+                  'flex-row'
                 )}>
-                  <SourcesColumn
-                    sources={sources}
-                    isLoading={sourcesLoading}
-                    notebookId={notebookId}
-                    notebookName={notebook?.name}
-                    onRefresh={refetchSources}
-                    contextSelections={contextSelections.sources}
-                    onContextModeChange={(sourceId, mode) => handleContextModeChange(sourceId, mode, 'source')}
-                    hasNextPage={hasNextPage}
-                    isFetchingNextPage={isFetchingNextPage}
-                    fetchNextPage={fetchNextPage}
-                  />
+                  {/* Sources Column */}
+                  <div className={cn(
+                    'transition-all duration-150',
+                    sourcesCollapsed ? 'w-12 flex-shrink-0' : 'flex-none basis-1/3'
+                  )}>
+                    <SourcesColumn
+                      sources={sources}
+                      isLoading={sourcesLoading}
+                      notebookId={notebookId}
+                      notebookName={notebook?.name}
+                      onRefresh={refetchSources}
+                      contextSelections={contextSelections.sources}
+                      onContextModeChange={(sourceId, mode) => handleContextModeChange(sourceId, mode, 'source')}
+                      hasNextPage={hasNextPage}
+                      isFetchingNextPage={isFetchingNextPage}
+                      fetchNextPage={fetchNextPage}
+                    />
+                  </div>
+
+                  {/* Notes Column */}
+                  <div className={cn(
+                    'transition-all duration-150',
+                    notesCollapsed ? 'w-12 flex-shrink-0' : 'flex-none basis-1/3'
+                  )}>
+                    <NotesColumn
+                      notes={notes}
+                      isLoading={notesLoading}
+                      notebookId={notebookId}
+                      contextSelections={contextSelections.notes}
+                      onContextModeChange={(noteId, mode) => handleContextModeChange(noteId, mode, 'note')}
+                    />
+                  </div>
+
+                  {/* Chat Column - always expanded, takes remaining space */}
+                  <div className="transition-all duration-150 flex-1 min-w-0 lg:pr-6 lg:-mr-6 relative">
+                    <ChatColumn
+                      notebookId={notebookId}
+                      contextSelections={contextSelections}
+                      sources={sources}
+                      sourcesLoading={sourcesLoading}
+                    />
+
+                    {/* Voice Panel Toggle Button */}
+                    <Button
+                      variant={showVoicePanel ? 'default' : 'outline'}
+                      size="icon"
+                      className="absolute bottom-4 right-4 z-10 h-12 w-12 rounded-full shadow-lg"
+                      onClick={() => setShowVoicePanel(!showVoicePanel)}
+                      aria-label={showVoicePanel ? 'Close voice chat' : 'Open voice chat'}
+                    >
+                      <Mic className="h-5 w-5" />
+                    </Button>
+
+                    {/* Voice Panel Overlay */}
+                    {showVoicePanel && (
+                      <div className="absolute bottom-20 right-4 z-20 w-[400px] max-h-[500px] shadow-2xl rounded-xl overflow-hidden border bg-background">
+                        <VoiceChatPanel
+                          context={{
+                            notebookId: notebookId,
+                            pageType: 'notebook',
+                            contextLabel: notebook?.name || 'Notebook',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                {/* Notes Column */}
-                <div className={cn(
-                  'transition-all duration-150',
-                  notesCollapsed ? 'w-12 flex-shrink-0' : 'flex-none basis-1/3'
-                )}>
-                  <NotesColumn
-                    notes={notes}
-                    isLoading={notesLoading}
-                    notebookId={notebookId}
-                    contextSelections={contextSelections.notes}
-                    onContextModeChange={(noteId, mode) => handleContextModeChange(noteId, mode, 'note')}
-                  />
-                </div>
-
-                {/* Chat Column - always expanded, takes remaining space */}
-                <div className="transition-all duration-150 flex-1 min-w-0 lg:pr-6 lg:-mr-6 relative">
-                  <ChatColumn
-                    notebookId={notebookId}
-                    contextSelections={contextSelections}
-                    sources={sources}
-                    sourcesLoading={sourcesLoading}
-                  />
-
-                  {/* Voice Panel Toggle Button */}
-                  <Button
-                    variant={showVoicePanel ? 'default' : 'outline'}
-                    size="icon"
-                    className="absolute bottom-4 right-4 z-10 h-12 w-12 rounded-full shadow-lg"
-                    onClick={() => setShowVoicePanel(!showVoicePanel)}
-                    aria-label={showVoicePanel ? 'Close voice chat' : 'Open voice chat'}
-                  >
-                    <Mic className="h-5 w-5" />
-                  </Button>
-
-                  {/* Voice Panel Overlay */}
-                  {showVoicePanel && (
-                    <div className="absolute bottom-20 right-4 z-20 w-[400px] max-h-[500px] shadow-2xl rounded-xl overflow-hidden border bg-background">
-                      <VoiceChatPanel
-                        context={{
-                          notebookId: notebookId,
-                          pageType: 'notebook',
-                          contextLabel: notebook?.name || 'Notebook',
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
             </>
           )}
         </div>
