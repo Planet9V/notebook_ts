@@ -1,0 +1,7 @@
+-- Migration 56: Add typed assigned_to FK on project and notebook
+-- Keeps legacy string field for backward compatibility during transition.
+DEFINE FIELD assigned_to_user ON TABLE project  TYPE option<record<user>>;
+DEFINE FIELD assigned_to_user ON TABLE notebook TYPE option<record<user>>;
+
+DEFINE INDEX idx_project_assigned  ON TABLE project  FIELDS assigned_to_user;
+DEFINE INDEX idx_notebook_assigned ON TABLE notebook FIELDS assigned_to_user;

@@ -1,0 +1,21 @@
+-- Migration 53: Campaign table for content marketing workflow
+-- Links: research items → drafts (notes) → publications → schedule
+DEFINE TABLE campaign SCHEMAFULL;
+
+DEFINE FIELD name            ON TABLE campaign TYPE string;
+DEFINE FIELD description     ON TABLE campaign TYPE option<string>;
+DEFINE FIELD theme           ON TABLE campaign TYPE option<string>;
+DEFINE FIELD status          ON TABLE campaign TYPE string DEFAULT 'draft';
+  -- Allowed: 'draft' | 'active' | 'paused' | 'completed' | 'archived'
+DEFINE FIELD start_date      ON TABLE campaign TYPE option<string>;
+DEFINE FIELD end_date        ON TABLE campaign TYPE option<string>;
+DEFINE FIELD target_audience ON TABLE campaign TYPE option<string>;
+DEFINE FIELD channels        ON TABLE campaign TYPE option<array<string>>;
+  -- e.g. ['twitter', 'linkedin', 'newsletter']
+DEFINE FIELD customer_id     ON TABLE campaign TYPE option<record<customer>>;
+DEFINE FIELD notebook_id     ON TABLE campaign TYPE option<record<notebook>>;
+DEFINE FIELD created         ON TABLE campaign TYPE datetime DEFAULT time::now();
+DEFINE FIELD updated         ON TABLE campaign TYPE datetime DEFAULT time::now();
+
+DEFINE INDEX idx_campaign_customer ON TABLE campaign FIELDS customer_id;
+DEFINE INDEX idx_campaign_status   ON TABLE campaign FIELDS status;

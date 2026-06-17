@@ -118,10 +118,10 @@
 
 ## Path B: Complete the Platform (Active)
 - [x] **Task B1**: Migration 52: First-Class Task Table
-- [ ] **Task B2**: Migration 53: Campaign Table
-- [ ] **Task B3**: Migration 54: User Table SCHEMAFULL + Auth Fields
-- [ ] **Task B4**: Migration 55: task_relation RELATION Table
-- [ ] **Task B5**: Migration 56: assigned_to FK on project/notebook → user
+- [x] **Task B2**: Migration 53: Campaign Table
+- [x] **Task B3**: Migration 54: User Table SCHEMAFULL + Auth Fields
+- [x] **Task B4**: Migration 55: task_relation RELATION Table
+- [x] **Task B5**: Migration 56: assigned_to FK on project/notebook → user
 - [ ] **Task B6**: Task Domain Model + API Router (tasks.py)
 - [ ] **Task B7**: Campaign Domain Model + API Router (campaigns.py)
 - [ ] **Task B8**: /tasks Page (Universal Board + "My Tasks" View)

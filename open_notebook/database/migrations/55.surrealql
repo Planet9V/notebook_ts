@@ -1,0 +1,7 @@
+-- Migration 55: task_relation — bidirectional task linking
+DEFINE TABLE task_relation SCHEMAFULL TYPE RELATION
+  FROM task
+  TO notebook | customer | project | research_item | campaign;
+
+DEFINE INDEX idx_task_relation_in  ON TABLE task_relation FIELDS in;
+DEFINE INDEX idx_task_relation_out ON TABLE task_relation FIELDS out;
