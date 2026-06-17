@@ -11,10 +11,10 @@ DEFINE FIELD organization  ON TABLE user TYPE option<record<organization>>;
 -- New auth fields
 DEFINE FIELD username      ON TABLE user TYPE option<string>;
 DEFINE FIELD password_hash ON TABLE user TYPE option<string>;
-DEFINE FIELD is_active     ON TABLE user TYPE bool DEFAULT true;
+DEFINE FIELD is_active     ON TABLE user TYPE option<bool> DEFAULT true;
 DEFINE FIELD last_login    ON TABLE user TYPE option<datetime>;
-DEFINE FIELD created       ON TABLE user TYPE datetime DEFAULT time::now();
-DEFINE FIELD updated       ON TABLE user TYPE datetime DEFAULT time::now();
+DEFINE FIELD created       ON TABLE user TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD updated       ON TABLE user TYPE option<datetime> DEFAULT time::now();
 
 -- Indexes
 DEFINE INDEX idx_user_email    ON TABLE user FIELDS email UNIQUE;

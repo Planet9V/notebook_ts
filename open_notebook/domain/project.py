@@ -60,7 +60,6 @@ class Project(ObjectModel):
 
     # Metadata
     tags: Optional[List[str]] = Field(default_factory=list)
-    tasks: Optional[List[Dict]] = Field(default_factory=list)  # embedded task list
     progress: Optional[int] = 0  # 0-100 percentage
 
     @field_validator("name")
@@ -110,27 +109,41 @@ class Project(ObjectModel):
         """Link a research item to this project."""
         await self.relate("project_research", research_item_id)
 
-    async def add_task(self, task: Dict) -> None:
-        """Add a task to the embedded task list."""
-        if self.tasks is None:
-            self.tasks = []
-        task["index"] = len(self.tasks)
-        task["status"] = task.get("status", "todo")
-        task["created"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.tasks.append(task)
-        await self.save()
+    async def get_tasks(self) -> List:
+        """Get tasks linked to this project from the task table."""
+        from open_notebook.domain.task import Task
+        return await Task.get_by_project(str(self.id))
+
+    async def add_task(self, task_data: Dict) -> None:
+        """Add a task to the project via the first-class task table."""
+        from open_notebook.domain.task import Task
+        task = Task(
+            title=task_data.get("title") or task_data.get("name") or "Untitled Task",
+            description=task_data.get("description"),
+            status=task_data.get("status") or "todo",
+            priority=task_data.get("priority") or "medium",
+            due_date=task_data.get("due_date"),
+            project_id=str(self.id),
+            customer_id=str(self.customer_id) if self.customer_id else None,
+            tags=task_data.get("tags") or [],
+        )
+        await task.save()
 
     async def update_task(self, task_index: int, updates: Dict) -> None:
-        """Update a task in the embedded task list."""
-        if self.tasks is None or task_index >= len(self.tasks):
+        """Update a task by index (for backward compatibility)."""
+        tasks = await self.get_tasks()
+        if task_index >= len(tasks):
             raise InvalidInputError(f"Task index {task_index} not found")
-        self.tasks[task_index].update(updates)
-        self.tasks[task_index]["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        await self.save()
+        task = tasks[task_index]
+        for key, value in updates.items():
+            if hasattr(task, key):
+                setattr(task, key, value)
+        await task.save()
 
-    def compute_progress(self) -> int:
-        """Compute progress based on completed tasks."""
-        if not self.tasks:
+    async def compute_progress(self) -> int:
+        """Compute progress based on completed tasks in the task table."""
+        tasks = await self.get_tasks()
+        if not tasks:
             return 0
-        completed = sum(1 for t in self.tasks if t.get("status") == "done")
-        return int((completed / len(self.tasks)) * 100)
+        completed = sum(1 for t in tasks if t.status == "done")
+        return int((completed / len(tasks)) * 100)
