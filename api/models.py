@@ -2271,3 +2271,91 @@ class ScheduledPostResponse(BaseModel):
     updated: str
 
 
+class TaskTableCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    status: Optional[str] = "todo"
+    priority: Optional[str] = "medium"
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class TaskTableUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class TaskTableResponse(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    priority: Optional[str] = None
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: Optional[str] = None
+    tags: List[str]
+    created: str
+    updated: str
+
+
+class CampaignCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    theme: Optional[str] = None
+    status: Optional[str] = "draft"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    target_audience: Optional[str] = None
+    channels: Optional[List[str]] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+
+
+class CampaignUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    theme: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    target_audience: Optional[str] = None
+    channels: Optional[List[str]] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+
+
+class CampaignResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    theme: Optional[str] = None
+    status: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    target_audience: Optional[str] = None
+    channels: List[str]
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    created: str
+    updated: str
+
+
+

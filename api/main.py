@@ -64,6 +64,8 @@ from api.routers import (
     research_memory,
     system_logs,
     backup,
+    tasks,
+    campaigns,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -539,6 +541,9 @@ app.include_router(publications.router, prefix="/api", tags=["publications"])
 app.include_router(research_memory.router, prefix="/api", tags=["research-memory"])
 app.include_router(system_logs.router, prefix="/api", tags=["system-logs"])
 app.include_router(backup.router, prefix="/api", tags=["backup"])
+app.include_router(tasks.router, prefix="/api", tags=["tasks"])
+app.include_router(campaigns.router, prefix="/api", tags=["campaigns"])
+
 
 
 @app.get("/")
