@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useCreateNote, useUpdateNote, useNote } from '@/lib/hooks/use-notes'
 import { QUERY_KEYS } from '@/lib/api/query-client'
-import { MarkdownEditor } from '@/components/ui/markdown-editor'
+import { BlockEditor } from '@/components/ui/block-editor'
+import { SplitEditor } from '@/components/ui/split-editor'
 import { InlineEdit } from '@/components/common/InlineEdit'
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { toast } from 'sonner'
 
@@ -26,7 +27,14 @@ interface NoteEditorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   notebookId: string
-  note?: { id: string; title: string | null; content: string | null }
+  note?: {
+    id: string
+    title: string | null
+    content: string | null
+    content_format?: 'markdown' | 'block'
+    content_markdown_backup?: string | null
+    note_type?: string | null
+  }
 }
 
 export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteEditorDialogProps) {
@@ -43,6 +51,9 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
 
   const { data: fetchedNote, isLoading: noteLoading } = useNote(noteIdWithPrefix, { enabled: open && !!note?.id })
   const isSaving = isEditing ? updateNote.isPending : createNote.isPending
+
+  const [contentFormat, setContentFormat] = useState<'markdown' | 'block'>('block')
+
   const {
     handleSubmit,
     control,
@@ -62,14 +73,17 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
   useEffect(() => {
     if (!open) {
       reset({ title: '', content: '' })
+      setContentFormat('block')
       return
     }
 
     const source = fetchedNote ?? note
     const title = source?.title ?? ''
     const content = source?.content ?? ''
+    const format = source?.content_format ?? 'block'
 
     reset({ title, content })
+    setContentFormat(format)
   }, [open, note, fetchedNote, reset])
 
   useEffect(() => {
@@ -90,15 +104,14 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
           data: {
             title: data.title || undefined,
             content: data.content,
+            content_format: contentFormat,
           },
         })
-        // Only invalidate notebook-specific queries if we have a notebookId
         if (notebookId) {
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(notebookId) })
         }
         toast.success('Note saved')
       } else {
-        // Creating a note requires a notebookId
         if (!notebookId) {
           console.error('Cannot create note without notebook_id')
           return
@@ -108,6 +121,7 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
           content: data.content,
           note_type: 'human',
           notebook_id: notebookId,
+          content_format: contentFormat,
         })
         toast.success('Note created')
       }
@@ -127,7 +141,7 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className={cn(
-          "sm:max-w-3xl w-full max-h-[90vh] overflow-hidden p-0",
+          "sm:max-w-4xl w-full max-h-[90vh] overflow-hidden p-0 bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl transition-all duration-300",
           isEditorFullscreen && "!max-w-screen !max-h-screen border-none w-screen h-screen"
       )}>
         <DialogTitle className="sr-only">
@@ -140,49 +154,85 @@ export function NoteEditorDialog({ open, onOpenChange, notebookId, note }: NoteE
             </div>
           ) : (
             <>
-              <div className="border-b px-6 py-4">
-                <InlineEdit
-                  id="note-title"
-                  name="title"
-                  value={watchTitle ?? ''}
-                  onSave={(value) => setValue('title', value || '')}
-                  placeholder={t('sources.addTitle')}
-                  emptyText={t('sources.untitledNote')}
-                  className="text-xl font-semibold"
-                  inputClassName="text-xl font-semibold"
-                />
+              {/* Note Header Info and Format Selector */}
+              <div className="border-b px-6 py-4 flex items-center justify-between gap-4 bg-muted/10">
+                <div className="flex-1 min-w-0">
+                  <InlineEdit
+                    id="note-title"
+                    name="title"
+                    value={watchTitle ?? ''}
+                    onSave={(value) => setValue('title', value || '')}
+                    placeholder={t('sources.addTitle')}
+                    emptyText={t('sources.untitledNote')}
+                    className="text-xl font-semibold bg-transparent border-0 focus-visible:ring-0 p-0"
+                    inputClassName="text-xl font-semibold"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-muted-foreground font-medium">Format:</span>
+                  <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-lg border border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setContentFormat('block')}
+                      className={cn(
+                        'px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer text-muted-foreground',
+                        contentFormat === 'block' && 'bg-background text-foreground shadow-xs'
+                      )}
+                    >
+                      Block Editor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContentFormat('markdown')}
+                      className={cn(
+                        'px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer text-muted-foreground',
+                        contentFormat === 'markdown' && 'bg-background text-foreground shadow-xs'
+                      )}
+                    >
+                      Markdown Split
+                    </button>
+                  </div>
+                </div>
               </div>
 
+              {/* Editor Workspace */}
               <div className={cn(
-                  "flex-1 overflow-y-auto",
+                  "flex-1 overflow-y-auto min-h-0",
                   !isEditorFullscreen && "px-6 py-4")
               }>
                 <Controller
                   control={control}
                   name="content"
                   render={({ field }) => (
-                    <MarkdownEditor
-                      key={note?.id ?? 'new'}
-                      textareaId="note-content"
-                      value={field.value}
-                      onChange={field.onChange}
-                      height={420}
-                      placeholder={t('sources.writeNotePlaceholder')}
-                      className={cn(
-                          "w-full h-full min-h-[420px] max-h-[500px] overflow-hidden [&_.w-md-editor]:!static [&_.w-md-editor]:!w-full [&_.w-md-editor]:!h-full [&_.w-md-editor-content]:overflow-y-auto",
-                          !isEditorFullscreen && "rounded-md border"
-                      )}
-                    />
+                    contentFormat === 'block' ? (
+                      <BlockEditor
+                        key={`${note?.id ?? 'new'}-block`}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={t('sources.writeNotePlaceholder')}
+                        height={400}
+                      />
+                    ) : (
+                      <SplitEditor
+                        key={`${note?.id ?? 'new'}-md`}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={t('sources.writeNotePlaceholder')}
+                        height={400}
+                      />
+                    )
                   )}
                 />
                 {errors.content && (
-                  <p className="text-sm text-red-600 mt-1">{errors.content.message}</p>
+                  <p className="text-sm text-red-600 mt-1 px-1">{errors.content.message}</p>
                 )}
               </div>
             </>
           )}
 
-          <div className="border-t px-6 py-4 flex justify-end gap-2">
+          {/* Footer Controls */}
+          <div className="border-t px-6 py-4 flex justify-end gap-2 bg-muted/10">
             <Button type="button" variant="outline" onClick={handleClose}>
               {t('common.cancel')}
             </Button>

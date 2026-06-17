@@ -1,4 +1,8 @@
 from typing import List, Literal, Optional
+import re
+import uuid
+from datetime import datetime
+from pydantic import BaseModel
 
 from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
@@ -143,6 +147,9 @@ async def create_note(note_data: NoteCreate):
                 metadata={"note_id": new_note.id, "customer_id": cust_id},
             )
 
+        if new_note.id:
+            await trigger_mentions(new_note.id, new_note.content, new_note.title)
+
         return NoteResponse(
             id=new_note.id or "",
             title=new_note.title,
@@ -161,6 +168,87 @@ async def create_note(note_data: NoteCreate):
     except Exception as e:
         logger.error(f"Error creating note: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating note: {str(e)}")
+
+
+class EntityLinkCreate(BaseModel):
+    source_id: str
+    target_id: str
+    link_type: Optional[str] = "references"
+
+
+@router.get("/notes/links")
+async def get_entity_links(notebook_id: Optional[str] = Query(None)):
+    """Retrieve all entity links with optional notebook filtering."""
+    from open_notebook.database.repository import repo_query
+    try:
+        if notebook_id:
+            query = """
+            SELECT id, in, out, link_type, created FROM entity_link 
+            WHERE 
+                in = $nb OR out = $nb OR
+                in.notebook_id = $nb OR out.notebook_id = $nb OR
+                $nb IN in.notebooks OR $nb IN out.notebooks;
+            """
+            results = await repo_query(query, {"nb": notebook_id})
+        else:
+            results = await repo_query("SELECT id, in, out, link_type, created FROM entity_link;")
+        
+        return [
+            {
+                "id": str(r["id"]),
+                "in": str(r["in"]),
+                "out": str(r["out"]),
+                "link_type": r.get("link_type", "references"),
+                "created": str(r.get("created", "")),
+            }
+            for r in results
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching entity links: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/notes/links")
+async def create_entity_link(link_data: EntityLinkCreate):
+    """Create a link between two entities using repo_relate."""
+    from open_notebook.database.repository import repo_relate
+    try:
+        results = await repo_relate(
+            link_data.source_id,
+            "entity_link",
+            link_data.target_id,
+            {"link_type": link_data.link_type}
+        )
+        if not results:
+            raise HTTPException(status_code=500, detail="Failed to create link")
+        r = results[0]
+        return {
+            "id": str(r["id"]),
+            "in": str(r["in"]),
+            "out": str(r["out"]),
+            "link_type": r.get("link_type", "references"),
+            "created": str(r.get("created", "")),
+        }
+    except Exception as e:
+        logger.error(f"Error creating entity link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/notes/links/{link_id}")
+async def delete_entity_link(link_id: str):
+    """Delete an entity link."""
+    from open_notebook.database.repository import repo_delete
+    try:
+        full_id = link_id
+        if not link_id.startswith("entity_link:"):
+            full_id = f"entity_link:{link_id}"
+        success = await repo_delete(full_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Link not found or failed to delete")
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error deleting entity link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/notes/{note_id}", response_model=NoteResponse)
@@ -214,6 +302,9 @@ async def update_note(note_id: str, note_update: NoteUpdate):
             note.content_markdown_backup = note_update.content_markdown_backup
 
         command_id = await note.save()
+
+        if note.id:
+            await trigger_mentions(note.id, note.content, note.title)
 
         return NoteResponse(
             id=note.id or "",
@@ -591,3 +682,114 @@ async def get_customer_notes_rollup(customer_id: str):
     except Exception as e:
         logger.error(f"Error fetching customer notes rollup: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching customer notes rollup: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Notifications & Mentions
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class NotificationResponse(BaseModel):
+    id: str
+    user_id: str
+    type: str
+    title: str
+    body: Optional[str] = None
+    entity_id: Optional[str] = None
+    entity_type: Optional[str] = None
+    is_read: bool
+    created: str
+
+
+async def trigger_mentions(note_id: str, content: Optional[str], note_title: str):
+    """Scan content for @username mentions, verify user existence, and create notifications."""
+    if not content:
+        return
+    
+    # Extract matches of format @username
+    usernames = set(re.findall(r"@([a-zA-Z0-9_-]+)", content))
+    if not usernames:
+        return
+        
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    
+    for username in usernames:
+        try:
+            # Query user
+            user_check = await repo_query("SELECT id FROM user WHERE username = $username LIMIT 1;", {"username": username})
+            if user_check:
+                user_record = user_check[0]
+                user_id = user_record["id"]
+                
+                # Create a preview of content
+                body_preview = content[:200] + "..." if len(content) > 200 else content
+                notif_id = f"notification:{str(uuid.uuid4())}"
+                
+                notif_data = {
+                    "user_id": ensure_record_id(str(user_id)),
+                    "type": "mention",
+                    "title": f"Mentioned in note: {note_title or 'Untitled Note'}",
+                    "body": body_preview,
+                    "entity_id": note_id,
+                    "entity_type": "note",
+                    "is_read": False,
+                    "created": datetime.now().isoformat()
+                }
+                
+                await repo_query(
+                    "CREATE type::thing('notification', $id) CONTENT $data;",
+                    {"id": notif_id.split(":")[-1], "data": notif_data}
+                )
+        except Exception as e:
+            logger.error(f"Failed to process mention for @{username} on note {note_id}: {e}")
+
+
+@router.get("/notifications", response_model=List[NotificationResponse])
+async def get_notifications(user_id: Optional[str] = Query(None)):
+    """Retrieve recent notifications."""
+    from open_notebook.database.repository import repo_query
+    try:
+        if user_id:
+            from open_notebook.database.repository import ensure_record_id
+            rid = ensure_record_id(user_id if ":" in user_id else f"user:{user_id}")
+            results = await repo_query(
+                "SELECT id, user_id, type, title, body, entity_id, entity_type, is_read, created FROM notification WHERE user_id = $uid ORDER BY created DESC LIMIT 50;",
+                {"uid": rid}
+            )
+        else:
+            results = await repo_query(
+                "SELECT id, user_id, type, title, body, entity_id, entity_type, is_read, created FROM notification ORDER BY created DESC LIMIT 50;"
+            )
+        
+        return [
+            NotificationResponse(
+                id=str(r["id"]),
+                user_id=str(r["user_id"]),
+                type=r["type"],
+                title=r["title"],
+                body=r.get("body"),
+                entity_id=r.get("entity_id"),
+                entity_type=r.get("entity_type"),
+                is_read=r.get("is_read", False),
+                created=str(r.get("created", ""))
+            )
+            for r in results
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching notifications: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str):
+    """Mark a notification as read."""
+    from open_notebook.database.repository import repo_query, ensure_record_id
+    try:
+        nid = notification_id if ":" in notification_id else f"notification:{notification_id}"
+        rid = ensure_record_id(nid)
+        await repo_query("UPDATE $id SET is_read = true;", {"id": rid})
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

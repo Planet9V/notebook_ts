@@ -106,3 +106,22 @@ export function useAllNotes() {
     queryFn: () => notesApi.list(),
   })
 }
+
+export function useNotifications(userId?: string) {
+  return useQuery({
+    queryKey: ['notifications', userId],
+    queryFn: () => notesApi.getNotifications(userId),
+    refetchInterval: 10000, // Poll every 10 seconds
+  })
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => notesApi.markNotificationRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}
+

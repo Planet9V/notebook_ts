@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
+import { NotificationBell } from './NotificationBell'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useSidebarStore } from '@/lib/stores/sidebar-store'
@@ -408,6 +409,14 @@ export function AppSidebar() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
+                      <NotificationBell iconOnly />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Notifications</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
                       <ThemeToggle iconOnly />
                     </div>
                   </TooltipTrigger>
@@ -424,6 +433,7 @@ export function AppSidebar() {
               </>
             ) : (
               <>
+                <NotificationBell />
                 <ThemeToggle />
                 <LanguageToggle />
               </>

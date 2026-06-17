@@ -26,6 +26,8 @@ export interface NoteResponse {
   title: string | null
   content: string | null
   note_type: string | null
+  content_format?: 'markdown' | 'block'
+  content_markdown_backup?: string | null
   created: string
   updated: string
   command_id?: string
@@ -100,6 +102,7 @@ export interface UpdateNotebookRequest {
   stage?: string
   client_name?: string
   estimated_value?: number
+  hovered_on_map?: boolean
   contacts?: Array<Record<string, string>>
   crawl_failed?: boolean
   suggested_contacts?: Array<Record<string, string>>
@@ -130,17 +133,16 @@ export interface CreateNoteRequest {
   title?: string
   content: string
   note_type?: string
+  content_format?: 'markdown' | 'block'
+  content_markdown_backup?: string | null
   notebook_id?: string
   location_id?: string
   customer_id?: string
 }
 
 export interface CreateSourceRequest {
-  // Backward compatibility: support old single notebook_id
   notebook_id?: string
-  // New multi-notebook support
   notebooks?: string[]
-  // Required fields
   type: 'link' | 'upload' | 'text'
   url?: string
   file_path?: string
@@ -149,7 +151,6 @@ export interface CreateSourceRequest {
   transformations?: string[]
   embed?: boolean
   delete_source?: boolean
-  // New async processing support
   async_processing?: boolean
 }
 
@@ -157,6 +158,8 @@ export interface UpdateNoteRequest {
   title?: string
   content?: string
   note_type?: string
+  content_format?: 'markdown' | 'block'
+  content_markdown_backup?: string | null
 }
 
 export interface UpdateSourceRequest {
@@ -307,3 +310,16 @@ export interface CustomerNotesRollup {
   locations: LocationNotesRollup[]
   total_note_count: number
 }
+
+export interface NotificationResponse {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  body?: string | null
+  entity_id?: string | null
+  entity_type?: string | null
+  is_read: boolean
+  created: string
+}
+
