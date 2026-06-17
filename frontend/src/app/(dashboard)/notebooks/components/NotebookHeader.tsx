@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { NotebookResponse } from '@/lib/types/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Archive, ArchiveRestore, Trash2, Briefcase, BookOpen } from 'lucide-react'
+import { Archive, ArchiveRestore, Trash2, Briefcase, BookOpen, Network } from 'lucide-react'
 import { useUpdateNotebook } from '@/lib/hooks/use-notebooks'
 import { NotebookDeleteDialog } from './NotebookDeleteDialog'
 import { formatDistanceToNow } from 'date-fns'
@@ -17,9 +17,17 @@ interface NotebookHeaderProps {
   notebook: NotebookResponse
   isB2BMode?: boolean
   onToggleB2BMode?: () => void
+  showRelations?: boolean
+  onToggleRelations?: () => void
 }
 
-export function NotebookHeader({ notebook, isB2BMode, onToggleB2BMode }: NotebookHeaderProps) {
+export function NotebookHeader({
+  notebook,
+  isB2BMode,
+  onToggleB2BMode,
+  showRelations,
+  onToggleRelations
+}: NotebookHeaderProps) {
   const { t, language } = useTranslation()
   const dfLocale = getDateLocale(language)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -77,6 +85,17 @@ export function NotebookHeader({ notebook, isB2BMode, onToggleB2BMode }: Noteboo
               )}
             </div>
             <div className="flex gap-2">
+              {onToggleRelations && !isB2BMode && (
+                <Button
+                  variant={showRelations ? "default" : "outline"}
+                  size="sm"
+                  onClick={onToggleRelations}
+                  className={showRelations ? "bg-gradient-to-r from-violet-600 to-indigo-500 hover:from-violet-700 hover:to-indigo-600 text-white border-0 shadow-sm transition-all duration-200" : ""}
+                >
+                  <Network className="h-4 w-4 mr-2" />
+                  Relations Graph
+                </Button>
+              )}
               {onToggleB2BMode && (
                 <Button
                   variant="default"

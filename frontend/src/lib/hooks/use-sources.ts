@@ -13,7 +13,8 @@ import {
   SourceListResponse
 } from '@/lib/types/api'
 
-const NOTEBOOK_SOURCES_PAGE_SIZE = 30
+// Load all sources in a single request — backend now supports up to 1000.
+const NOTEBOOK_SOURCES_PAGE_SIZE = 1000
 
 export function useSources(notebookId?: string) {
   return useQuery({

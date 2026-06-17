@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -17,9 +18,8 @@ def client():
 class TestCredentialCascadeDelete:
     """Tests for #651 - deleting credential cascade-deletes linked models."""
 
-    @pytest.mark.asyncio
     @patch("api.routers.credentials.Credential.get")
-    async def test_cascade_delete_linked_models(self, mock_get, client):
+    def test_cascade_delete_linked_models(self, mock_get, client):
         """Deleting credential without options cascade-deletes linked models."""
         mock_model1 = AsyncMock()
         mock_model1.id = "model:1"
@@ -49,9 +49,8 @@ class TestCredentialCascadeDelete:
         mock_model2.delete.assert_awaited_once()
         mock_cred.delete.assert_awaited_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.credentials.Credential.get")
-    async def test_delete_credential_no_linked_models(self, mock_get, client):
+    def test_delete_credential_no_linked_models(self, mock_get, client):
         """Deleting credential with no linked models works cleanly."""
         mock_cred = AsyncMock()
         mock_cred.get_linked_models = AsyncMock(return_value=[])
@@ -65,9 +64,8 @@ class TestCredentialCascadeDelete:
         assert data["deleted_models"] == 0
         mock_cred.delete.assert_awaited_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.credentials.Credential.get")
-    async def test_migrate_models_instead_of_delete(self, mock_get, client):
+    def test_migrate_models_instead_of_delete(self, mock_get, client):
         """Passing migrate_to reassigns models instead of deleting them."""
         mock_model = AsyncMock()
         mock_model.id = "model:1"

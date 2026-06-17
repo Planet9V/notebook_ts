@@ -52,8 +52,7 @@ class TestDeliveryHierarchyValidation:
         
         # Test direct execution
         import asyncio
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(validate_location_customer("location:loc1", "customer:cust1"))
+        asyncio.run(validate_location_customer("location:loc1", "customer:cust1"))
 
     @patch("open_notebook.domain.base.repo_query", new_callable=AsyncMock)
     def test_validation_failure_mismatching_customer(self, mock_repo_query, client):
@@ -64,9 +63,8 @@ class TestDeliveryHierarchyValidation:
         mock_repo_query.return_value = [{"id": "location:loc1", "customer_id": "customer:cust_other", "facility_name": "Test Facility"}]
 
         import asyncio
-        loop = asyncio.get_event_loop()
         with pytest.raises(HTTPException) as exc_info:
-            loop.run_until_complete(validate_location_customer("location:loc1", "customer:cust1"))
+            asyncio.run(validate_location_customer("location:loc1", "customer:cust1"))
         
         assert exc_info.value.status_code == 400
         assert "does not belong to Customer" in exc_info.value.detail

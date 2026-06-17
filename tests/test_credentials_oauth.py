@@ -2,6 +2,7 @@
 Tests for Google OAuth 2.0 Credentials Callbacks.
 """
 from unittest.mock import AsyncMock, MagicMock, patch
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -12,9 +13,8 @@ def client():
     return TestClient(app)
 
 class TestCredentialsOAuth:
-    @pytest.mark.asyncio
     @patch("api.routers.credentials.Credential.get")
-    async def test_oauth_callback_error_param(self, mock_get, client):
+    def test_oauth_callback_error_param(self, mock_get, client):
         """When Google returns an error parameter, return 400 and show failure page."""
         response = client.get("/api/credentials/oauth/callback?error=access_denied")
         assert response.status_code == 400
@@ -22,19 +22,17 @@ class TestCredentialsOAuth:
         assert "access_denied" in response.text
         mock_get.assert_not_called()
 
-    @pytest.mark.asyncio
     @patch("api.routers.credentials.Credential.get")
-    async def test_oauth_callback_missing_code(self, mock_get, client):
+    def test_oauth_callback_missing_code(self, mock_get, client):
         """When authorization code is missing, return 400."""
         response = client.get("/api/credentials/oauth/callback")
         assert response.status_code == 400
         assert "Missing authorization code" in response.json()["detail"]
         mock_get.assert_not_called()
 
-    @pytest.mark.asyncio
     @patch("api.routers.credentials.Credential.get")
     @patch("httpx.AsyncClient.post")
-    async def test_oauth_callback_success(self, mock_post, mock_get, client):
+    def test_oauth_callback_success(self, mock_post, mock_get, client):
         """When code is provided, exchange it for tokens and persist them successfully."""
         # 1. Setup mock credential
         mock_cred = AsyncMock()

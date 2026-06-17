@@ -1,0 +1,6 @@
+REMOVE FIELD username ON TABLE user;
+REMOVE FIELD password_hash ON TABLE user;
+REMOVE FIELD is_active ON TABLE user;
+REMOVE FIELD last_login ON TABLE user;
+REMOVE INDEX idx_user_email ON TABLE user;
+REMOVE INDEX idx_user_username ON TABLE user;

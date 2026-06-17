@@ -161,3 +161,15 @@ agentdb.rvf
 agentdb.rvf.lock
 .claude-flow/
 .swarm/
+
+# Tool scaffolding artifacts (RuFlo, agentic-flow, etc.)
+# These are created by AI tooling and must NOT be committed.
+*.pre-ruflo
+/package.json
+/package-lock.json
+# AI tool config symlinks — local only, created by make setup-hooks
+/CLAUDE.md
+docs/plans/dashboard-wiring-plan.md
+docs/plans/dashboard_findings.md
+docs/plans/dashboard_progress.md
+docs/plans/dashboard_task_plan.md

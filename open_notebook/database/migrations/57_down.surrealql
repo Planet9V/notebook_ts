@@ -1,0 +1,3 @@
+-- 57_down.surrealql
+REMOVE TABLE IF EXISTS entity_link;
+REMOVE FIELD IF EXISTS content_markdown_backup ON TABLE note;

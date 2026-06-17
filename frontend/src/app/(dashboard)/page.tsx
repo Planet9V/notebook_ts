@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,9 +19,14 @@ import { useLocations, useCreateLocation, useLocation } from '@/lib/hooks/use-lo
 import { useActivities, useCreateActivity } from '@/lib/hooks/use-activities'
 import { useSearch } from '@/lib/hooks/use-search'
 import { useScheduledEpisodes } from '@/lib/hooks/use-podcasts'
+import { useVoiceRegistry } from '@/lib/hooks/use-voice-registry'
+import { useTransformations, useExecuteTransformation } from '@/lib/hooks/use-transformations'
+import { usePublicationsCalendar } from '@/lib/hooks/use-publications'
+import { useResearchMemoryStats } from '@/lib/hooks/use-research-memory'
 import { sourcesApi } from '@/lib/api/sources'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'sonner'
+import { TodayDigest } from '@/components/dashboard/TodayDigest'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import {
@@ -57,14 +63,9 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// Define the 7 mockup types
-type MockupType = 'gateway' | 'perspective' | 'customizable' | 'topological' | 'cockpit' | 'agent-swarm' | 'enhanced-perspective'
+export default function DashboardPage() {
+  const router = useRouter()
 
-export default function MockupsPage() {
-  const [activeMockup, setActiveMockup] = useState<MockupType>('enhanced-perspective')
-
-  // State for Mockup 2 (Perspective Selector)
-  const [perspective, setPerspective] = useState<'sales' | 'research' | 'delivery' | 'marketing'>('sales')
 
   // State for Mockup 7 (Enhanced Perspective Selector)
   const [enhancedPerspective, setEnhancedPerspective] = useState<'sales' | 'research' | 'delivery' | 'marketing' | 'admin'>('sales')
@@ -77,6 +78,8 @@ export default function MockupsPage() {
   const { data: customersList = [] } = useCustomers()
   const { data: notebooksList = [] } = useNotebooks()
   const { data: scheduledEpisodes = [] } = useScheduledEpisodes()
+  const { data: calendarPosts = [] } = usePublicationsCalendar()
+  const { data: rmemStats } = useResearchMemoryStats()
 
   const { data: globalSources = [], refetch: refetchGlobalSources } = useQuery({
     queryKey: ['sources', 'global'],
@@ -102,7 +105,14 @@ export default function MockupsPage() {
 
   const { data: locationsList = [], refetch: refetchLocations } = useLocations()
   const createLocationMutation = useCreateLocation()
-  const { data: activitiesList = [], refetch: refetchActivities } = useActivities(projectsList[0]?.customer_id || customersList[0]?.id)
+
+  // Selected project — reactive state so user can switch active project in kanban
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const activeDbProject = projectsList.find(p => p.id === activeProjectId) || projectsList[0]
+
+  const { data: activitiesList = [], refetch: refetchActivities } = useActivities(
+    activeDbProject?.customer_id || customersList[0]?.id
+  )
   const createActivityMutation = useCreateActivity()
 
   const { data: containerStatus, refetch: refetchContainers } = useQuery({
@@ -114,11 +124,22 @@ export default function MockupsPage() {
     refetchInterval: 10000,
   })
 
-  // Selected project (default to the first project in database)
-  const activeDbProject = projectsList[0]
-  
   // Selected user filter
   const [userFilter, setUserFilter] = useState<string>('all')
+
+  // Research hub — notebook scoping
+  const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null)
+
+  // New Customer dialog state
+  const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false)
+  const [newCustomerName, setNewCustomerName] = useState('')
+  const [newCustomerIndustry, setNewCustomerIndustry] = useState('')
+  const [newCustomerWebsite, setNewCustomerWebsite] = useState('')
+
+  // Compliance override confirmation state
+  const [pendingOverrideCustomerId, setPendingOverrideCustomerId] = useState<string | null>(null)
+  const [pendingOverrideCustomerName, setPendingOverrideCustomerName] = useState<string>('')
+  const [isOverrideConfirmOpen, setIsOverrideConfirmOpen] = useState(false)
 
   // Dynamic CRM calculations
   const totalLeads = customersList.length
@@ -334,12 +355,10 @@ export default function MockupsPage() {
     }
   }
   
-  // Sales CRM Mindset State
-  const [salesCampaigns] = useState([
-    { id: 'camp-s1', name: 'NIST CSF v2 Awareness Outreach', channel: 'LinkedIn', targetAccount: 'Acme Security Corp', status: 'Running', leadsGenerated: 12 },
-    { id: 'camp-s2', name: 'SCADA Segments Security Webinar', channel: 'Email', targetAccount: 'Apex Networks', status: 'Planned', leadsGenerated: 0 },
-    { id: 'camp-s3', name: 'Federal Threat Intel Feed Promo', channel: 'X/Twitter', targetAccount: 'Global Logistics', status: 'Running', leadsGenerated: 8 },
-  ])
+  // Sales CRM Mindset State — salesCampaigns replaced by live scheduledEpisodes from API
+  const { data: voiceRegistry } = useVoiceRegistry()
+  const executeTransformationMutation = useExecuteTransformation()
+  const { data: transformationsList = [] } = useTransformations()
 
   // Research Mindset State
   const [researchSearchQuery, setResearchSearchQuery] = useState('')
@@ -347,37 +366,12 @@ export default function MockupsPage() {
   const [researchSearchResults, setResearchSearchResults] = useState<any[]>([])
   const [selectedResearchDoc, setSelectedResearchDoc] = useState<any>(null)
   const [activeCitationPopover, setActiveCitationPopover] = useState<string | null>(null)
-  const [researchDocsList, setResearchDocsList] = useState([
-    { id: 'doc-1', name: 'nist_sp_800_82_rev3.pdf', size: '2.4 MB', type: 'PDF', addedBy: 'Researcher Agent', date: '2026-06-03', textPreview: 'Industrial Control Systems (ICS) security policies require logical segment isolation, cryptographic boundaries, and offline simulation logs...' },
-    { id: 'doc-2', name: 'cisa_scada_hardening_guidelines.pdf', size: '1.5 MB', type: 'PDF', addedBy: 'Data Agent', date: '2026-06-04', textPreview: 'Hardening SCADA networks involves disabling unused protocol ports, setting up pgvector similarity caching, and auditing supervisor logs hourly...' },
-    { id: 'doc-3', name: 'nist_csf_v2_core.pdf', size: '3.1 MB', type: 'PDF', addedBy: 'SRE Agent', date: '2026-06-05', textPreview: 'The NIST Cybersecurity Framework Version 2.0 covers six core functions: Govern, Identify, Protect, Detect, Respond, and Recover...' }
-  ])
+  // researchDocsList removed — document tree renders from live globalSources
 
   // Delivery Mindset State
-  const [deliveryNestedTree, setDeliveryNestedTree] = useState({
-    name: 'ACME Operations Portfolio',
-    isOpen: true,
-    projects: [
-      {
-        id: 'proj-d1',
-        name: 'NIST CSF v2 Compliance Alignment',
-        isOpen: true,
-        facilities: [
-          { id: 'fac-1', name: 'Texas Petrochemical Refining Plant', SREConfig: 'Cluster: tx-ref-01 | Nodes: 20 | RBAC: Enforced', complianceScore: '92%', docName: 'nist_csf_v2_core.pdf' },
-          { id: 'fac-2', name: 'Ohio Nuclear Generation Station', SREConfig: 'Cluster: oh-gen-02 | Nodes: 30 | RBAC: Multi-Factor', complianceScore: '87%', docName: 'cisa_scada_hardening_guidelines.pdf' },
-        ]
-      },
-      {
-        id: 'proj-d2',
-        name: 'SCADA Network Insulation',
-        isOpen: false,
-        facilities: [
-          { id: 'fac-3', name: 'California Solar Distribution Grid', SREConfig: 'Cluster: ca-solar-04 | Nodes: 12 | RBAC: Basic', complianceScore: '94%', docName: 'nist_sp_800_82_rev3.pdf' }
-        ]
-      }
-    ]
-  })
-  
+  // deliveryNestedTree removed — tree renders from live projectsList grouped by customer_id
+  // deliveryTasksList removed — kanban/table read from activeDbProject.tasks (live)
+
   const [selectedFacilityId, setSelectedFacilityId] = useState<string>('')
   const { data: activeLocation } = useLocation(selectedFacilityId, !!selectedFacilityId)
 
@@ -386,27 +380,17 @@ export default function MockupsPage() {
       setSelectedFacilityId(locationsList[0].id)
     }
   }, [locationsList, selectedFacilityId])
-  const [deliveryTasksList, setDeliveryTasksList] = useState([
-    { id: 'task-d1', name: 'Isolate SCADA protocol ports', stage: 'In Progress', dueDate: '2026-06-15', assignee: 'SRE Agent Alpha', priority: 'High' },
-    { id: 'task-d2', name: 'Seed CISA validation framework questions', stage: 'Done', dueDate: '2026-06-08', assignee: 'SRE Agent Beta', priority: 'Medium' },
-    { id: 'task-d3', name: 'Audit PostgreSQL pgvector memory usage', stage: 'Todo', dueDate: '2026-06-20', assignee: 'System Agent', priority: 'Low' },
-    { id: 'task-d4', name: 'Verify backup failover recovery script', stage: 'In Review', dueDate: '2026-06-12', assignee: 'SRE Agent Alpha', priority: 'High' }
-  ])
   const [deliveryTasksView, setDeliveryTasksView] = useState<'kanban' | 'table'>('kanban')
   const [openProjectIds, setOpenProjectIds] = useState<Record<string, boolean>>({})
 
   // Marketing Mindset State
   const [marketingAudioScript, setMarketingAudioScript] = useState('NIST CSF v2 updates include Govern and Recover functions.')
-  const [selectedMarketingVoice, setSelectedMarketingVoice] = useState('v1')
+  // selectedMarketingVoiceId is the actual voice_id from the API (e.g. 'am_adam')
+  const [selectedMarketingVoiceId, setSelectedMarketingVoiceId] = useState('am_adam')
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
   const [isAudioGenerated, setIsAudioGenerated] = useState(false)
   const [marketingAudioUrl, setMarketingAudioUrl] = useState<string | null>(null)
-  const [socialSchedulerPosts, setSocialSchedulerPosts] = useState([
-    { id: 'sch-1', platform: 'LinkedIn', title: 'NIST CSF v2 Compliance Audit takeaways', date: '2026-06-12 09:00', status: 'Active' },
-    { id: 'sch-2', platform: 'X/Twitter', title: 'Securing SCADA networks under NIST SP 800-82 Rev 3', date: '2026-06-13 14:00', status: 'Queued' },
-    { id: 'sch-3', platform: 'Blog', title: 'Deep dive: How vector databases accelerate threat intelligence', date: '2026-06-15 10:00', status: 'Queued' },
-    { id: 'sch-4', platform: 'LinkedIn', title: 'Why pgvector hybrid search outperforms simple keyword queries', date: '2026-06-10 08:30', status: 'Published' },
-  ])
+  // socialSchedulerPosts removed — marketingPosts derives only from live scheduledEpisodes
 
   // State for Mockup 3 (Customizable Bento)
   const [layout, setLayout] = useState<string[]>([
@@ -519,91 +503,98 @@ export default function MockupsPage() {
     setRenameValue('')
   }
 
-  // Mock Delivery Matrix State
-  const [deliveryLayout, setDeliveryLayout] = useState<'table' | 'kanban'>('table')
-  const [deliveries, setDeliveries] = useState([
-    { id: 'del-1', client: 'Acme Security Corp', project: 'NIST CSF v2 Alignment', progress: 70, status: 'In Progress', manager: 'SRE Agent Alpha' },
-    { id: 'del-2', client: 'Apex Networks', project: 'SCADA Segment Insulation', progress: 40, status: 'In Progress', manager: 'SRE Agent Beta' },
-    { id: 'del-3', client: 'Cyber Sentinel', project: 'Cloud Vulnerability Remediation', progress: 100, status: 'Completed', manager: 'System Agent' },
-  ])
-
-  // Mock Marketing Studio State
-  const [campaigns, setCampaigns] = useState([
-    { id: 'camp-1', title: 'NIST CSF v2 Compliance Campaign', status: 'Active', platform: 'LinkedIn', scheduledTime: '2026-06-12 09:00' },
-    { id: 'camp-2', title: 'SCADA Security Threats Podcast Ep 4', status: 'Queued', platform: 'Blog', scheduledTime: '2026-06-15 14:00' },
-  ])
+  // deliveries mock removed — progress computed from project.tasks in render
+  // campaigns mock removed — scheduler queue comes from live scheduledEpisodes API
   const [showPostGenerator, setShowPostGenerator] = useState(false)
   const [marketingPlatform, setMarketingPlatform] = useState<'LinkedIn' | 'X/Twitter' | 'Blog'>('LinkedIn')
   const [marketingSourceText, setMarketingSourceText] = useState('NIST SP 800-82 standard details secure industrial control systems (ICS).')
   const [generatedPost, setGeneratedPost] = useState('')
   const [isGeneratingPost, setIsGeneratingPost] = useState(false)
 
-  const generatePostText = () => {
+  const generatePostText = async () => {
+    if (!marketingSourceText.trim()) return
     setIsGeneratingPost(true)
-    setTimeout(() => {
-      setIsGeneratingPost(false)
-      const dateStr = new Date().toLocaleDateString()
-      if (marketingPlatform === 'LinkedIn') {
-        setGeneratedPost(`📊 Compliance Update (${dateStr}): Analyzing the latest NIST SP 800-82 rev3 guidelines. Takeaways for securing ICS/SCADA:\n1. Insulation of critical segments\n2. Mandatory microservice security gates.\n#Cybersecurity #NIST #OTSecurity`)
-      } else if (marketingPlatform === 'X/Twitter') {
-        setGeneratedPost(`🔒 Securing ICS/SCADA under NIST SP 800-82 Rev 3 thread:\n1/ Segment insulation is key.\n2/ Rebuild threat intelligence indices with pgvector vector-search caches.\n3/ Run audits hourly in your devops dashboard. 🚀`)
-      } else {
-        setGeneratedPost(`# Deep Dive: NIST SP 800-82 Rev 3 and OT Security\n\nIndustrial Control Systems (ICS) require robust security policies. By deploying isolated microservices and utilizing vector-based similarity index search, enterprise networks can proactively defend against SCADA segment intrusion...`)
-      }
-    }, 1000)
-  }
-
-  const addCampaign = () => {
-    if (!generatedPost) return
-    const newCamp = {
-      id: `camp-${Date.now()}`,
-      title: generatedPost.slice(0, 40) + '...',
-      status: 'Queued' as const,
-      platform: marketingPlatform,
-      scheduledTime: new Date(Date.now() + 86400000).toLocaleString()
-    }
-    setCampaigns(prev => [...prev, newCamp])
-    setShowPostGenerator(false)
     setGeneratedPost('')
+    try {
+      const firstTransformation = (transformationsList as any[])[0]
+      if (firstTransformation) {
+        const res = await executeTransformationMutation.mutateAsync({
+          transformation_id: firstTransformation.id,
+          input_text: `Platform: ${marketingPlatform}\n\n${marketingSourceText}`,
+          model_id: firstTransformation.model_id,
+        })
+        setGeneratedPost(res.output || '')
+      } else {
+        toast.error('No AI transformation configured — set one up to generate posts.')
+        router.push('/transformations')
+      }
+    } catch {
+      // Error handled by useExecuteTransformation onError
+    } finally {
+      setIsGeneratingPost(false)
+    }
   }
 
-  // Mock Admin Panel / Container states
-  const [containers, setContainers] = useState([
-    { id: 'cont-surreal', name: 'surrealdb', status: 'running', port: 8000 },
-    { id: 'cont-postgres', name: 'postgres', status: 'running', port: 5433 },
-    { id: 'cont-opennotebook', name: 'open_notebook', status: 'running', port: 8502 },
-    { id: 'cont-kokoro', name: 'kokoro-tts', status: 'running', port: 8880 },
-  ])
+  const addCampaign = async () => {
+    if (!generatedPost) return
+    try {
+      await apiClient.post('/publications/schedule', {
+        title: generatedPost.slice(0, 80),
+        content: generatedPost,
+        platform: marketingPlatform,
+        scheduled_time: new Date(Date.now() + 86400000).toISOString(),
+        status: 'queued',
+      })
+      toast.success('Post added to publication schedule.')
+      setShowPostGenerator(false)
+      setGeneratedPost('')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to schedule post.')
+    }
+  }
+
+  // Admin Panel state — containers sourced entirely from API (no hardcoded list)
   const [isRebuildingIndex, setIsRebuildingIndex] = useState(false)
   const [rebuildProgress, setRebuildProgress] = useState(0)
   const [restartingContainers, setRestartingContainers] = useState<Record<string, boolean>>({})
   const rebuildIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Memoized live container status mapping
+  // liveContainers: all containers returned by the API, normalized shape
   const liveContainers = useMemo(() => {
-    if (!containerStatus?.containers) {
-      return containers
-    }
-    return containers.map((mc) => {
-      const live = containerStatus.containers.find((c: any) => c.name === mc.name)
-      return {
-        ...mc,
-        status: live ? (live.state === 'running' ? 'running' : 'stopped') : mc.status
-      }
-    })
-  }, [containerStatus, containers])
+    if (!containerStatus?.containers) return []
+    return (containerStatus.containers as any[]).map((c) => ({
+      id: c.name,
+      name: c.name,
+      status: c.state === 'running' ? 'running' : 'stopped',
+      // ports is a string (e.g. "0.0.0.0:8502->8502/tcp, ...") — use directly, not as array
+      port: (typeof c.ports === 'string' ? c.ports : '') || c.port || '',
+    }))
+  }, [containerStatus])
 
-  // Memoized live scheduled marketing episodes + static scheduler posts
+  // marketingPosts: merge live scheduled episodes + calendar posts for full marketing queue
   const marketingPosts = useMemo(() => {
-    const dbPosts = scheduledEpisodes.map((ep: any) => ({
+    const episodes = scheduledEpisodes.map((ep: any) => ({
       id: ep.id,
       platform: ep.platform || 'Podcast',
+      channel: ep.platform || 'Podcast',
       title: ep.title,
-      date: ep.scheduled_time || ep.created || '2026-06-12 09:00',
+      date: ep.scheduled_time || ep.created || '',
       status: ep.status || 'Queued'
     }))
-    return [...dbPosts, ...socialSchedulerPosts]
-  }, [scheduledEpisodes, socialSchedulerPosts])
+    const posts = calendarPosts.map((p: any) => ({
+      id: p.id,
+      // normalise channel → platform for counter filters
+      platform: p.channel === 'linkedin' ? 'LinkedIn'
+        : p.channel === 'twitter' ? 'X/Twitter'
+        : p.channel === 'blog' ? 'Blog'
+        : p.channel || 'Post',
+      channel: p.channel,
+      title: p.title || p.content?.slice(0, 60),
+      date: p.scheduled_time || '',
+      status: p.status || 'queued'
+    }))
+    return [...episodes, ...posts]
+  }, [scheduledEpisodes, calendarPosts])
 
   const handleRestartContainer = async (name: string) => {
     const confirmed = window.confirm(`WARNING: Restarting the container "${name}" will cause temporary service interruption. Proceed?`)
@@ -627,10 +618,10 @@ export default function MockupsPage() {
     setIsAudioGenerated(false)
 
     try {
-      const voicePreset = selectedMarketingVoice === 'v2' ? 'af_bella' : selectedMarketingVoice === 'v3' ? 'am_michael' : 'am_adam'
+      // Use actual voice_id from registry selection
       const response = await apiClient.post('/voice/tts/synthesize', {
         input: marketingAudioScript.trim(),
-        voice: voicePreset,
+        voice: selectedMarketingVoiceId,
       }, { responseType: 'blob' })
 
       if (marketingAudioUrl) {
@@ -749,32 +740,54 @@ export default function MockupsPage() {
   const [aiProcessing, setAiProcessing] = useState(false)
   const [aiResponse, setAiResponse] = useState<string | null>(null)
 
-  const handleRunAiCommand = (e: React.FormEvent) => {
+  const handleRunAiCommand = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!aiCommand.trim()) return
 
     setAiProcessing(true)
     setAiResponse(null)
 
-    setTimeout(() => {
-      setAiProcessing(false)
+    try {
+      // Use real hybrid search — POST /api/search
+      const res = await searchMutation.mutateAsync({
+        query: aiCommand,
+        type: 'hybrid',
+        limit: 5,
+        search_sources: true,
+        search_notes: true,
+        minimum_score: 0.0,
+      })
+      const results: any[] = res?.results ?? []
+
+      // Auto-switch mindset based on query keywords
       const cmd = aiCommand.toLowerCase()
-      if (cmd.includes('sales') || cmd.includes('pipeline') || cmd.includes('deal')) {
-        setAiResponse('Routing you to the Sales CRM. Pre-populating pipeline forecast analysis: $240,000 expected in Q3.')
-        if (activeMockup === 'perspective') setPerspective('sales')
-      } else if (cmd.includes('research') || cmd.includes('search') || cmd.includes('notes')) {
-        setAiResponse('Searching compliance repository. Found 4 references regarding NIST SP 800-82. Synthesizing briefing doc.')
-        if (activeMockup === 'perspective') setPerspective('research')
-      } else if (cmd.includes('container') || cmd.includes('sre') || cmd.includes('logs')) {
-        setAiResponse('Querying Docker API. All 6 microservices running stably. Average container CPU load: 14.2%.')
-        if (activeMockup === 'perspective') setPerspective('delivery')
-      } else if (cmd.includes('podcast') || cmd.includes('audio') || cmd.includes('marketing')) {
-        setAiResponse('Preparing podcast generation layout. Elevating segment intro/outro audio concatenate pipeline.')
-        if (activeMockup === 'perspective') setPerspective('marketing')
+      if (cmd.includes('sales') || cmd.includes('pipeline') || cmd.includes('deal') || cmd.includes('customer')) {
+        setEnhancedPerspective('sales')
+      } else if (cmd.includes('podcast') || cmd.includes('audio') || cmd.includes('marketing') || cmd.includes('campaign') || cmd.includes('post')) {
+        setEnhancedPerspective('marketing')
+      } else if (cmd.includes('container') || cmd.includes('sre') || cmd.includes('project') || cmd.includes('delivery') || cmd.includes('facility')) {
+        setEnhancedPerspective('delivery')
+      } else if (cmd.includes('admin') || cmd.includes('user') || cmd.includes('config') || cmd.includes('settings') || cmd.includes('logs')) {
+        setEnhancedPerspective('admin')
       } else {
-        setAiResponse('Intent analyzed. Fetching context across pgvector database and Merged Skills index...')
+        // Default: research mindset for document/note queries
+        setEnhancedPerspective('research')
       }
-    }, 1200)
+
+      if (results.length > 0) {
+        const preview = results.slice(0, 2)
+          .map((r) => r.title || (r.content as string)?.slice(0, 50))
+          .filter(Boolean)
+          .join(' · ')
+        setAiResponse(`Found ${results.length} result${results.length > 1 ? 's' : ''}: ${preview}`)
+      } else {
+        setAiResponse('No matching documents found. Try adding sources in the Research Hub.')
+      }
+    } catch {
+      setAiResponse('Search unavailable. Ensure the API service is running.')
+    } finally {
+      setAiProcessing(false)
+    }
   }
 
   // Helper to reorder layout (simulating drag and drop)
@@ -809,103 +822,6 @@ export default function MockupsPage() {
   return (
     <AppShell>
       <div className="flex-1 flex flex-col h-full bg-slate-950 text-slate-100 overflow-y-auto">
-        {/* Mockup Toolbar */}
-      <div className="border-b border-white/10 bg-slate-900/60 p-4 sticky top-0 z-50 backdrop-blur-md">
-        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-cyan-400" />
-              <h1 className="text-lg font-bold font-mono tracking-wider uppercase">
-                Bento Layout prototypes
-              </h1>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Compare visual architectures for the single-user universal dashboard gateway
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground mr-1">Select View:</span>
-            <Button
-              variant={activeMockup === 'gateway' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('gateway')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase"
-            >
-              1. Gateway
-            </Button>
-            <Button
-              variant={activeMockup === 'perspective' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('perspective')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase"
-            >
-              2. Perspective
-            </Button>
-            <Button
-              variant={activeMockup === 'customizable' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('customizable')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase"
-            >
-              3. Customizable
-            </Button>
-            <Button
-              variant={activeMockup === 'topological' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('topological')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase"
-            >
-              4. Topological
-            </Button>
-            <Button
-              variant={activeMockup === 'cockpit' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('cockpit')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase text-slate-300"
-            >
-              5. Cockpit
-            </Button>
-            <Button
-              variant={activeMockup === 'agent-swarm' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('agent-swarm')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase text-slate-300"
-            >
-              6. Swarm
-            </Button>
-            <Button
-              variant={activeMockup === 'enhanced-perspective' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveMockup('enhanced-perspective')
-                setAiResponse(null)
-              }}
-              className="font-mono text-xs h-8 uppercase text-cyan-400 border-cyan-500/20"
-            >
-              7. Perspective+
-            </Button>
-          </div>
-        </div>
-      </div>
 
       {/* Mockup Work Area */}
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full space-y-6">
@@ -918,7 +834,7 @@ export default function MockupsPage() {
               <Input
                 value={aiCommand}
                 onChange={(e) => setAiCommand(e.target.value)}
-                placeholder="Ask the built-in AI assistant... (e.g. 'show container logs', 'review sales forecast', 'search NIST standard')"
+                placeholder="Ask anything — search sources, query pipeline, switch mindset, run compliance checks..."
                 className="pl-11 bg-slate-950/80 border-white/10 text-xs font-mono h-10 rounded-xl"
               />
             </div>
@@ -937,1459 +853,7 @@ export default function MockupsPage() {
           )}
         </div>
 
-        {/* ==================== MOCKUP 1: THE BENTO GATEWAY ==================== */}
-        {activeMockup === 'gateway' && (
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">1. Universal Bento Gateway (Conservative)</h2>
-              <p className="text-xs text-muted-foreground">Four visual bento entry cards presenting key live stats, plus direct gateway buttons. Zero layout complexity, optimized for immediate start.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              
-              {/* Sales CRM Card */}
-              <div className="group relative rounded-2xl border border-white/10 bg-slate-900/40 p-6 flex flex-col justify-between hover:border-cyan-500/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all duration-300 min-h-[300px] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 to-cyan-500/0 opacity-60" />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                      <TrendingUp className="h-5 w-5" />
-                    </div>
-                    <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 font-mono text-[9px] uppercase tracking-wider">Sales CRM</Badge>
-                  </div>
-                  <div className="space-y-1 pt-2">
-                    <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider">Active Forecast</span>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-slate-100">$240,000</div>
-                    <span className="text-[9.5px] text-emerald-400 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" /> 4 Deals in Negotiation
-                    </span>
-                  </div>
-                  {/* Mini pipeline stages visualization */}
-                  <div className="flex gap-1 pt-2">
-                    <div className="h-1.5 flex-1 bg-cyan-500 rounded-sm opacity-90" title="Qualification: Done" />
-                    <div className="h-1.5 flex-1 bg-cyan-500 rounded-sm opacity-60 animate-pulse" title="Proposal: Active" />
-                    <div className="h-1.5 flex-1 bg-slate-800 rounded-sm" title="Negotiation" />
-                    <div className="h-1.5 flex-1 bg-slate-800 rounded-sm" title="Closed" />
-                  </div>
-                </div>
-                <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-xs uppercase h-9 tracking-wider mt-4">
-                  Open CRM <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                </Button>
-              </div>
-
-              {/* Deep Research Card */}
-              <div className="group relative rounded-2xl border border-white/10 bg-slate-900/40 p-6 flex flex-col justify-between hover:border-sky-500/30 hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 min-h-[300px] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-sky-500 to-sky-500/0 opacity-60" />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                      <Search className="h-5 w-5" />
-                    </div>
-                    <Badge variant="outline" className="border-sky-500/20 bg-sky-500/5 text-sky-400 font-mono text-[9px] uppercase tracking-wider">Research Hub</Badge>
-                  </div>
-                  <div className="space-y-1 pt-2">
-                    <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider">Corpus Database</span>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-slate-100">86 Sources</div>
-                    <span className="text-[9.5px] text-sky-400 font-mono flex items-center gap-1">
-                      <Database className="h-3 w-3" /> 10,225 nodes parsed
-                    </span>
-                  </div>
-                  {/* Recent ingested sources */}
-                  <div className="space-y-1 pt-2 font-mono text-[8px] text-muted-foreground border-t border-white/5">
-                    <div className="truncate flex items-center gap-1">📄 <span className="text-slate-300 truncate">nist_sp_800_82_rev3.pdf</span></div>
-                    <div className="truncate flex items-center gap-1">📄 <span className="text-slate-300 truncate">cset_questions.sql</span></div>
-                  </div>
-                </div>
-                <Button className="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold font-mono text-xs uppercase h-9 tracking-wider mt-4">
-                  Deep Dive <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                </Button>
-              </div>
-
-              {/* Project Delivery Card */}
-              <div className="group relative rounded-2xl border border-white/10 bg-slate-900/40 p-6 flex flex-col justify-between hover:border-emerald-500/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300 min-h-[300px] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 to-emerald-500/0 opacity-60" />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <Activity className="h-5 w-5" />
-                    </div>
-                    <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-mono text-[9px] uppercase tracking-wider">Project Delivery</Badge>
-                  </div>
-                  <div className="space-y-1 pt-2">
-                    <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider">Active Projects</span>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-slate-100">6 Projects</div>
-                    <span className="text-[9.5px] text-emerald-400 font-mono flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3" /> SRE Agents Active (Healthy)
-                    </span>
-                  </div>
-                  {/* Milestones status */}
-                  <div className="space-y-1 pt-2 font-mono text-[8px] text-muted-foreground border-t border-white/5">
-                    <div className="flex justify-between items-center">
-                      <span className="truncate max-w-[120px]">Acme SCADA</span>
-                      <span className="text-emerald-400">70%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="truncate max-w-[120px]">Threat Assessment</span>
-                      <span className="text-emerald-400">40%</span>
-                    </div>
-                  </div>
-                </div>
-                <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold font-mono text-xs uppercase h-9 tracking-wider mt-4">
-                  Deployments <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                </Button>
-              </div>
-
-              {/* Creative Media Card */}
-              <div className="group relative rounded-2xl border border-white/10 bg-slate-900/40 p-6 flex flex-col justify-between hover:border-violet-500/30 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all duration-300 min-h-[300px] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 to-violet-500/0 opacity-60" />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20">
-                      <Mic className="h-5 w-5" />
-                    </div>
-                    <Badge variant="outline" className="border-violet-500/20 bg-violet-500/5 text-violet-400 font-mono text-[9px] uppercase tracking-wider">Creative Studio</Badge>
-                  </div>
-                  <div className="space-y-1 pt-2">
-                    <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider">Pending Release</span>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-slate-100">3 Posts Due</div>
-                    <span className="text-[9.5px] text-violet-400 font-mono flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Podcast Episode queued
-                    </span>
-                  </div>
-                  {/* Animating Waveform representation */}
-                  <div className="flex items-center justify-center gap-1 h-5 pt-1">
-                    <div className="w-1 bg-violet-500 rounded-full h-2 animate-[pulse_0.8s_infinite_100ms]" />
-                    <div className="w-1 bg-violet-500 rounded-full h-4 animate-[pulse_0.8s_infinite_200ms]" />
-                    <div className="w-1 bg-violet-400 rounded-full h-3 animate-[pulse_0.8s_infinite_300ms]" />
-                    <div className="w-1 bg-violet-500 rounded-full h-5 animate-[pulse_0.8s_infinite_400ms]" />
-                    <div className="w-1 bg-violet-500 rounded-full h-2 animate-[pulse_0.8s_infinite_500ms]" />
-                  </div>
-                </div>
-                <Button className="w-full bg-violet-500 hover:bg-violet-600 text-slate-950 font-bold font-mono text-xs uppercase h-9 tracking-wider mt-4">
-                  Content Room <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                </Button>
-              </div>
-
-            </div>
-
-            {/* Smaller Bottom Admin Card */}
-            <div className="rounded-2xl border border-white/10 bg-slate-900/20 p-4 flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg p-2 bg-slate-800 border border-white/5 text-slate-300">
-                  <Settings className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold font-mono uppercase tracking-wider">System Administration Panel</h4>
-                  <p className="text-[10px] text-muted-foreground">Observe containers, audit logs, vector index rebuilds, and skill configurations</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="h-8 border-white/10 hover:bg-slate-800 text-[10px] font-mono uppercase">
-                Launch Panel
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== MOCKUP 2: THE PERSPECTIVE DASHBOARD ==================== */}
-        {activeMockup === 'perspective' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">2. Perspective Selector Dashboard (Moderate)</h2>
-              <p className="text-xs text-muted-foreground">Select an active perspective context. The dashboard bento widgets and general settings transform to match the selected focus.</p>
-            </div>
-
-            {/* Perspective Controller */}
-            <div className="flex flex-col gap-2 p-1.5 bg-slate-900/60 border border-white/10 rounded-2xl max-w-xl">
-              <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground px-3 pt-1">Active Mindset Switch:</span>
-              <div className="grid grid-cols-4 gap-1">
-                {(['sales', 'research', 'delivery', 'marketing'] as const).map((mode) => (
-                  <Button
-                    key={mode}
-                    variant={perspective === mode ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setPerspective(mode)}
-                    className="font-mono text-[10px] uppercase h-8 rounded-xl"
-                  >
-                    {mode === 'sales' && 'Sales CRM'}
-                    {mode === 'research' && 'Research'}
-                    {mode === 'delivery' && 'Delivery'}
-                    {mode === 'marketing' && 'Marketing'}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              
-              {/* Dynamically Populated Bento Widgets Grid */}
-              <div className="lg:col-span-3 space-y-6">
-                {perspective === 'sales' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-300">
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-cyan-400">Deal Pipeline Forecast</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="text-3xl font-extrabold font-mono text-slate-100">$240,000</div>
-                        <div className="space-y-2 font-mono text-[10px]">
-                          <div className="flex justify-between border-b border-white/5 pb-1">
-                            <span>Proposal Stage:</span> <span className="text-cyan-400 font-bold">$120,000</span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/5 pb-1">
-                            <span>Negotiation Stage:</span> <span className="text-cyan-400 font-bold">$80,000</span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/5 pb-1">
-                            <span>Qualification Stage:</span> <span className="text-slate-400 font-bold">$40,000</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-cyan-400">Recent Customer Activity</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-[11px] font-mono">
-                        <div className="p-2 bg-slate-950/40 rounded border border-white/5 flex justify-between items-center">
-                          <span>Acme Security Corp</span>
-                          <Badge className="bg-cyan-500 text-slate-950 text-[8px] font-bold">CLIENT</Badge>
-                        </div>
-                        <div className="p-2 bg-slate-950/40 rounded border border-white/5 flex justify-between items-center">
-                          <span>Apex Networks</span>
-                          <Badge className="bg-cyan-500/20 text-cyan-400 text-[8px] border border-cyan-500/30">PROSPECT</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {perspective === 'research' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-300">
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-sky-400">Knowledge Base Stats</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 font-mono text-[10px]">
-                        <div className="text-3xl font-extrabold text-slate-100">86 Files Ingested</div>
-                        <div className="flex justify-between">
-                          <span>PDF Documents:</span> <span className="font-bold text-slate-200">42</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>HTML/URLs:</span> <span className="font-bold text-slate-200">28</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Plain Text/Memos:</span> <span className="font-bold text-slate-200">16</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-sky-400">Recurring Queries</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-[11px] font-mono">
-                        <div className="p-2 bg-slate-950/40 rounded border border-white/5 flex justify-between items-center">
-                          <span>NIST Compliance updates</span>
-                          <Badge variant="outline" className="border-sky-500/30 text-sky-400 text-[8px]">DAILY</Badge>
-                        </div>
-                        <div className="p-2 bg-slate-950/40 rounded border border-white/5 flex justify-between items-center">
-                          <span>Competitor analysis scan</span>
-                          <Badge variant="outline" className="border-slate-700 text-slate-400 text-[8px]">WEEKLY</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {perspective === 'delivery' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-300">
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-emerald-400">SRE Container Telemetry</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 font-mono text-[10px]">
-                        <div className="flex items-center justify-between p-2 bg-slate-950/40 rounded border border-white/5">
-                          <span className="flex items-center gap-1.5"><Server className="h-3.5 w-3.5 text-emerald-400" /> SurrealDB v2</span>
-                          <Badge className="bg-emerald-500/20 text-emerald-400 text-[8px]">HEALTHY</Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-2 bg-slate-950/40 rounded border border-white/5">
-                          <span className="flex items-center gap-1.5"><Server className="h-3.5 w-3.5 text-emerald-400" /> PostgreSQL 17</span>
-                          <Badge className="bg-emerald-500/20 text-emerald-400 text-[8px]">HEALTHY</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-emerald-400">Delivery Milestones</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 font-mono text-[10px]">
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span>Acme Security Integration</span> <span>70%</span>
-                          </div>
-                          <Progress value={70} className="h-1.5 bg-slate-950" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span>SCADA Threat Assessment</span> <span>40%</span>
-                          </div>
-                          <Progress value={40} className="h-1.5 bg-slate-950" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {perspective === 'marketing' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-300">
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-violet-400">Scheduled Social Media</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 font-mono text-[10px]">
-                        <div className="p-2 bg-slate-950/40 rounded border border-white/5 flex justify-between items-center">
-                          <span>Draft: Threat report analysis podcast release</span>
-                          <Badge className="bg-amber-500/20 text-amber-400 text-[8px] border border-amber-500/30">DRAFT</Badge>
-                        </div>
-                        <div className="p-2 bg-slate-950/40 rounded border border-white/5 flex justify-between items-center">
-                          <span>LinkedIn post on NIST CSF v2 changes</span>
-                          <Badge className="bg-cyan-500/20 text-cyan-400 text-[8px] border border-cyan-500/30">QUEUED</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-mono uppercase text-violet-400">Voice Synthesis Engine</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 font-mono text-[10px]">
-                        <div className="flex justify-between items-center">
-                          <span>Local Engine (Kokoro CPU):</span>
-                          <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[8px]">ACTIVE</Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span>Whisper STT Server:</span>
-                          <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[8px]">ONLINE</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Dynamically Tailed Logs Stream (High Fidelity Admin integration) */}
-                <div className="mt-6 p-4 rounded-xl border border-white/5 bg-slate-950/80 font-mono text-[10px] space-y-2 shadow-inner">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5 text-cyan-400 animate-pulse" /> Telemetry Stream (Persona: {perspective.toUpperCase()})
-                    </span>
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[8px] uppercase animate-pulse">Live</Badge>
-                  </div>
-                  <div className="space-y-1 text-slate-400 font-mono leading-relaxed h-[80px] overflow-y-auto">
-                    {perspective === 'sales' && (
-                      <>
-                        <div className="text-slate-500">[21:14:02] <span className="text-cyan-400">DB_QUERY</span> SELECT * FROM customer WHERE status = 'active' ORDER BY updated DESC LIMIT 5 (2.4ms)</div>
-                        <div className="text-slate-500">[21:14:03] <span className="text-emerald-400">LEDGER_CALC</span> Rolled up pipeline value: 4 deals found, total value = $240,000</div>
-                        <div className="text-slate-500">[21:14:05] <span className="text-cyan-400">API_GET</span> /api/pipeline/stages (200 OK)</div>
-                      </>
-                    )}
-                    {perspective === 'research' && (
-                      <>
-                        <div className="text-slate-500">[21:14:02] <span className="text-cyan-400">VECTOR_MATCH</span> Query: "NIST SP 800-82" {'->'} HNSW cache lookup (0.89 similarity score)</div>
-                        <div className="text-slate-500">[21:14:03] <span className="text-sky-400">CACHE_HIT</span> Returned 3 matching cached items from postgres.research_corpus</div>
-                        <div className="text-slate-500">[21:14:04] <span className="text-cyan-400">DB_QUERY</span> SELECT count(*) FROM source WHERE type = 'pdf' (1.1ms)</div>
-                      </>
-                    )}
-                    {perspective === 'delivery' && (
-                      <>
-                        <div className="text-slate-500">[21:14:02] <span className="text-emerald-400">SRE_AGENT</span> Polling docker compose container status...</div>
-                        <div className="text-slate-500">[21:14:03] <span className="text-slate-500">CONTAINER</span> surrealdb: UP (8000), postgres: UP (5433), open_notebook: UP (8502)</div>
-                        <div className="text-slate-500">[21:14:05] <span className="text-emerald-400">HEALTH_CHECK</span> SRE audit complete. 6/6 containers healthy. No faults detected.</div>
-                      </>
-                    )}
-                    {perspective === 'marketing' && (
-                      <>
-                        <div className="text-slate-500">[21:14:02] <span className="text-violet-400">KOKORO_FASTAPI</span> Concatenate request received for 3 audio segments</div>
-                        <div className="text-slate-500">[21:14:03] <span className="text-slate-500">FFMPEG</span> Transcoding segment_1.wav into stereo 44100Hz...</div>
-                        <div className="text-slate-500">[21:14:05] <span className="text-violet-400">TTS_DONE</span> Combined MP3 written successfully (3.4MB)</div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Sidebar Context AI Panel */}
-              <div className="space-y-6">
-                <div className="tetrel-glass p-5 rounded-2xl border border-white/10 bg-slate-900/40 flex flex-col justify-between min-h-[300px]">
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block font-mono border-b border-white/5 pb-1">Mindset Assistant</span>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {perspective === 'sales' && 'Active prompts focus on deal values, contact role assignments, and ledger rollups.'}
-                      {perspective === 'research' && 'Active prompts target document query indexing, citation extraction, and pgvector stats.'}
-                      {perspective === 'delivery' && 'Active prompts focus on Docker container statuses, SRE logs, and tasks milestones.'}
-                      {perspective === 'marketing' && 'Active prompts target podcast speech generation, social media copywriting, and schedule queueing.'}
-                    </p>
-
-                    <div className="space-y-1.5 pt-2">
-                      <span className="text-[9px] text-muted-foreground uppercase font-mono tracking-wider block">Suggested Questions:</span>
-                      <button
-                        type="button"
-                        onClick={() => setAiCommand(perspective === 'sales' ? 'Show active deals' : perspective === 'research' ? 'Search NIST SP 800-82' : perspective === 'delivery' ? 'Get container health status' : 'Draft a post about NIST CSF')}
-                        className="w-full text-left p-2 rounded bg-slate-950/60 hover:bg-slate-950 border border-white/5 text-[10px] font-mono text-slate-300 transition-colors"
-                      >
-                        {perspective === 'sales' && 'Show active deals'}
-                        {perspective === 'research' && 'Search NIST SP 800-82'}
-                        {perspective === 'delivery' && 'Get container health status'}
-                        {perspective === 'marketing' && 'Draft a post about NIST CSF'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* ==================== MOCKUP 3: THE CUSTOMIZABLE BENTO ==================== */}
-        {activeMockup === 'customizable' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">3. Drag-and-Drop Cockpit Dashboard (Advanced)</h2>
-                <Button
-                  variant={isEditing ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="font-mono text-xs uppercase h-8"
-                >
-                  {isEditing ? 'Lock Layout' : 'Edit Layout (Shift Cards)'}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Allows the single user to customize the dashboard structure by rearranging cards. Persisted locally via `localStorage` (simulated below).</p>
-            </div>
-
-            {/* Grid Layout Canvas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {layout.map((cardId, index) => {
-                return (
-                  <div key={cardId} className={`relative flex flex-col justify-between rounded-2xl border p-5 transition-all duration-300 min-h-[180px] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${
-                    isEditing ? 'border-dashed border-cyan-500/60 bg-cyan-950/5' : 'border-white/10 bg-slate-900/40 hover:border-white/20'
-                  }`}>
-                    
-                    {/* Edit controls overlay */}
-                    {isEditing && (
-                      <div className="absolute top-2.5 right-2.5 z-20 flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-6 w-6 border-white/20 bg-slate-950/80 text-cyan-400 hover:text-cyan-300"
-                          onClick={() => moveCard(index, 'up')}
-                          disabled={index === 0}
-                          title="Move Up"
-                        >
-                          ▲
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-6 w-6 border-white/20 bg-slate-950/80 text-cyan-400 hover:text-cyan-300"
-                          onClick={() => moveCard(index, 'down')}
-                          disabled={index === layout.length - 1}
-                          title="Move Down"
-                        >
-                          ▼
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Card Content Renderers */}
-                    {cardId === 'analytics' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5"><TrendingUp className="h-4 w-4" /> CRM Forecast</span>
-                          <Badge variant="outline" className="border-slate-800 text-slate-400 text-[8px] uppercase">Widget</Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-2xl font-bold font-mono tracking-tight">$240,000</span>
-                          <p className="text-[10px] text-muted-foreground">Deal pipeline value in negotiation</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {cardId === 'quick-ai' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> AI Operations</span>
-                          <Badge variant="outline" className="border-slate-800 text-slate-400 text-[8px] uppercase">Widget</Badge>
-                        </div>
-                        <div className="space-y-1.5">
-                          <span className="text-xs font-semibold block text-slate-300">Quick AI Actions</span>
-                          <div className="flex gap-1.5">
-                            <Button size="sm" className="h-6 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-mono border border-white/5">Auto-Refine Draft</Button>
-                            <Button size="sm" className="h-6 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-mono border border-white/5">Voice Command</Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {cardId === 'status-live' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5"><Activity className="h-4 w-4" /> SRE Telemetry</span>
-                          <Badge variant="outline" className="border-slate-800 text-slate-400 text-[8px] uppercase">Widget</Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center text-[10px] font-mono">
-                            <span>Docker containers:</span>
-                            <span className="text-emerald-400 font-bold">6 HEALTHY</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] font-mono mt-1">
-                            <span>Avg cpu load:</span>
-                            <span className="text-slate-300 font-bold">14.2%</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {cardId === 'data-stream' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5"><Database className="h-4 w-4" /> Vector Search</span>
-                          <Badge variant="outline" className="border-slate-800 text-slate-400 text-[8px] uppercase">Widget</Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-2xl font-bold font-mono tracking-tight">10,225 Nodes</span>
-                          <p className="text-[10px] text-muted-foreground">Knowledge graph linkages mapped</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {cardId === 'focus-doc' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5"><Layers className="h-4 w-4" /> Publication Tracker</span>
-                          <Badge variant="outline" className="border-slate-800 text-slate-400 text-[8px] uppercase">Widget</Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-xs font-bold text-slate-300 truncate block">NIST compliance podcast prep</span>
-                          <p className="text-[10.5px] text-muted-foreground mt-0.5">Concatenate intro/outro audio segments pending</p>
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ==================== MOCKUP 4: THE TOPOLOGICAL GRAPH ==================== */}
-        {activeMockup === 'topological' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">4. Loom-Centric Topological Dashboard (Aggressive)</h2>
-              <p className="text-xs text-muted-foreground">Interactive SVG network map of system entities (Customers, Projects, Sources, Social Posts, Containers). Click nodes to open context details.</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              
-              {/* SVG Graph Canvas */}
-              <div className="lg:col-span-3 border border-white/10 bg-slate-950 rounded-2xl h-[450px] relative overflow-hidden flex items-center justify-center">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-                
-                {/* Network Graph Vector */}
-                <svg className="w-full h-full max-w-[800px] max-h-[400px]" viewBox="0 0 800 400">
-                  <style>{`
-                    @keyframes flow {
-                      to {
-                        stroke-dashoffset: -20;
-                      }
-                    }
-                    .flow-line {
-                      stroke-dasharray: 6 4;
-                      animation: flow 2s linear infinite;
-                    }
-                  `}</style>
-
-                  {/* Connections */}
-                  <line x1="80" y1="200" x2="200" y2="200" stroke="#06b6d4" strokeWidth="1.5" className="flow-line" />
-                  <line x1="200" y1="200" x2="350" y2="90" stroke="#0ea5e9" strokeWidth="1.5" className="flow-line" />
-                  <line x1="200" y1="200" x2="350" y2="200" stroke="#0ea5e9" strokeWidth="1.5" className="flow-line" />
-                  <line x1="200" y1="200" x2="350" y2="310" stroke="#10b981" strokeWidth="2" className="flow-line" />
-                  <line x1="350" y1="200" x2="350" y2="90" stroke="#0ea5e9" strokeWidth="1.5" />
-                  <line x1="350" y1="90" x2="500" y2="90" stroke="#8b5cf6" strokeWidth="1.5" className="flow-line" />
-                  <line x1="350" y1="310" x2="500" y2="310" stroke="#10b981" strokeWidth="1.5" className="flow-line" />
-                  <line x1="500" y1="90" x2="680" y2="200" stroke="#f59e0b" strokeWidth="1.5" className="flow-line" />
-                  <line x1="500" y1="310" x2="680" y2="200" stroke="#f59e0b" strokeWidth="1.5" className="flow-line" />
-
-                  {/* Node 6: SurrealDB */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-db-surreal',
-                      label: 'SurrealDB v2',
-                      type: 'Database (RocksDB)',
-                      status: 'Healthy',
-                      details: 'Primary multi-model database holding client details, schemas, and credentials.',
-                      metrics: 'Uptime: 23 hours | Connections: 14 active | Storage: RocksDB engine'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="80" cy="200" r="18" fill="#06b6d4" fillOpacity="0.15" stroke="#06b6d4" strokeWidth="1.5" />
-                    <circle cx="80" cy="200" r="4" fill="#06b6d4" />
-                    <text x="80" y="230" fill="#06b6d4" fontSize="8" fontFamily="monospace" textAnchor="middle">SURREALDB</text>
-                  </g>
-
-                  {/* Node 1: Customer */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-cust-1',
-                      label: 'Acme Security Corp',
-                      type: 'Customer Profile',
-                      status: 'Active',
-                      details: 'B2B Client in Critical Infrastructure Sector. Standard framework: NIST CSF v2.',
-                      metrics: 'Active Projects: 2 | Pipeline Value: $145,000 | Compliance Score: 87.2%'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="200" cy="200" r="26" fill="#0891b2" fillOpacity="0.15" stroke="#06b6d4" strokeWidth="2" />
-                    <circle cx="200" cy="200" r="6" fill="#06b6d4" />
-                    <text x="200" y="240" fill="#06b6d4" fontSize="9" fontFamily="monospace" textAnchor="middle" fontWeight="bold">ACME CORP</text>
-                  </g>
-
-                  {/* Node 7: pgvector Cache */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-db-postgres',
-                      label: 'PostgreSQL Vector Cache',
-                      type: 'Database (pgvector)',
-                      status: 'Healthy',
-                      details: 'Stores research embeddings for hybrid reciprocal rank fusion semantic cache queries.',
-                      metrics: 'Total vectors: 10,225 | Index type: HNSW cosine | Latency: 4ms'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="350" cy="200" r="18" fill="#0ea5e9" fillOpacity="0.15" stroke="#0ea5e9" strokeWidth="1.5" />
-                    <circle cx="350" cy="200" r="4" fill="#0ea5e9" />
-                    <text x="350" y="230" fill="#0ea5e9" fontSize="8" fontFamily="monospace" textAnchor="middle">PGVECTOR</text>
-                  </g>
-
-                  {/* Node 2: Proposal Document */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-prop-1',
-                      label: 'NIST CSF Gap Analysis Proposal',
-                      type: 'Proposal / Notebook',
-                      status: 'Under Review',
-                      details: 'Linked to Acme Security Corp. Drafted using deep research sources from NIST repository.',
-                      metrics: 'Estimated Value: $45,000 | Note count: 12 | Sources linked: 3'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="350" cy="90" r="22" fill="#0284c7" fillOpacity="0.15" stroke="#0ea5e9" strokeWidth="2" />
-                    <circle cx="350" cy="90" r="5" fill="#0ea5e9" />
-                    <text x="350" y="125" fill="#0ea5e9" fontSize="9" fontFamily="monospace" textAnchor="middle">GAP PROPOSAL</text>
-                  </g>
-
-                  {/* Node 3: Project SCADA Integration */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-proj-1',
-                      label: 'Acme Core SCADA Integration',
-                      type: 'Project Delivery',
-                      status: 'In Progress',
-                      details: 'Topological network mapping and secure segment insulation project.',
-                      metrics: 'Tasks: 8/12 completed | Health: Stable | Start: 2026-06-01'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="350" cy="310" r="22" fill="#059669" fillOpacity="0.15" stroke="#10b981" strokeWidth="2" />
-                    <circle cx="350" cy="310" r="5" fill="#10b981" />
-                    <text x="350" y="345" fill="#10b981" fontSize="9" fontFamily="monospace" textAnchor="middle">SCADA INTEGRATION</text>
-                  </g>
-
-                  {/* Node 8: OpenRouter LLM Gateway */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-ai-openrouter',
-                      label: 'OpenRouter Multi-LLM API',
-                      type: 'AI Model Gateway',
-                      status: 'Connected',
-                      details: 'Cloud API route to GPT-4o and Claude 3.5. Handles complex compliance parsing.',
-                      metrics: 'Provider: OpenRouter | Sync frequency: Daily | Default: gemini-3.5-pro'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="500" cy="90" r="18" fill="#8b5cf6" fillOpacity="0.15" stroke="#8b5cf6" strokeWidth="1.5" />
-                    <circle cx="500" cy="90" r="4" fill="#8b5cf6" />
-                    <text x="500" y="120" fill="#8b5cf6" fontSize="8" fontFamily="monospace" textAnchor="middle">OPENROUTER</text>
-                  </g>
-
-                  {/* Node 4: WebRTC Voice Server */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-voice-1',
-                      label: 'Kokoro Voice AI Agent',
-                      type: 'Docker Container / Server',
-                      status: 'Online',
-                      details: 'Container Service active. Provides real-time Text-To-Speech capabilities.',
-                      metrics: 'Port: 8880 | Deployment: Local CPU | Average latency: 45ms'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="500" cy="310" r="22" fill="#059669" fillOpacity="0.15" stroke="#10b981" strokeWidth="2" />
-                    <circle cx="500" cy="310" r="5" fill="#10b981" />
-                    <text x="500" y="345" fill="#10b981" fontSize="9" fontFamily="monospace" textAnchor="middle">VOICE_AI (8880)</text>
-                  </g>
-
-                  {/* Node 5: Social Media Post */}
-                  <g 
-                    onClick={() => setSelectedNode({
-                      id: 'node-social-1',
-                      label: 'LinkedIn: NIST CSF Compliance Milestone',
-                      type: 'Social / Marketing',
-                      status: 'Draft',
-                      details: 'Drafted social post detailing the security roadmap results.',
-                      metrics: 'Status: Queued | Platform: LinkedIn | Due: 2026-06-12'
-                    })}
-                    className="cursor-pointer group"
-                  >
-                    <circle cx="680" cy="200" r="22" fill="#d97706" fillOpacity="0.15" stroke="#f59e0b" strokeWidth="2" />
-                    <circle cx="680" cy="200" r="5" fill="#f59e0b" />
-                    <text x="680" y="235" fill="#f59e0b" fontSize="9" fontFamily="monospace" textAnchor="middle">LINKEDIN POST</text>
-                  </g>
-                </svg>
-              </div>
-
-              {/* Node Inspector Drawer */}
-              <div className="space-y-6">
-                {selectedNode ? (
-                  <div className="tetrel-glass p-5 rounded-2xl border border-cyan-500/20 bg-slate-900/40 flex flex-col justify-between min-h-[300px] animate-in slide-in-from-right-2 duration-300">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block font-mono">Entity Inspector</span>
-                        <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 text-[8px] uppercase">{selectedNode.type}</Badge>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-bold font-mono text-slate-100">{selectedNode.label}</h4>
-                        <span className="text-[10.5px] text-muted-foreground font-mono">Status: <strong className="text-emerald-400">{selectedNode.status}</strong></span>
-                      </div>
-
-                      <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{selectedNode.details}</p>
-
-                      {selectedNode.metrics && (
-                        <div className="p-2.5 bg-slate-950/60 rounded border border-white/5 font-mono text-[9px] text-cyan-300 leading-normal">
-                          {selectedNode.metrics}
-                        </div>
-                      )}
-                    </div>
-
-                    <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-xs uppercase h-8 mt-4">
-                      Open Workspace
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="tetrel-glass p-5 rounded-2xl border border-white/10 bg-slate-900/40 flex items-center justify-center min-h-[300px]">
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase text-center">Click a node on the map to inspect relationships</p>
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* ==================== MOCKUP 5: UNIFIED OPERATIONS COCKPIT ==================== */}
-        {activeMockup === 'cockpit' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">5. Unified Operations Cockpit</h2>
-              <p className="text-xs text-muted-foreground">Manage Sales CRM, Research, Delivery progress, and Admin settings inside a unified portal layout.</p>
-            </div>
-
-            {/* Navigation tabs inside the cockpit */}
-            <div className="flex border-b border-white/10 bg-slate-900/40 rounded-t-xl overflow-hidden">
-              <button
-                onClick={() => setCockpitTab('sales')}
-                className={`flex-1 py-3 px-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
-                  cockpitTab === 'sales' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <TrendingUp className="h-4 w-4" /> Sales CRM
-              </button>
-              <button
-                onClick={() => setCockpitTab('research')}
-                className={`flex-1 py-3 px-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
-                  cockpitTab === 'research' ? 'bg-sky-500/10 text-sky-400 border-b-2 border-sky-500' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Folder className="h-4 w-4" /> Research Hub
-              </button>
-              <button
-                onClick={() => setCockpitTab('delivery')}
-                className={`flex-1 py-3 px-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
-                  cockpitTab === 'delivery' ? 'bg-emerald-500/10 text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Activity className="h-4 w-4" /> Delivery Matrix
-              </button>
-              <button
-                onClick={() => setCockpitTab('marketing')}
-                className={`flex-1 py-3 px-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
-                  cockpitTab === 'marketing' ? 'bg-violet-500/10 text-violet-400 border-b-2 border-violet-500' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Mic className="h-4 w-4" /> Marketing Studio
-              </button>
-              <button
-                onClick={() => setCockpitTab('admin')}
-                className={`flex-1 py-3 px-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
-                  cockpitTab === 'admin' ? 'bg-slate-800 text-slate-100 border-b-2 border-slate-300' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Settings className="h-4 w-4" /> Admin Panel
-              </button>
-            </div>
-
-            {/* Cockpit Sub-Tab Content rendering */}
-            <div className="p-6 rounded-b-2xl border-x border-b border-white/10 bg-slate-900/20 min-h-[400px]">
-              
-              {/* Sales CRM Sub-tab */}
-              {cockpitTab === 'sales' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                    <div>
-                      <h3 className="text-sm font-bold font-mono text-cyan-400 uppercase">Sales CRM Kanban</h3>
-                      <p className="text-[10px] text-muted-foreground">Click a deal card to advance it through stages Qualification {'->'} Proposal {'->'} Negotiation {'->'} Closed.</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] uppercase text-muted-foreground font-mono block">Total Pipeline Forecast</span>
-                      <strong className="text-lg font-mono text-emerald-400">${deals.reduce((sum, d) => sum + d.value, 0).toLocaleString()}</strong>
-                    </div>
-                  </div>
-
-                  {/* Kanban Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {['Qualification', 'Proposal', 'Negotiation', 'Closed'].map(stage => {
-                      const stageDeals = deals.filter(d => d.stage === stage)
-                      return (
-                        <div key={stage} className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-3 min-h-[220px]">
-                          <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
-                            <span className="text-[10px] font-bold font-mono text-slate-300 uppercase">{stage}</span>
-                            <Badge className="bg-slate-800 text-slate-300 text-[9px] font-mono">{stageDeals.length}</Badge>
-                          </div>
-
-                          <div className="space-y-2.5">
-                            {stageDeals.map(deal => (
-                              <div 
-                                key={deal.id}
-                                className="p-3 bg-slate-900/60 border border-white/10 hover:border-cyan-500/30 rounded-lg space-y-2 relative group cursor-pointer transition-all"
-                                onClick={() => advanceDeal(deal.id)}
-                              >
-                                <div className="text-[11px] font-bold text-slate-200 truncate">{deal.name}</div>
-                                <div className="flex justify-between items-center text-[10px] font-mono">
-                                  <span className="text-slate-400 truncate max-w-[100px]">{deal.company}</span>
-                                  <span className="text-cyan-400 font-bold">${deal.value.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center pt-1 border-t border-white/5 text-[8.5px] text-slate-500 font-mono">
-                                  <span>Click to advance</span>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      deleteDeal(deal.id)
-                                    }}
-                                    className="text-red-400 hover:text-red-300 flex items-center"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Add deal form */}
-                  <form onSubmit={addMockDeal} className="p-4 bg-slate-950/40 rounded-xl border border-white/5 max-w-2xl space-y-3">
-                    <h4 className="text-[11px] font-bold font-mono text-slate-300 uppercase">Create New Deal</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <Input 
-                        placeholder="Deal name (e.g. Audit)"
-                        value={newDealName}
-                        onChange={(e) => setNewDealName(e.target.value)}
-                        className="bg-slate-900 border-white/10 text-xs h-8 rounded-lg"
-                      />
-                      <Input 
-                        placeholder="Deal value ($)"
-                        value={newDealValue}
-                        onChange={(e) => setNewDealValue(e.target.value)}
-                        className="bg-slate-900 border-white/10 text-xs h-8 rounded-lg"
-                      />
-                      <Input 
-                        placeholder="Company name"
-                        value={newDealCompany}
-                        onChange={(e) => setNewDealCompany(e.target.value)}
-                        className="bg-slate-900 border-white/10 text-xs h-8 rounded-lg"
-                      />
-                    </div>
-                    <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-xs uppercase h-8 px-3 rounded-lg">
-                      Add Deal
-                    </Button>
-                  </form>
-                </div>
-              )}
-
-              {/* Research Hub Sub-tab */}
-              {cockpitTab === 'research' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  <div>
-                    <h3 className="text-sm font-bold font-mono text-sky-400 uppercase">Interactive Research Folders</h3>
-                    <p className="text-[10px] text-muted-foreground">Browse knowledge assets, check folder sizes, and rename documents inline.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Folders List */}
-                    <div className="md:col-span-2 space-y-3">
-                      {researchFolders.map(folder => (
-                        <div key={folder.id} className="border border-white/10 rounded-xl overflow-hidden bg-slate-950/40">
-                          <button
-                            onClick={() => toggleFolder(folder.id)}
-                            className="w-full flex items-center justify-between p-3.5 bg-slate-900/60 font-mono text-xs text-slate-200 hover:bg-slate-900"
-                          >
-                            <span className="flex items-center gap-2">
-                              {folder.isOpen ? <FolderOpen className="h-4 w-4 text-sky-400" /> : <Folder className="h-4 w-4 text-sky-400" />}
-                              <strong>{folder.name}</strong>
-                            </span>
-                            <Badge className="bg-slate-800 text-slate-400 text-[9px] font-mono">{folder.files.length} items</Badge>
-                          </button>
-
-                          {folder.isOpen && (
-                            <div className="p-3 border-t border-white/5 space-y-2">
-                              {folder.files.map(file => (
-                                <div key={file.id} className="p-2.5 bg-slate-900/40 border border-white/5 rounded-lg flex items-center justify-between gap-4">
-                                  {renamingFileId === file.id ? (
-                                    <div className="flex-1 flex gap-2">
-                                      <Input 
-                                        value={renameValue}
-                                        onChange={(e) => setRenameValue(e.target.value)}
-                                        className="bg-slate-950 border-white/10 text-xs h-7 py-1"
-                                      />
-                                      <Button 
-                                        size="sm" 
-                                        onClick={() => renameFile(file.id, renameValue)}
-                                        className="h-7 bg-emerald-500 hover:bg-emerald-600 text-slate-950"
-                                      >
-                                        <Check className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-[11.5px] font-bold text-slate-200 truncate flex items-center gap-1.5">
-                                        📄 {file.name}
-                                      </div>
-                                      <div className="flex gap-2 text-[9px] text-slate-500 font-mono mt-0.5">
-                                        <span>Size: {file.size}</span>
-                                        <span>•</span>
-                                        <span>Added: {file.dateAdded}</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {renamingFileId !== file.id && (
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => {
-                                        setRenamingFileId(file.id)
-                                        setRenameValue(file.name)
-                                      }}
-                                      className="h-7 w-7 text-sky-400 hover:text-sky-300"
-                                    >
-                                      <Edit2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Quick Stats Sidebar */}
-                    <div className="space-y-4">
-                      <Card className="bg-slate-900/40 border-white/10 rounded-xl shadow-xl">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-mono uppercase text-sky-400">pgvector Knowledge Stats</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-[10px] font-mono text-slate-300">
-                          <div className="flex justify-between">
-                            <span>Ingested Corpora:</span> <span className="text-slate-100 font-bold">2 Folders</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Total Files:</span> <span className="text-slate-100 font-bold">5 Items</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Indexed Nodes:</span> <span className="text-sky-400 font-bold">11,941</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Relationships:</span> <span className="text-sky-400 font-bold">15,672</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Delivery Matrix Sub-tab */}
-              {cockpitTab === 'delivery' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                    <div>
-                      <h3 className="text-sm font-bold font-mono text-emerald-400 uppercase">Delivery Tracker Matrix</h3>
-                      <p className="text-[10px] text-muted-foreground">Monitor client project deliveries, task execution flow and assigned managers.</p>
-                    </div>
-                    <div className="flex gap-1.5 p-1 bg-slate-950/60 border border-white/10 rounded-lg">
-                      <Button
-                        size="sm"
-                        variant={deliveryLayout === 'table' ? 'default' : 'ghost'}
-                        onClick={() => setDeliveryLayout('table')}
-                        className="text-[9px] font-mono uppercase h-6 rounded-md px-2"
-                      >
-                        Table
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={deliveryLayout === 'kanban' ? 'default' : 'ghost'}
-                        onClick={() => setDeliveryLayout('kanban')}
-                        className="text-[9px] font-mono uppercase h-6 rounded-md px-2"
-                      >
-                        Kanban Progress
-                      </Button>
-                    </div>
-                  </div>
-
-                  {deliveryLayout === 'table' ? (
-                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/40">
-                      <table className="w-full text-left font-mono text-xs">
-                        <thead>
-                          <tr className="bg-slate-900/60 border-b border-white/10 text-slate-400">
-                            <th className="p-3">Client</th>
-                            <th className="p-3">Project</th>
-                            <th className="p-3">SRE Manager</th>
-                            <th className="p-3">Progress</th>
-                            <th className="p-3">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {deliveries.map(del => (
-                            <tr key={del.id} className="hover:bg-slate-900/30">
-                              <td className="p-3 font-bold text-slate-200">{del.client}</td>
-                              <td className="p-3 text-slate-300">{del.project}</td>
-                              <td className="p-3 text-emerald-400">{del.manager}</td>
-                              <td className="p-3 w-1/4">
-                                <div className="space-y-1">
-                                  <span className="text-[10px] text-slate-400">{del.progress}%</span>
-                                  <Progress value={del.progress} className="h-1 bg-slate-900" />
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <Badge className={
-                                  del.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                                }>
-                                  {del.status}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {deliveries.map(del => (
-                        <div key={del.id} className="p-4 bg-slate-950/40 border border-white/10 rounded-xl space-y-3">
-                          <div className="flex justify-between items-start">
-                            <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-mono">Assigned: {del.manager}</span>
-                            <Badge className={
-                              del.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-500/20 text-cyan-400'
-                            }>
-                              {del.status}
-                            </Badge>
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-100">{del.project}</h4>
-                            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{del.client}</p>
-                          </div>
-                          <div className="space-y-1 pt-2">
-                            <div className="flex justify-between text-[10px] font-mono">
-                              <span>Milestone Progress</span>
-                              <span className="text-emerald-400 font-bold">{del.progress}%</span>
-                            </div>
-                            <Progress value={del.progress} className="h-1.5 bg-slate-900" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Marketing Studio Sub-tab */}
-              {cockpitTab === 'marketing' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                    <div>
-                      <h3 className="text-sm font-bold font-mono text-violet-400 uppercase">Marketing Studio Campaigns</h3>
-                      <p className="text-[10px] text-muted-foreground">Simulate generating, queueing and scheduling AI-assisted copy from compliance corpus research.</p>
-                    </div>
-                    <Button 
-                      onClick={() => setShowPostGenerator(true)}
-                      className="bg-violet-500 hover:bg-violet-600 text-slate-950 font-bold font-mono text-xs uppercase h-9 px-3 rounded-lg"
-                    >
-                      <Sparkles className="h-4 w-4 mr-1.5" /> AI Post Generator
-                    </Button>
-                  </div>
-
-                  {/* Post Generator Simulator Modal overlay */}
-                  {showPostGenerator && (
-                    <div className="p-4 bg-slate-950/80 border border-violet-500/20 rounded-xl space-y-4 max-w-2xl">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                        <h4 className="text-xs font-bold font-mono text-violet-400 uppercase">Post Copilot Sandbox</h4>
-                        <button onClick={() => setShowPostGenerator(false)} className="text-slate-500 hover:text-slate-300">✖</button>
-                      </div>
-
-                      <div className="space-y-3">
-                        {/* Select Platform */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-mono text-slate-400 uppercase">Platform Target</label>
-                          <div className="flex gap-2">
-                            {(['LinkedIn', 'X/Twitter', 'Blog'] as const).map(plat => (
-                              <Button
-                                key={plat}
-                                size="sm"
-                                variant={marketingPlatform === plat ? 'default' : 'outline'}
-                                onClick={() => setMarketingPlatform(plat)}
-                                className="h-7 text-[9px] uppercase font-mono px-2"
-                              >
-                                {plat}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Source Context */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-mono text-slate-400 uppercase">Corpus Context input</label>
-                          <textarea 
-                            value={marketingSourceText}
-                            onChange={(e) => setMarketingSourceText(e.target.value)}
-                            rows={2}
-                            className="w-full bg-slate-900 border border-white/10 rounded-lg p-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-violet-500"
-                          />
-                        </div>
-
-                        <Button 
-                          onClick={generatePostText} 
-                          disabled={isGeneratingPost}
-                          className="w-full bg-violet-600 hover:bg-violet-500 text-slate-100 font-mono text-xs uppercase h-8"
-                        >
-                          {isGeneratingPost ? 'Synthesizing with LLM...' : 'Generate Copy'}
-                        </Button>
-
-                        {generatedPost && (
-                          <div className="p-3 bg-violet-950/20 border border-violet-500/25 rounded-lg space-y-2">
-                            <label className="text-[9px] font-mono text-violet-300 uppercase block">Generated Draft Output</label>
-                            <div className="text-xs font-sans text-slate-300 whitespace-pre-wrap leading-relaxed">{generatedPost}</div>
-                            <Button 
-                              onClick={addCampaign}
-                              className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold font-mono text-[10px] uppercase h-7 mt-2"
-                            >
-                              Add to Campaign Queue
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Campaign List */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold font-mono text-slate-300 uppercase">Active Campaigns & Schedule Queue</h4>
-                    <div className="space-y-2.5">
-                      {campaigns.map(camp => (
-                        <div key={camp.id} className="p-3 bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl flex items-center justify-between gap-4 font-mono text-xs">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-violet-500/20 text-violet-400 text-[8.5px] border border-violet-500/25 uppercase">{camp.platform}</Badge>
-                            <span className="text-slate-200 font-bold truncate max-w-[280px] sm:max-w-[450px]">{camp.title}</span>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-[10px] text-slate-500">{camp.scheduledTime}</span>
-                            <Badge className="bg-emerald-500/20 text-emerald-400 text-[9px]">{camp.status}</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Admin Panel Sub-tab */}
-              {cockpitTab === 'admin' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="border-b border-white/5 pb-3">
-                    <h3 className="text-sm font-bold font-mono text-slate-200 uppercase">System Telemetry & Controls</h3>
-                    <p className="text-[10px] text-muted-foreground">Observe database containers and index health status triggers.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Docker Containers toggles */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold font-mono text-slate-300 uppercase">Docker Compose Status</h4>
-                      <div className="space-y-2">
-                        {liveContainers.map((cont: any) => (
-                          <div key={cont.id} className="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between font-mono text-xs">
-                            <div className="flex items-center gap-2">
-                              <Server className="h-4 w-4 text-cyan-400" />
-                              <div>
-                                <span className="font-bold text-slate-200">{cont.name}</span>
-                                <span className="text-[9.5px] text-slate-500 block">Port: {cont.port}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={
-                                cont.status === 'running' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                              }>
-                                {cont.status.toUpperCase()}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleRestartContainer(cont.name)}
-                                disabled={restartingContainers[cont.name]}
-                                className="h-7 text-[8.5px] font-mono uppercase border-white/10"
-                              >
-                                {restartingContainers[cont.name] ? (
-                                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
-                                ) : (
-                                  'Restart'
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* pgvector Index admin */}
-                    <div className="space-y-4">
-                      <div className="p-4 bg-slate-950/40 border border-white/5 rounded-xl space-y-3">
-                        <h4 className="text-xs font-bold font-mono text-slate-300 uppercase">pgvector Semantic Cache Index</h4>
-                        <div className="space-y-1.5 font-mono text-[10px] text-slate-400">
-                          <div>Database: <strong className="text-slate-200">postgres:pg17</strong></div>
-                          <div>Total Embedded Segments: <strong className="text-slate-200">10,225</strong></div>
-                          <div>Re-ranking Algorithm: <strong className="text-slate-200">RRF (Reciprocal Rank Fusion)</strong></div>
-                        </div>
-
-                        {isRebuildingIndex ? (
-                          <div className="space-y-1.5 pt-2 font-mono">
-                            <div className="flex justify-between text-[10px]">
-                              <span>Rebuilding HNSW cosine index...</span>
-                              <span>{rebuildProgress}%</span>
-                            </div>
-                            <Progress value={rebuildProgress} className="h-1.5 bg-slate-900" />
-                          </div>
-                        ) : (
-                          <Button
-                            onClick={rebuildPgvectorIndex}
-                            className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold font-mono text-xs uppercase h-8 mt-2"
-                          >
-                            Rebuild Similarity Index
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
-        )}
-
-        {/* ==================== MOCKUP 6: AGENT-CENTRIC COLLABORATIVE SWARM ==================== */}
-        {activeMockup === 'agent-swarm' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">6. Agent-Centric Swarm Workspace</h2>
-              <p className="text-xs text-muted-foreground">Observe and manage active AI agents working collaboratively. Tap agent nodes to override or inspect thoughts stream.</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Agent Nodes Visual SVG Graph */}
-              <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-slate-900/40 p-6 flex flex-col justify-between min-h-[420px] shadow-xl relative overflow-hidden">
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 font-mono text-[9px] text-slate-400 uppercase tracking-widest">
-                  <Network className="h-3.5 w-3.5 text-cyan-400 animate-pulse" /> Active Swarm Network Linkages
-                </div>
-
-                <div className="flex-1 flex items-center justify-center pt-6">
-                  <svg viewBox="0 0 600 300" className="w-full max-w-[500px] h-[250px]">
-                    {/* SVG styling */}
-                    <style>{`
-                      @keyframes flowline {
-                        to { stroke-dashoffset: -20; }
-                      }
-                      .swarm-line {
-                        stroke-dasharray: 5 4;
-                        animation: flowline 1.5s linear infinite;
-                      }
-                    `}</style>
-
-                    {/* Orchestration linkages lines */}
-                    <line x1="80" y1="150" x2="250" y2="60" stroke="#0ea5e9" strokeWidth="1.5" className="swarm-line" />
-                    <line x1="250" y1="60" x2="420" y2="150" stroke="#8b5cf6" strokeWidth="1.5" className="swarm-line" />
-                    <line x1="250" y1="240" x2="80" y2="150" stroke="#10b981" strokeWidth="1.5" className="swarm-line" />
-                    <line x1="420" y1="150" x2="250" y2="240" stroke="#f59e0b" strokeWidth="1.5" className="swarm-line" />
-
-                    {/* CRM Agent (Left) */}
-                    <g onClick={() => setSelectedAgent('CRM')} className="cursor-pointer group">
-                      <circle cx="80" cy="150" r="28" fill={selectedAgent === 'CRM' ? '#0ea5e9' : '#1e293b'} fillOpacity="0.2" stroke={selectedAgent === 'CRM' ? '#0ea5e9' : '#334155'} strokeWidth={selectedAgent === 'CRM' ? '2.5' : '1.5'} className={selectedAgent === 'CRM' ? 'drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]' : ''} />
-                      <circle cx="80" cy="150" r="5" fill="#0ea5e9" />
-                      <text x="80" y="195" fill="#0ea5e9" fontSize="8.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CRM AGENT</text>
-                    </g>
-
-                    {/* Research Agent (Top Center) */}
-                    <g onClick={() => setSelectedAgent('Research')} className="cursor-pointer group">
-                      <circle cx="250" cy="60" r="28" fill={selectedAgent === 'Research' ? '#0ea5e9' : '#1e293b'} fillOpacity="0.2" stroke={selectedAgent === 'Research' ? '#0ea5e9' : '#334155'} strokeWidth={selectedAgent === 'Research' ? '2.5' : '1.5'} className={selectedAgent === 'Research' ? 'drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]' : ''} />
-                      <circle cx="250" cy="60" r="5" fill="#0ea5e9" />
-                      <text x="250" y="105" fill="#0ea5e9" fontSize="8.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">RESEARCH AGENT</text>
-                    </g>
-
-                    {/* SRE Agent (Bottom Center) */}
-                    <g onClick={() => setSelectedAgent('SRE')} className="cursor-pointer group">
-                      <circle cx="250" cy="240" r="28" fill={selectedAgent === 'SRE' ? '#10b981' : '#1e293b'} fillOpacity="0.2" stroke={selectedAgent === 'SRE' ? '#10b981' : '#334155'} strokeWidth={selectedAgent === 'SRE' ? '2.5' : '1.5'} className={selectedAgent === 'SRE' ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : ''} />
-                      <circle cx="250" cy="240" r="5" fill="#10b981" />
-                      <text x="250" y="285" fill="#10b981" fontSize="8.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">SRE AGENT</text>
-                    </g>
-
-                    {/* Media Agent (Right) */}
-                    <g onClick={() => setSelectedAgent('Media')} className="cursor-pointer group">
-                      <circle cx="420" cy="150" r="28" fill={selectedAgent === 'Media' ? '#8b5cf6' : '#1e293b'} fillOpacity="0.2" stroke={selectedAgent === 'Media' ? '#8b5cf6' : '#334155'} strokeWidth={selectedAgent === 'Media' ? '2.5' : '1.5'} className={selectedAgent === 'Media' ? 'drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]' : ''} />
-                      <circle cx="420" cy="150" r="5" fill="#8b5cf6" />
-                      <text x="420" y="195" fill="#8b5cf6" fontSize="8.5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">MEDIA AGENT</text>
-                    </g>
-                  </svg>
-                </div>
-              </div>
-
-              {/* Agent Console / Thoughts Stream Inspector panel */}
-              <div className="space-y-6">
-                <div className="tetrel-glass p-5 rounded-2xl border border-white/10 bg-slate-900/40 flex flex-col justify-between min-h-[420px]">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-                      <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block font-mono">Agent Terminal</span>
-                      <Badge className="bg-slate-800 text-slate-300 text-[8.5px] uppercase font-mono">
-                        {selectedAgent} Agent
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="text-[10.5px] font-mono text-slate-400">
-                        Status: <strong className="text-emerald-400 font-bold uppercase">{agentStatuses[selectedAgent]}</strong>
-                      </div>
-                    </div>
-
-                    {/* Thought steps stream */}
-                    <div className="space-y-2">
-                      <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Live Thought Stream</label>
-                      <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 font-mono text-[10.5px] text-slate-300 space-y-1.5 min-h-[120px] max-h-[160px] overflow-y-auto leading-relaxed">
-                        {agentThoughts[selectedAgent].map((thought, idx) => (
-                          <div key={idx} className="flex gap-2">
-                            <span className="text-cyan-500 font-bold shrink-0">›</span>
-                            <span>{thought}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Tools badges */}
-                    <div className="space-y-1.5 pt-1">
-                      <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Executed Tools</label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {agentTools[selectedAgent].map(tool => (
-                          <Badge key={tool} variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-[8.5px] font-mono">
-                            {tool}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Manual Override controls */}
-                  <div className="space-y-2 border-t border-white/5 pt-4">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setAgentStatuses(prev => ({ ...prev, [selectedAgent]: prev[selectedAgent] === 'paused' ? 'idle' : 'paused' }))}
-                        className="text-[9px] font-mono uppercase h-8 border-white/10"
-                      >
-                        {agentStatuses[selectedAgent] === 'paused' ? 'Resume Agent' : 'Pause Agent'}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          setAgentStatuses(prev => ({ ...prev, [selectedAgent]: 'thinking' }))
-                          setTimeout(() => {
-                            setAgentStatuses(prev => ({ ...prev, [selectedAgent]: 'executing' }))
-                          }, 1000)
-                        }}
-                        className="text-[9px] font-mono uppercase h-8 text-cyan-400 border-cyan-500/20"
-                      >
-                        Force Restart
-                      </Button>
-                    </div>
-                    
-                    <div className="relative">
-                      <Input
-                        placeholder="Inject manual directive prompt..."
-                        className="bg-slate-950/80 border-white/10 text-[10px] font-mono h-8 rounded-lg pl-3 pr-10"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setAgentStatuses(prev => ({ ...prev, [selectedAgent]: 'thinking' }))
-                            setTimeout(() => {
-                              setAgentStatuses(prev => ({ ...prev, [selectedAgent]: 'executing' }))
-                            }, 1200)
-                            const target = e.target as HTMLInputElement
-                            target.value = ''
-                          }
-                        }}
-                      />
-                      <Send className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground cursor-pointer" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* ==================== MOCKUP 7: ENHANCED PERSPECTIVE SELECTOR (PERSPECTIVE+) ==================== */}
-        {activeMockup === 'enhanced-perspective' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold font-mono uppercase tracking-tight text-slate-200">7. Mindset Switcher Dashboard (Perspective+)</h2>
-              <p className="text-xs text-muted-foreground">An interactive, bento-styled workspace that shifts dynamic widgets, communication logs, and campaign integrations depending on the active mindset.</p>
-            </div>
 
             {/* Mindset Switcher tabs */}
             <div className="flex flex-col gap-2 p-2 bg-slate-900/60 border border-white/10 rounded-2xl max-w-3xl shadow-xl">
@@ -2475,16 +939,25 @@ export default function MockupsPage() {
                             </div>
                           </div>
                           
-                          {/* Campaigns Linkage list */}
+                          {/* S1: Active Marketing Campaigns — from publications calendar */}
                           <div className="space-y-2 pt-2 border-t border-white/5">
-                            <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Active Marketing Campaigns Linked</label>
+                            <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Scheduled Publications</label>
                             <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
-                              {notebooksList.map(notebook => (
-                                <div key={notebook.id} className="p-2 bg-slate-950/40 rounded border border-white/5 flex items-center justify-between text-[10px] font-mono">
-                                  <span className="text-slate-300 font-bold truncate max-w-[140px]">{notebook.name}</span>
+                              {calendarPosts.length === 0 ? (
+                                <div className="text-[9px] font-mono text-slate-500 py-2 text-center border border-dashed border-white/5 rounded-lg">
+                                  No posts scheduled —{' '}
+                                  <button onClick={() => setEnhancedPerspective('marketing')} className="text-violet-400 hover:underline">
+                                    open Marketing Studio →
+                                  </button>
+                                </div>
+                              ) : calendarPosts.map((post: any) => (
+                                <div key={post.id} className="p-2 bg-slate-950/40 rounded border border-white/5 flex items-center justify-between text-[10px] font-mono">
+                                  <span className="text-slate-300 font-bold truncate max-w-[140px]">{post.title || post.content?.slice(0, 40)}</span>
                                   <div className="flex items-center gap-2">
-                                    <Badge className="bg-slate-800 text-slate-400 text-[8.5px] uppercase">{notebook.stage || 'prospect'}</Badge>
-                                    <span className="text-emerald-400 font-bold">${(notebook.estimated_value || 0).toLocaleString()}</span>
+                                    <Badge className="bg-violet-500/20 text-violet-400 text-[8.5px] uppercase">{post.channel || 'post'}</Badge>
+                                    <span className="text-slate-500 text-[8.5px]">
+                                      {post.scheduled_time ? new Date(post.scheduled_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                    </span>
                                   </div>
                                 </div>
                               ))}
@@ -2514,7 +987,17 @@ export default function MockupsPage() {
                               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <Users className="h-4 w-4" /> Active Accounts & Compliance
                               </span>
-                              <Badge className="bg-slate-800 text-slate-400 text-[9px] font-mono">{customersList.length} Accounts</Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-slate-800 text-slate-400 text-[9px] font-mono">{customersList.length} Accounts</Badge>
+                                {/* S2: New Customer Button */}
+                                <Button
+                                  size="sm"
+                                  onClick={() => setIsNewCustomerOpen(true)}
+                                  className="h-5 px-2 text-[8px] font-mono uppercase bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 rounded-md"
+                                >
+                                  + New
+                                </Button>
+                              </div>
                             </div>
 
                             <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
@@ -2569,20 +1052,14 @@ export default function MockupsPage() {
                                     {/* Failed compliance reason / Override */}
                                     {complianceState === 'Failed' && (
                                       <div className="mt-1 p-2 bg-red-950/15 border border-red-500/20 text-red-400 rounded text-[9px] font-mono space-y-1.5 leading-relaxed">
-                                        <div><strong>Compliance Block:</strong> Requires manual override: Foreign jurisdiction regulatory hold (EU GDPR compliance review)</div>
+                                        <div><strong>Compliance Block:</strong> {acc.compliance_notes || acc.description || 'Manual override required — compliance review pending.'}</div>
                                         <Button 
                                           size="sm" 
                                           variant="outline" 
                                           onClick={() => {
-                                            updateCustomerMutation.mutate({
-                                              id: acc.id,
-                                              data: { status: 'active' }
-                                            }, {
-                                              onSuccess: () => {
-                                                queryClient.invalidateQueries({ queryKey: ['customers'] })
-                                                toast.success(`Override applied: ${acc.name} compliance status updated!`)
-                                              }
-                                            })
+                                            setPendingOverrideCustomerId(acc.id)
+                                            setPendingOverrideCustomerName(acc.name)
+                                            setIsOverrideConfirmOpen(true)
                                           }}
                                           className="h-6 text-[8.5px] uppercase text-red-400 border-red-500/20 bg-red-950/20 hover:bg-red-950/30"
                                         >
@@ -2603,7 +1080,9 @@ export default function MockupsPage() {
 
                 {/* Research Hub Mindset */}
                 {enhancedPerspective === 'research' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                    <TodayDigest />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Card 1: Pristine Search & Citation Inspector */}
                     <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl p-5 min-h-[380px] flex flex-col justify-between relative overflow-hidden">
                       <div className="space-y-4">
@@ -2616,6 +1095,28 @@ export default function MockupsPage() {
 
                         {/* Query bar */}
                         <div className="space-y-3">
+                          {/* R2: Notebook scope selector — visual filter, narrows intent for future API support */}
+                          {notebooksList.length > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-mono text-slate-400 uppercase">Scope:</span>
+                              <select
+                                value={selectedNotebookId || ''}
+                                onChange={(e) => setSelectedNotebookId(e.target.value || null)}
+                                className="flex-1 bg-slate-950/80 border border-white/10 text-[9px] font-mono rounded-md px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500/50"
+                                title="Filter results by notebook (coming soon — currently shows global results)"
+                              >
+                                <option value="">Global (all notebooks)</option>
+                                {notebooksList.map((nb: any) => (
+                                  <option key={nb.id} value={nb.id}>
+                                    {nb.name.length > 28 ? nb.name.slice(0, 28) + '…' : nb.name}
+                                  </option>
+                                ))}
+                              </select>
+                              {selectedNotebookId && (
+                                <span className="text-[8px] font-mono text-amber-400/70 whitespace-nowrap">(preview)</span>
+                              )}
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <div className="relative flex-1">
                               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -2680,6 +1181,13 @@ export default function MockupsPage() {
                                     className="text-sky-400 hover:text-sky-300 font-bold hover:underline"
                                   >
                                     [Inspect Citation]
+                                  </button>
+                                  {' '}
+                                  <button
+                                    onClick={() => router.push('/research')}
+                                    className="text-emerald-400 hover:text-emerald-300 font-bold hover:underline"
+                                  >
+                                    Open Research Hub →
                                   </button>
                                 </div>
                               </div>
@@ -2801,6 +1309,7 @@ export default function MockupsPage() {
                         )}
                       </div>
                     </Card>
+                    </div>
                   </div>
                 )}
 
@@ -2906,6 +1415,20 @@ export default function MockupsPage() {
                           
                           {projectsList.length > 0 && (
                             <div className="flex items-center gap-2">
+                              {/* D1: Project Selector */}
+                              <select
+                                value={activeProjectId || ''}
+                                onChange={(e) => setActiveProjectId(e.target.value || null)}
+                                className="bg-slate-950/80 border border-white/10 text-[9px] font-mono rounded-md px-2 py-0.5 text-emerald-300 focus:outline-none focus:border-emerald-500/50"
+                                title="Switch active project"
+                              >
+                                {projectsList.map((p: any) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name.length > 22 ? p.name.slice(0, 22) + '…' : p.name}
+                                  </option>
+                                ))}
+                              </select>
+
                               {/* User Filter Dropdown */}
                               <select
                                 value={userFilter}
@@ -3081,11 +1604,15 @@ export default function MockupsPage() {
                                 )
                               })
                             ) : (
-                              <>
-                                <div><span className="text-slate-500">[17:02]</span> <strong className="text-slate-200">Email:</strong> Sarah Connor Approved SCADA insulation blueprints for Facility 1.</div>
-                                <div><span className="text-slate-500">[16:45]</span> <strong className="text-emerald-400">Slack:</strong> SRE Agent Alpha successfully verified backup configuration on Facility 2.</div>
-                                <div><span className="text-slate-500">[15:10]</span> <strong className="text-slate-200">Email:</strong> CISO Bruce Banner requested audit log download link for compliance validation.</div>
-                              </>
+                              <div className="py-4 text-center text-[9px] font-mono text-slate-500 italic border border-dashed border-white/5 rounded-lg">
+                                No activity logged for this account yet.{' '}
+                                <button
+                                  onClick={handleSeedCRM}
+                                  className="text-cyan-400 hover:text-cyan-300 hover:underline not-italic"
+                                >
+                                  Seed sample data →
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -3149,23 +1676,34 @@ export default function MockupsPage() {
                         <div className="space-y-2">
                           <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Visual Schedule Timeline</label>
                           <div className="space-y-1.5 max-h-[170px] overflow-y-auto pr-1">
-                            {marketingPosts.map((post: any) => (
+                            {marketingPosts.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 text-center space-y-2 border border-dashed border-white/10 rounded-xl bg-slate-950/40 p-4">
+                                <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">No posts scheduled yet</span>
+                                <button
+                                  onClick={() => setEnhancedPerspective('marketing')}
+                                  className="text-[9px] font-mono text-violet-400 hover:text-violet-300 underline"
+                                >Schedule your first post below →</button>
+                              </div>
+                            ) : marketingPosts.map((post: any) => (
                               <div key={post.id} className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5 flex items-center justify-between gap-3 text-[10px] font-mono">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <Badge className="bg-violet-500/20 text-violet-400 text-[8px] uppercase">{post.platform}</Badge>
-                                  <span className="text-slate-200 font-bold truncate max-w-[160px]">{post.title}</span>
+                                  <Badge className="bg-violet-500/20 text-violet-400 text-[8px] uppercase">{post.platform || post.channel || 'Post'}</Badge>
+                                  <span className="text-slate-200 font-bold truncate max-w-[160px]">{post.title || post.name}</span>
                                 </div>
-                                
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[8.5px] text-slate-500">{post.date.split(' ')[0]}</span>
+                                  <span className="text-[8.5px] text-slate-500">
+                                    {post.scheduled_at || post.date
+                                      ? new Date(post.scheduled_at || post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                      : '—'}
+                                  </span>
                                   <Badge className={
-                                    post.status === 'Published' 
-                                      ? 'bg-emerald-500/20 text-emerald-400 text-[8.5px] border border-emerald-500/30' 
-                                      : post.status === 'Active' || post.status === 'running'
+                                    post.status === 'Published' || post.status === 'sent'
+                                      ? 'bg-emerald-500/20 text-emerald-400 text-[8.5px] border border-emerald-500/30'
+                                      : post.status === 'Active' || post.status === 'running' || post.status === 'pending'
                                         ? 'bg-cyan-500/20 text-cyan-400 text-[8.5px] border border-cyan-500/30 animate-pulse'
                                         : 'bg-slate-800 text-slate-400 text-[8.5px]'
                                   }>
-                                    {post.status.toUpperCase()}
+                                    {(post.status || 'queued').toUpperCase()}
                                   </Badge>
                                 </div>
                               </div>
@@ -3197,28 +1735,31 @@ export default function MockupsPage() {
                           />
                         </div>
 
-                        {/* Voice actor selection */}
+                        {/* Voice actor selection — dynamic from /api/voice/registry */}
                         <div className="space-y-2">
-                          <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Voice Actor (Speaker profile)</label>
-                          <div className="flex gap-3 items-center justify-center">
-                            {[
-                              { id: 'v1', name: 'Adam (ElevenLabs)', init: 'A', color: 'bg-violet-600' },
-                              { id: 'v2', name: 'Bella (Kokoro)', init: 'B', color: 'bg-cyan-600' },
-                              { id: 'v3', name: 'Charlie (Kokoro)', init: 'C', color: 'bg-emerald-600' },
-                            ].map(voice => (
-                              <button 
-                                key={voice.id}
-                                onClick={() => setSelectedMarketingVoice(voice.id)}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-slate-100 font-bold border transition-all ${
-                                  selectedMarketingVoice === voice.id 
-                                    ? 'border-violet-400 scale-115 ring-2 ring-violet-500/20' 
-                                    : 'border-white/10 opacity-70 hover:opacity-100'
-                                } ${voice.color}`}
-                              >
-                                {voice.init}
-                              </button>
-                            ))}
-                          </div>
+                          <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Voice Actor (Speaker Profile)</label>
+                          {voiceRegistry?.tts_engines && voiceRegistry.tts_engines.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 items-center justify-center max-h-[80px] overflow-y-auto pr-1">
+                              {voiceRegistry.tts_engines.flatMap((engine: any) => engine.voices).map((voice: any) => (
+                                <button
+                                  key={voice.id}
+                                  onClick={() => setSelectedMarketingVoiceId(voice.id)}
+                                  title={`${voice.name} (${voice.provider})`}
+                                  className={`px-2.5 py-1 rounded-lg text-[9px] font-mono border transition-all ${
+                                    selectedMarketingVoiceId === voice.id
+                                      ? 'border-violet-400 bg-violet-500/20 text-violet-200 font-bold'
+                                      : 'border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                                  }`}
+                                >
+                                  {voice.name}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-[9px] font-mono text-slate-500 italic p-2 bg-slate-950/40 rounded border border-white/5">
+                              {voiceRegistry === undefined ? 'Loading voices...' : 'No voices available. Check Kokoro TTS service.'}
+                            </div>
+                          )}
                         </div>
 
                         {/* Generate audio / wave animation */}
@@ -3272,11 +1813,24 @@ export default function MockupsPage() {
                         <div className="space-y-2">
                           <label className="text-[9.5px] font-mono text-slate-400 uppercase tracking-wider block">Container Status Dashboard</label>
                           <div className="grid grid-cols-1 gap-2">
-                            {liveContainers.map((cont: any) => (
+                            {liveContainers.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 text-center space-y-3 border border-dashed border-white/10 rounded-xl bg-slate-950/40 p-4">
+                                <Server className="h-7 w-7 text-slate-600" />
+                                <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Docker service not reachable</span>
+                                <button
+                                  onClick={() => refetchContainers()}
+                                  className="text-[9px] font-mono text-cyan-400 hover:text-cyan-300 underline"
+                                >Retry</button>
+                                <button
+                                  onClick={() => router.push('/settings/containers')}
+                                  className="text-[9px] font-mono text-slate-400 hover:text-slate-200 underline"
+                                >Open Container Settings →</button>
+                              </div>
+                            ) : liveContainers.map((cont: any) => (
                               <div key={cont.id} className="p-2.5 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between font-mono text-[10px]">
                                 <div>
                                   <span className="font-bold text-slate-200 block truncate max-w-[120px]">{cont.name}</span>
-                                  <span className="text-[8.5px] text-slate-500 block">Port: {cont.port}</span>
+                                  <span className="text-[8.5px] text-slate-500 block">Port: {cont.ports || '—'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <Badge className={`text-[8px] scale-90 ${
@@ -3299,7 +1853,8 @@ export default function MockupsPage() {
                                   </Button>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                            }
                           </div>
                         </div>
                       </div>
@@ -3319,12 +1874,12 @@ export default function MockupsPage() {
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-mono">Index Metrics</span>
                           <div className="grid grid-cols-2 gap-4 font-mono text-[9.5px] text-slate-400">
                             <div>
-                              <div>Model: <strong className="text-slate-200">text-embedding-3-small</strong></div>
-                              <div>Dims: <strong className="text-slate-200">1536</strong></div>
+                              <div>Documents: <strong className="text-slate-200">{rmemStats?.total_documents ?? '—'}</strong></div>
+                              <div>Storage: <strong className="text-slate-200">{rmemStats?.table_size ?? '—'}</strong></div>
                             </div>
                             <div>
-                              <div>RAM: <strong className="text-slate-200">14.2 MB</strong></div>
-                              <div>Cache: <strong className="text-emerald-400 font-bold">92.4%</strong></div>
+                              <div>Types: <strong className="text-slate-200">{rmemStats ? Object.keys(rmemStats.source_types).join(', ') || 'none' : '—'}</strong></div>
+                              <div>Newest: <strong className="text-slate-200">{rmemStats?.newest ? new Date(rmemStats.newest).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</strong></div>
                             </div>
                           </div>
                         </div>
@@ -3374,7 +1929,7 @@ export default function MockupsPage() {
                         onClick={() => {
                           if (enhancedPerspective === 'sales') setAiCommand('Calculate pipeline conversion funnel')
                           if (enhancedPerspective === 'research') setAiCommand('Query document tree metadata')
-                          if (enhancedPerspective === 'delivery') setAiCommand('Trace ACME Texas plant SRE config')
+                          if (enhancedPerspective === 'delivery') setAiCommand(`Summarize open tasks for project: ${activeDbProject?.name || 'current project'}`)
                           if (enhancedPerspective === 'marketing') setAiCommand('Schedule upcoming LinkedIn post')
                           if (enhancedPerspective === 'admin') setAiCommand('Restart all backend containers')
                         }}
@@ -3382,7 +1937,7 @@ export default function MockupsPage() {
                       >
                         {enhancedPerspective === 'sales' && 'Calculate pipeline conversion funnel'}
                         {enhancedPerspective === 'research' && 'Query document tree metadata'}
-                        {enhancedPerspective === 'delivery' && 'Trace ACME Texas plant SRE config'}
+                        {enhancedPerspective === 'delivery' && `Summarize open tasks for: ${activeDbProject?.name || 'current project'}`}
                         {enhancedPerspective === 'marketing' && 'Schedule upcoming LinkedIn post'}
                         {enhancedPerspective === 'admin' && 'Restart all backend containers'}
                       </button>
@@ -3392,9 +1947,8 @@ export default function MockupsPage() {
               </div>
             </div>
           </div>
-        )}
 
-        {/* Option 7 Modals */}
+        {/* Modals */}
         <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
           <DialogContent className="bg-slate-950 border-white/10 text-white max-w-md">
             <DialogHeader>
@@ -3605,6 +2159,122 @@ export default function MockupsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsUserModalOpen(false)} className="text-xs">Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* S2: New Customer Dialog */}
+        <Dialog open={isNewCustomerOpen} onOpenChange={setIsNewCustomerOpen}>
+          <DialogContent className="bg-slate-950 border-white/10 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-cyan-400 font-mono uppercase text-sm">New Customer Account</DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">Create a new CRM account in the database.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Company Name *</Label>
+                <Input
+                  placeholder="Acme Corp"
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  className="bg-slate-900 border-white/10 text-xs font-mono h-8"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Industry</Label>
+                <Input
+                  placeholder="e.g. Cybersecurity"
+                  value={newCustomerIndustry}
+                  onChange={(e) => setNewCustomerIndustry(e.target.value)}
+                  className="bg-slate-900 border-white/10 text-xs font-mono h-8"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-400 text-xs">Website</Label>
+                <Input
+                  placeholder="example.com"
+                  value={newCustomerWebsite}
+                  onChange={(e) => setNewCustomerWebsite(e.target.value)}
+                  className="bg-slate-900 border-white/10 text-xs font-mono h-8"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNewCustomerOpen(false)} className="text-xs border-white/10">Cancel</Button>
+              <Button
+                disabled={!newCustomerName.trim() || createCustomerMutation.isPending}
+                onClick={async () => {
+                  if (!newCustomerName.trim()) return
+                  try {
+                    await createCustomerMutation.mutateAsync({
+                      name: newCustomerName.trim(),
+                      industry: newCustomerIndustry.trim() || undefined,
+                      website: newCustomerWebsite.trim() || undefined,
+                      status: 'active',
+                    })
+                    queryClient.invalidateQueries({ queryKey: ['customers'] })
+                    toast.success(`${newCustomerName} added to CRM!`)
+                    setNewCustomerName('')
+                    setNewCustomerIndustry('')
+                    setNewCustomerWebsite('')
+                    setIsNewCustomerOpen(false)
+                  } catch {
+                    toast.error('Failed to create customer.')
+                  }
+                }}
+                className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-xs"
+              >
+                {createCustomerMutation.isPending ? 'Creating…' : 'Create Account'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* CG3: Compliance Override Confirmation Dialog */}
+        <Dialog open={isOverrideConfirmOpen} onOpenChange={setIsOverrideConfirmOpen}>
+          <DialogContent className="bg-slate-950 border-red-500/30 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-400 font-mono uppercase text-sm">Confirm Audit Override</DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">
+                This action will be permanently logged in the audit trail.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-3 px-1 space-y-2 text-xs font-mono">
+              <div className="p-3 bg-red-950/20 border border-red-500/20 rounded-lg text-red-300">
+                You are about to override the compliance block for{' '}
+                <strong className="text-red-200">{pendingOverrideCustomerName}</strong>.
+                Their status will be set to <strong>Active</strong>.
+              </div>
+              <div className="text-slate-400 text-[10px]">This override and your identity will be recorded in the compliance ledger.</div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsOverrideConfirmOpen(false)} className="text-xs border-white/10">Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!pendingOverrideCustomerId) return
+                  updateCustomerMutation.mutate(
+                    { id: pendingOverrideCustomerId, data: { status: 'active' } },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['customers'] })
+                        toast.success(`Override applied: ${pendingOverrideCustomerName} compliance status updated.`)
+                        createActivityMutation.mutate({
+                          customer_id: pendingOverrideCustomerId,
+                          activity_type: 'custom',
+                          description: `Compliance audit override applied via dashboard.`,
+                          actor: 'Dashboard Operator',
+                        })
+                        setIsOverrideConfirmOpen(false)
+                        setPendingOverrideCustomerId(null)
+                      },
+                    }
+                  )
+                }}
+                className="text-xs"
+              >
+                Confirm Override
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

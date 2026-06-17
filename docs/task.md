@@ -116,6 +116,22 @@
 
 ---
 
+## Path B: Complete the Platform (Active)
+- [x] **Task B1**: Migration 52: First-Class Task Table
+- [x] **Task B2**: Migration 53: Campaign Table
+- [x] **Task B3**: Migration 54: User Table SCHEMAFULL + Auth Fields
+- [x] **Task B4**: Migration 55: task_relation RELATION Table
+- [x] **Task B5**: Migration 56: assigned_to FK on project/notebook → user
+- [ ] **Task B6**: Task Domain Model + API Router (tasks.py)
+- [ ] **Task B7**: Campaign Domain Model + API Router (campaigns.py)
+- [ ] **Task B8**: /tasks Page (Universal Board + "My Tasks" View)
+- [ ] **Task B9**: /campaigns Page (Content Campaign Planner)
+- [ ] **Task B10**: DeliveryTree: Persistent Left Panel in Operations
+- [ ] **Task B11**: Revenue Forecast View on Pipeline/Sales Tab
+- [ ] **Task B12**: Researcher "Today" Digest Widget on Home Page
+- [ ] **Task B13**: RBAC Enforcement (Role Middleware)
+- [ ] **Task B14**: Gate B14: All tests pass, tsc --noEmit, Docker build green
+
 ## Verification Log
 | Item | Check | Result |
 |---|---|---|

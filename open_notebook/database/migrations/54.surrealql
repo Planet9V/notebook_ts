@@ -1,0 +1,21 @@
+-- Migration 54: Harden user table — SCHEMAFULL, auth fields, soft-delete
+DEFINE TABLE user SCHEMAFULL;
+
+-- Existing fields
+DEFINE FIELD first_name    ON TABLE user TYPE option<string>;
+DEFINE FIELD last_name     ON TABLE user TYPE option<string>;
+DEFINE FIELD email         ON TABLE user TYPE option<string>;
+DEFINE FIELD role          ON TABLE user TYPE option<string> DEFAULT 'viewer';
+DEFINE FIELD organization  ON TABLE user TYPE option<record<organization>>;
+
+-- New auth fields
+DEFINE FIELD username      ON TABLE user TYPE option<string>;
+DEFINE FIELD password_hash ON TABLE user TYPE option<string>;
+DEFINE FIELD is_active     ON TABLE user TYPE option<bool> DEFAULT true;
+DEFINE FIELD last_login    ON TABLE user TYPE option<datetime>;
+DEFINE FIELD created       ON TABLE user TYPE option<datetime> DEFAULT time::now();
+DEFINE FIELD updated       ON TABLE user TYPE option<datetime> DEFAULT time::now();
+
+-- Indexes
+DEFINE INDEX idx_user_email    ON TABLE user FIELDS email UNIQUE;
+DEFINE INDEX idx_user_username ON TABLE user FIELDS username UNIQUE;

@@ -6,6 +6,7 @@ adding voice-specific metadata (voice_mode, tts_voice) while sharing
 the same underlying session infrastructure.
 """
 
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import ChatSession, Note, Notebook
+from open_notebook.domain.voice_settings import VoiceSettingsConfig
 
 router = APIRouter()
 
@@ -27,11 +29,14 @@ class CreateVoiceSessionRequest(BaseModel):
     notebook_id: Optional[str] = Field(
         None, description="Optional notebook ID for scoped context"
     )
-    title: Optional[str] = Field(
-        default="Voice Conversation", description="Session title"
+    title: str = Field(
+        ...,
+        min_length=1,
+        description="Unique session name — must be supplied by the client",
     )
-    tts_voice: str = Field(
-        default="af_heart", description="Default TTS voice for this session"
+    tts_voice: Optional[str] = Field(
+        default=None,
+        description="TTS voice for this session; if omitted, uses the active default from Voice Settings",
     )
 
 
@@ -45,7 +50,7 @@ class VoiceSessionResponse(BaseModel):
     updated: str
     message_count: int = 0
     voice_mode: bool = True
-    tts_voice: str = "af_heart"
+    tts_voice: str  # always resolved from DB — no hardcoded default
 
 
 class VoiceMessageRequest(BaseModel):
@@ -84,6 +89,14 @@ async def list_voice_sessions(
     Returns sessions marked as voice_mode=True.
     """
     try:
+        # Load user-configured voice once for the response
+        default_voice = "af_heart"
+        try:
+            cfg = await VoiceSettingsConfig.get_instance()
+            default_voice = cfg.kokoro_default_voice or "af_heart"
+        except Exception:
+            pass
+
         if notebook_id:
             # Get sessions scoped to a notebook
             notebook = await Notebook.get(notebook_id)
@@ -102,7 +115,7 @@ async def list_voice_sessions(
                         created=str(s.created or ""),
                         updated=str(s.updated or ""),
                         voice_mode=True,
-                        tts_voice="af_heart",
+                        tts_voice=default_voice,
                     )
                 )
             return results
@@ -120,11 +133,12 @@ async def list_voice_sessions(
                 results.append(
                     VoiceSessionResponse(
                         id=r.get("id", ""),
-                        title=r.get("title", "Voice Conversation"),
+                        title=r.get("title", "Voice Session"),
                         notebook_id=r.get("notebook_id"),
                         created=str(r.get("created", "")),
                         updated=str(r.get("updated", "")),
                         voice_mode=True,
+                        tts_voice=default_voice,
                     )
                 )
             return results
@@ -140,17 +154,61 @@ async def list_voice_sessions(
 async def create_voice_session(request: CreateVoiceSessionRequest):
     """
     Create a new voice chat session.
-    Reuses the ChatSession domain model with voice-specific metadata.
+
+    Behaviour:
+    - `title` is required — the client must supply a unique, human-readable name.
+    - `tts_voice` is optional. When omitted the active default from VoiceSettingsConfig
+      (SurrealDB singleton) is used, so the session always reflects whatever the admin
+      has configured as the global default voice.
+    - The resolved voice is upserted into the `custom_voice` table so it is persisted
+      long-term and visible to all clients via the voice registry.
     """
     try:
-        title = request.title or "Voice Conversation"
-        # Prefix with 🎙️ to distinguish voice sessions
+        # ── 1. Resolve tts_voice from DB if not explicitly supplied ──────────
+        tts_voice = request.tts_voice
+        if not tts_voice:
+            try:
+                cfg = await VoiceSettingsConfig.get_instance()
+                tts_voice = cfg.kokoro_default_voice or "af_heart"
+            except Exception:
+                tts_voice = "af_heart"
+
+        # ── 2. Persist the voice into custom_voice (upsert by name) ──────────
+        # This ensures the voice is available long-term to all users.
+        try:
+            existing = await repo_query(
+                "SELECT * FROM custom_voice WHERE name = $name LIMIT 1;",
+                {"name": tts_voice},
+            )
+            if not existing:
+                await repo_query(
+                    """
+                    CREATE custom_voice CONTENT {
+                        name: $name,
+                        voice_id: $voice_id,
+                        provider: 'kokoro',
+                        local_path: '',
+                        created: $created
+                    };
+                    """,
+                    {
+                        "name": tts_voice,
+                        "voice_id": tts_voice,
+                        "created": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
+                logger.info(f"Persisted voice '{tts_voice}' to custom_voice table")
+        except Exception as cv_err:
+            # Non-fatal — log and continue; the unique-name constraint will catch duplicates
+            logger.warning(f"Could not upsert custom_voice for '{tts_voice}': {cv_err}")
+
+        # ── 3. Build the chat session ────────────────────────────────────────
+        title = request.title.strip()
+        # Prefix with 🎙️ to distinguish voice sessions from text sessions
         if not title.startswith("🎙️"):
             title = f"🎙️ {title}"
 
-        session = ChatSession(
-            title=title,
-        )
+        session = ChatSession(title=title)
 
         # If notebook-scoped, associate with notebook
         if request.notebook_id:
@@ -169,7 +227,7 @@ async def create_voice_session(request: CreateVoiceSessionRequest):
             created=str(session.created or ""),
             updated=str(session.updated or ""),
             voice_mode=True,
-            tts_voice=request.tts_voice,
+            tts_voice=tts_voice,
         )
 
     except HTTPException:

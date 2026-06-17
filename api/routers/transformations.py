@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
+from langchain_core.messages import HumanMessage, SystemMessage
 from loguru import logger
+from pydantic import BaseModel
 
 from api.models import (
     DefaultPromptResponse,
@@ -13,9 +15,25 @@ from api.models import (
     TransformationUpdate,
 )
 from open_notebook.ai.models import Model
+from open_notebook.ai.provision import provision_langchain_model
 from open_notebook.domain.transformation import DefaultPrompts, Transformation
 from open_notebook.exceptions import InvalidInputError, OpenNotebookError
 from open_notebook.graphs.transformation import graph as transformation_graph
+from open_notebook.utils.text_utils import extract_text_content
+
+
+class InlineTransformRequest(BaseModel):
+    """Request for a one-off transformation without a saved Transformation record."""
+
+    input_text: str
+    instruction: str
+    model_id: Optional[str] = None  # None = use default transformation model
+
+
+class InlineTransformResponse(BaseModel):
+    """Response from an inline transformation."""
+
+    output: str
 
 router = APIRouter()
 
@@ -118,6 +136,48 @@ async def execute_transformation(execute_request: TransformationExecuteRequest):
         logger.error(f"Error executing transformation: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error executing transformation: {str(e)}"
+        )
+
+
+@router.post("/transformations/run-inline", response_model=InlineTransformResponse)
+async def run_inline_transformation(request: InlineTransformRequest):
+    """Execute a one-off transformation with an inline instruction and input text.
+
+    Does NOT require a pre-saved Transformation record.
+    Falls back to the default transformation model when model_id is omitted.
+    """
+    try:
+        # Build messages: instruction becomes the system prompt
+        system_prompt = request.instruction.strip() + "\n\n# INPUT"
+        payload = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=request.input_text),
+        ]
+
+        # provision_langchain_model auto-falls-back to default "transformation"
+        # model when model_id is None
+        chain = await provision_langchain_model(
+            request.input_text, request.model_id, "transformation", max_tokens=4096
+        )
+        response = await chain.ainvoke(payload)
+
+        raw_content = extract_text_content(response.content)
+
+        # Strip <thinking> blocks from extended-thinking models
+        from open_notebook.utils import clean_thinking_content
+        output = clean_thinking_content(raw_content)
+
+        return InlineTransformResponse(output=output)
+
+    except HTTPException:
+        raise
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error in run-inline transformation: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error executing inline transformation: {str(e)}",
         )
 
 

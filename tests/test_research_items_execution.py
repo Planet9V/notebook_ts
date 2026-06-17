@@ -1,5 +1,6 @@
 import json
 from unittest.mock import AsyncMock, patch
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from fastapi import BackgroundTasks
@@ -15,10 +16,9 @@ def client():
 class TestResearchItemsExecution:
     """Test suite for Research Items Execution and Note creation."""
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("api.routers.research_items.background_run_research")
-    async def test_execute_research_endpoint(self, mock_background_run, mock_ri_cls, client):
+    def test_execute_research_endpoint(self, mock_background_run, mock_ri_cls, client):
         """Test that calling execute_research endpoint updates stage and spawns background task."""
         mock_ri = AsyncMock()
         mock_ri.id = "research_item:123"
@@ -48,10 +48,9 @@ class TestResearchItemsExecution:
         mock_ri.save.assert_called()
         mock_background_run.assert_called_once_with("research_item:123")
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("api.routers.search.stream_research_response")
-    async def test_background_run_research_saves_to_review_enhance(self, mock_stream, mock_ri_cls):
+    def test_background_run_research_saves_to_review_enhance(self, mock_stream, mock_ri_cls):
         """Test that the background task fetches data, updates content, and sets stage to review_enhance."""
         from api.routers.research_items import background_run_research
 
@@ -80,7 +79,7 @@ class TestResearchItemsExecution:
         mock_stream.return_value = mock_generator()
 
         # Call the background task directly
-        await background_run_research("research_item:123")
+        asyncio.run(background_run_research("research_item:123"))
 
         # Verify stream was consumed
         mock_stream.assert_called_once()

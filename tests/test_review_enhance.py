@@ -1,5 +1,6 @@
 import json
 from unittest.mock import AsyncMock, patch, MagicMock
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
@@ -64,11 +65,10 @@ def create_mock_research_item(
 class TestReviewEnhanceAPI:
     """Test suite for the Review & Enhance endpoints and functionality."""
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("open_notebook.ai.provision.provision_langchain_model")
     @patch("open_notebook.utils.text_utils.extract_text_content")
-    async def test_enhance_endpoint_success(self, mock_extract, mock_provision, mock_ri_cls, client):
+    def test_enhance_endpoint_success(self, mock_extract, mock_provision, mock_ri_cls, client):
         """Test that the enhance endpoint successfully calls LLM and updates results_content."""
         mock_ri = create_mock_research_item(
             results_content="Original report content",
@@ -99,9 +99,8 @@ class TestReviewEnhanceAPI:
         mock_llm.ainvoke.assert_called_once()
         mock_ri.save.assert_called_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
-    async def test_enhance_endpoint_missing_content(self, mock_ri_cls, client):
+    def test_enhance_endpoint_missing_content(self, mock_ri_cls, client):
         """Test that enhance endpoint returns 422 if results_content is empty."""
         mock_ri = create_mock_research_item(results_content="")
         mock_ri_cls.get = AsyncMock(return_value=mock_ri)
@@ -114,11 +113,10 @@ class TestReviewEnhanceAPI:
         assert response.status_code == 422
         assert "No research content found" in response.json()["detail"]
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("open_notebook.domain.notebook.Note")
     @patch("api.routers.activity_emitter.emit_activity")
-    async def test_approve_endpoint_success(self, mock_emit, mock_note_cls, mock_ri_cls, client):
+    def test_approve_endpoint_success(self, mock_emit, mock_note_cls, mock_ri_cls, client):
         """Test that approve endpoint creates a Note, links it, emits activity, and sets stage to completed."""
         mock_ri = create_mock_research_item(
             results_content="Final completed research content",
@@ -160,10 +158,9 @@ class TestReviewEnhanceAPI:
         # Verify research item saved
         mock_ri.save.assert_called_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("api.routers.research_items.approve_research_item")
-    async def test_update_endpoint_triggers_approval_on_completed(self, mock_approve, mock_ri_cls, client):
+    def test_update_endpoint_triggers_approval_on_completed(self, mock_approve, mock_ri_cls, client):
         """Test that transitioning stage to completed via PUT triggers the approval note creation flow."""
         mock_ri = create_mock_research_item(stage="review_enhance")
         mock_ri_cls.get = AsyncMock(return_value=mock_ri)
@@ -187,13 +184,12 @@ class TestReviewEnhanceAPI:
         # Verify approve_research_item was called
         mock_approve.assert_called_once_with(mock_ri)
 
-    @pytest.mark.asyncio
     @patch("api.routers.research_items.ResearchItem")
     @patch("open_notebook.domain.notebook.Note")
     @patch("open_notebook.domain.notebook.Notebook")
     @patch("open_notebook.database.repository.repo_query")
     @patch("api.routers.activity_emitter.emit_activity")
-    async def test_approve_endpoint_creates_notebook_if_missing(self, mock_emit, mock_repo_query, mock_notebook_cls, mock_note_cls, mock_ri_cls, client):
+    def test_approve_endpoint_creates_notebook_if_missing(self, mock_emit, mock_repo_query, mock_notebook_cls, mock_note_cls, mock_ri_cls, client):
         """Test that approve endpoint creates a new Notebook if notebook_id is missing and no notebook exists."""
         mock_ri = create_mock_research_item(
             results_content="Completed research content",

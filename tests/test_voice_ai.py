@@ -9,6 +9,7 @@ These tests verify the critical runtime fixes:
 import io
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -27,11 +28,10 @@ def client():
 class TestVoiceSessionCreation:
     """Tests for #audit-1: voice session creation must NOT call create_chat_session."""
 
-    @pytest.mark.asyncio
     @patch("api.routers.voice_sessions.ChatSession.save", new_callable=AsyncMock)
     @patch("api.routers.voice_sessions.ChatSession.relate_to_notebook", new_callable=AsyncMock)
     @patch("api.routers.voice_sessions.Notebook.get", new_callable=AsyncMock)
-    async def test_create_voice_session_with_notebook_uses_relate(
+    def test_create_voice_session_with_notebook_uses_relate(
         self, mock_nb_get, mock_relate, mock_save, client
     ):
         """Creating a notebook-scoped voice session should save() then relate_to_notebook()."""
@@ -69,9 +69,8 @@ class TestVoiceSessionCreation:
         # Verify relate_to_notebook was called
         mock_relate.assert_called_once_with("notebook:test123")
 
-    @pytest.mark.asyncio
     @patch("api.routers.voice_sessions.ChatSession", autospec=False)
-    async def test_create_voice_session_without_notebook(self, MockSession, client):
+    def test_create_voice_session_without_notebook(self, MockSession, client):
         """Creating a voice session without notebook should just save()."""
         instance = MagicMock()
         instance.id = "chat_session:no_nb"
@@ -145,8 +144,7 @@ class TestSTTTranscribe:
 class TestVoiceRAGContext:
     """Tests for #audit-3: voice RAG builds context from get_sources/get_notes."""
 
-    @pytest.mark.asyncio
-    async def test_voice_rag_endpoint_exists(self, client):
+    def test_voice_rag_endpoint_exists(self, client):
         """The voice RAG chat endpoint should be registered."""
         response = client.post(
             "/api/voice/chat/simple",
@@ -155,10 +153,9 @@ class TestVoiceRAGContext:
         # Should not be 404 — may be 500 if LLM not configured, but endpoint exists
         assert response.status_code != 404, "Voice RAG endpoint not registered"
 
-    @pytest.mark.asyncio
     @patch("api.routers.voice_rag.vector_search", new_callable=AsyncMock)
     @patch("api.routers.voice_rag.Notebook.get", new_callable=AsyncMock)
-    async def test_voice_rag_uses_get_sources_not_get_context(
+    def test_voice_rag_uses_get_sources_not_get_context(
         self, mock_nb_get, mock_vector_search, client
     ):
         """Voice RAG should call notebook.get_sources(), not notebook.get_context()."""
@@ -203,11 +200,10 @@ class TestVoiceRAGContext:
 class TestPodcastServiceContext:
     """Tests for #audit-3b: podcast_service builds context from get_sources/get_notes."""
 
-    @pytest.mark.asyncio
     @patch("api.podcast_service.Notebook.get", new_callable=AsyncMock)
     @patch("api.podcast_service.EpisodeProfile.get_by_name", new_callable=AsyncMock)
     @patch("api.podcast_service.SpeakerProfile.get_by_name", new_callable=AsyncMock)
-    async def test_podcast_service_uses_get_sources_not_get_context(
+    def test_podcast_service_uses_get_sources_not_get_context(
         self, mock_sp_get, mock_ep_get, mock_nb_get
     ):
         """PodcastService should use get_sources/get_notes, not get_context."""
@@ -234,12 +230,12 @@ class TestPodcastServiceContext:
         with patch("api.podcast_service.submit_command") as mock_submit:
             mock_submit.return_value = "command:test123"
             try:
-                await PodcastService.submit_generation_job(
+                asyncio.run(PodcastService.submit_generation_job(
                     episode_profile_name="test_profile",
                     speaker_profile_name="test_speakers",
                     episode_name="Test Episode",
                     notebook_id="notebook:test",
-                )
+                ))
             except Exception:
                 pass  # May fail on command import, that's ok
 
@@ -254,14 +250,16 @@ class TestCustomVoiceUpload:
     @patch("api.routers.voice._get_provider_api_key")
     def test_upload_custom_voice_local(self, mock_get_api_key, client, tmp_path):
         """Uploading a custom voice with local provider (kokoro) should save to data/custom_voices and return custom_ ID."""
+        import uuid
         mock_get_api_key.return_value = None
+        speaker_name = f"Host Alice {uuid.uuid4().hex[:8]}"
         
         # Override DATA_FOLDER to tmp_path for isolated testing
         with patch("open_notebook.config.DATA_FOLDER", str(tmp_path)):
             audio_data = b"RIFF" + b"\x00" * 50
             response = client.post(
                 "/api/voice/upload-custom",
-                data={"speaker_name": "Host Alice", "provider": "kokoro"},
+                data={"speaker_name": speaker_name, "provider": "kokoro"},
                 files={"file": ("recording.wav", io.BytesIO(audio_data), "audio/wav")},
             )
             
@@ -280,7 +278,9 @@ class TestCustomVoiceUpload:
     @patch("api.routers.voice.httpx.AsyncClient")
     def test_upload_custom_voice_elevenlabs(self, mock_async_client, mock_get_api_key, client, tmp_path):
         """Uploading a custom voice with ElevenLabs should invoke instant voice cloning API."""
+        import uuid
         mock_get_api_key.return_value = "fake_elevenlabs_key"
+        speaker_name = f"Host Bob {uuid.uuid4().hex[:8]}"
         
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -296,7 +296,7 @@ class TestCustomVoiceUpload:
             audio_data = b"RIFF" + b"\x00" * 50
             response = client.post(
                 "/api/voice/upload-custom",
-                data={"speaker_name": "Host Bob", "provider": "elevenlabs"},
+                data={"speaker_name": speaker_name, "provider": "elevenlabs"},
                 files={"file": ("recording.wav", io.BytesIO(audio_data), "audio/wav")},
             )
             

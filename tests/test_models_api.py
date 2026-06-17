@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -15,10 +16,9 @@ def client():
 class TestModelCreation:
     """Test suite for Model Creation endpoint."""
 
-    @pytest.mark.asyncio
     @patch("open_notebook.database.repository.repo_query")
     @patch("api.routers.models.Model.save")
-    async def test_create_duplicate_model_same_case(
+    def test_create_duplicate_model_same_case(
         self, mock_save, mock_repo_query, client
     ):
         """Test that creating a duplicate model with same case returns 400."""
@@ -44,10 +44,9 @@ class TestModelCreation:
             == "Model 'gpt-4' already exists for provider 'openai' with type 'language'"
         )
 
-    @pytest.mark.asyncio
     @patch("open_notebook.database.repository.repo_query")
     @patch("api.routers.models.Model.save")
-    async def test_create_duplicate_model_different_case(
+    def test_create_duplicate_model_different_case(
         self, mock_save, mock_repo_query, client
     ):
         """Test that creating a duplicate model with different case returns 400."""
@@ -73,9 +72,8 @@ class TestModelCreation:
             == "Model 'GPT-4' already exists for provider 'OpenAI' with type 'language'"
         )
 
-    @pytest.mark.asyncio
     @patch("open_notebook.database.repository.repo_query")
-    async def test_create_same_model_name_different_provider(
+    def test_create_same_model_name_different_provider(
         self, mock_repo_query, client
     ):
         """Test that creating a model with same name but different provider is allowed."""
@@ -95,9 +93,8 @@ class TestModelCreation:
             # Should succeed because provider is different
             assert response.status_code == 200
 
-    @pytest.mark.asyncio
     @patch("open_notebook.database.repository.repo_query")
-    async def test_create_same_model_name_different_type(self, mock_repo_query, client):
+    def test_create_same_model_name_different_type(self, mock_repo_query, client):
         """Test that creating a model with same name but different type is allowed."""
         from open_notebook.ai.models import Model
 

@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
@@ -6,8 +7,7 @@ from open_notebook.database.repository import repo_query
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
-async def test_publications_publish_due_sandbox():
+def test_publications_publish_due_sandbox():
     """
     Test creating queued posts (email, twitter, linkedin) with a past scheduled_time,
     triggering the publish-due endpoint, and verifying they are marked as published.

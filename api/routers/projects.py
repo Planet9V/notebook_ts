@@ -23,8 +23,29 @@ from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, 
 router = APIRouter()
 
 
-def _build_project_response(project: Project) -> ProjectResponse:
+def _build_project_response(project: Project, tasks: Optional[List] = None) -> ProjectResponse:
     """Build a ProjectResponse from a Project domain model."""
+    serialized_tasks = []
+    if tasks:
+        serialized_tasks = [
+            {
+                "id": str(t.id),
+                "title": t.title,
+                "description": t.description,
+                "status": t.status,
+                "priority": t.priority,
+                "due_date": t.due_date,
+                "project_id": str(t.project_id) if t.project_id else None,
+                "customer_id": str(t.customer_id) if t.customer_id else None,
+                "notebook_id": str(t.notebook_id) if t.notebook_id else None,
+                "assigned_to": str(t.assigned_to) if t.assigned_to else None,
+                "created_by": str(t.created_by) if t.created_by else None,
+                "tags": t.tags or [],
+                "created": str(t.created) if t.created else "",
+                "updated": str(t.updated) if t.updated else "",
+            }
+            for t in tasks
+        ]
     return ProjectResponse(
         id=str(project.id),
         name=project.name,
@@ -40,7 +61,7 @@ def _build_project_response(project: Project) -> ProjectResponse:
         budget=project.budget,
         assigned_to=project.assigned_to or "",
         tags=project.tags or [],
-        tasks=project.tasks or [],
+        tasks=serialized_tasks,
         progress=project.progress or 0,
         created=str(project.created) if project.created else "",
         updated=str(project.updated) if project.updated else "",
@@ -65,7 +86,15 @@ async def list_projects(
         if status:
             projects = [p for p in projects if p.status == status]
 
-        return [_build_project_response(p) for p in projects]
+        from open_notebook.domain.task import Task
+        all_tasks = await Task.get_all()
+        tasks_by_project = {}
+        for t in all_tasks:
+            pid = str(t.project_id) if t.project_id else None
+            if pid:
+                tasks_by_project.setdefault(pid, []).append(t)
+
+        return [_build_project_response(p, tasks_by_project.get(str(p.id), [])) for p in projects]
     except Exception as e:
         logger.error(f"Error listing projects: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -102,7 +131,7 @@ async def create_project(data: ProjectCreate):
             except Exception as link_err:
                 logger.warning(f"Could not auto-link project to customer: {link_err}")
 
-        return _build_project_response(project)
+        return _build_project_response(project, [])
     except InvalidInputError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
@@ -115,7 +144,8 @@ async def get_project(project_id: str):
     """Get a single project by ID."""
     try:
         project = await Project.get(project_id)
-        return _build_project_response(project)
+        tasks = await project.get_tasks()
+        return _build_project_response(project, tasks)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
     except Exception as e:
@@ -135,7 +165,8 @@ async def update_project(project_id: str, data: ProjectUpdate):
                 setattr(project, key, value)
 
         await project.save()
-        return _build_project_response(project)
+        tasks = await project.get_tasks()
+        return _build_project_response(project, tasks)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
     except InvalidInputError as e:
@@ -172,9 +203,10 @@ async def add_task(project_id: str, data: TaskCreate):
         project = await Project.get(project_id)
         task = data.model_dump()
         await project.add_task(task)
-        project.progress = project.compute_progress()
+        project.progress = await project.compute_progress()
         await project.save()
-        return _build_project_response(project)
+        tasks = await project.get_tasks()
+        return _build_project_response(project, tasks)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
     except Exception as e:
@@ -189,9 +221,10 @@ async def update_task(project_id: str, task_index: int, data: TaskUpdate):
         project = await Project.get(project_id)
         updates = data.model_dump(exclude_unset=True)
         await project.update_task(task_index, updates)
-        project.progress = project.compute_progress()
+        project.progress = await project.compute_progress()
         await project.save()
-        return _build_project_response(project)
+        tasks = await project.get_tasks()
+        return _build_project_response(project, tasks)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
     except InvalidInputError as e:

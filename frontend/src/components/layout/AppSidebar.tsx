@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
+import { NotificationBell } from './NotificationBell'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useSidebarStore } from '@/lib/stores/sidebar-store'
@@ -62,12 +63,18 @@ const getNavigation = (t: TFunction) => [
     title: t('navigation.collect', 'Collect'),
     items: [
       { name: t('navigation.sources', 'Sources'), href: '/sources', icon: FileText },
+      { name: t('navigation.notebooks', 'Notebooks'), href: '/notebooks', icon: Book },
     ],
   },
   {
     title: t('navigation.operations', 'Operations'),
     items: [
       { name: 'Operations Hub', href: '/operations', icon: LayoutDashboard },
+      { name: 'Pipeline & CRM', href: '/pipeline', icon: TrendingUp },
+      { name: 'Tasks', href: '/tasks', icon: ScrollText },
+      { name: 'Campaigns', href: '/campaigns', icon: Calendar },
+      { name: 'Customers', href: '/customers', icon: Users },
+      { name: 'Contacts', href: '/contacts', icon: Contact2 },
     ],
   },
   {
@@ -75,18 +82,22 @@ const getNavigation = (t: TFunction) => [
     items: [
       { name: 'Intelligence Hub', href: '/search', icon: Search },
       { name: 'Research Hub', href: '/operations?tab=research', icon: Telescope },
+      { name: 'Transformations', href: '/transformations', icon: Shuffle },
+      { name: 'Research Memory', href: '/research-memory', icon: Brain },
     ],
   },
   {
     title: t('navigation.create', 'Creative'),
     items: [
       { name: 'Creative Media Workspace', href: '/media', icon: Mic },
+      { name: 'Publications & Calendar', href: '/publications', icon: Calendar },
     ],
   },
   {
     title: t('navigation.manage', 'Settings'),
     items: [
       { name: 'Settings Control Panel', href: '/settings', icon: Settings },
+      { name: 'Advanced Tools', href: '/advanced', icon: Wrench },
       { name: 'Docs Wiki', href: '/documentation', icon: BookOpen },
     ],
   },
@@ -284,30 +295,40 @@ export function AppSidebar() {
                   if (pathname) {
                     if (item.href === '/sources') {
                       isActive = pathname.startsWith('/sources')
+                    } else if (item.href === '/notebooks') {
+                      isActive = pathname.startsWith('/notebooks')
                     } else if (item.href === '/operations') {
                       const tab = searchParams?.get('tab')
-                      isActive = (pathname === '/operations' && tab !== 'research') ||
-                                 pathname.startsWith('/pipeline') || 
-                                 pathname.startsWith('/customer-ledger') || 
-                                 pathname.startsWith('/customers') || 
-                                 pathname.startsWith('/contacts')
+                      isActive = (pathname === '/operations' && !tab) || (pathname === '/operations' && tab === 'dashboard')
+                    } else if (item.href === '/pipeline') {
+                      isActive = pathname.startsWith('/pipeline') || pathname.startsWith('/projects')
+                    } else if (item.href === '/tasks') {
+                      isActive = pathname.startsWith('/tasks')
+                    } else if (item.href === '/campaigns') {
+                      isActive = pathname.startsWith('/campaigns')
+                    } else if (item.href === '/customers') {
+                      isActive = pathname.startsWith('/customers')
+                    } else if (item.href === '/contacts') {
+                      isActive = pathname.startsWith('/contacts')
                     } else if (item.href === '/operations?tab=research') {
                       const tab = searchParams?.get('tab')
                       isActive = pathname.startsWith('/research') || (pathname === '/operations' && tab === 'research')
                     } else if (item.href === '/search') {
-                      isActive = pathname.startsWith('/search') || 
-                                 pathname.startsWith('/compliance') || 
-                                 pathname.startsWith('/notebooks') || 
-                                 pathname.startsWith('/research-memory')
+                      isActive = pathname.startsWith('/search') || pathname.startsWith('/compliance')
+                    } else if (item.href === '/transformations') {
+                      isActive = pathname.startsWith('/transformations')
+                    } else if (item.href === '/research-memory') {
+                      isActive = pathname.startsWith('/research-memory')
                     } else if (item.href === '/media') {
-                      isActive = pathname.startsWith('/media') || 
-                                 pathname.startsWith('/podcasts') || 
-                                 pathname.startsWith('/voice-playground') || 
-                                 pathname.startsWith('/publications')
+                      isActive = pathname.startsWith('/media') ||
+                                 pathname.startsWith('/podcasts') ||
+                                 pathname.startsWith('/voice-playground')
+                    } else if (item.href === '/publications') {
+                      isActive = pathname.startsWith('/publications')
                     } else if (item.href === '/settings') {
-                      isActive = pathname.startsWith('/settings') || 
-                                 pathname.startsWith('/transformations') || 
-                                 pathname.startsWith('/advanced')
+                      isActive = pathname.startsWith('/settings')
+                    } else if (item.href === '/advanced') {
+                      isActive = pathname.startsWith('/advanced')
                     } else if (item.href === '/documentation') {
                       isActive = pathname.startsWith('/documentation')
                     }
@@ -388,6 +409,14 @@ export function AppSidebar() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
+                      <NotificationBell iconOnly />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Notifications</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
                       <ThemeToggle iconOnly />
                     </div>
                   </TooltipTrigger>
@@ -404,6 +433,7 @@ export function AppSidebar() {
               </>
             ) : (
               <>
+                <NotificationBell />
                 <ThemeToggle />
                 <LanguageToggle />
               </>

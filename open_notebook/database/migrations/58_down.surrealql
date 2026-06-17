@@ -1,0 +1,2 @@
+-- 58_down.surrealql
+REMOVE TABLE IF EXISTS notification;

@@ -121,11 +121,14 @@ graphify update .
 - NEVER commit secrets, credentials, or .env files
 - Keep files under 500 lines
 - Validate input at system boundaries
+- **Run `git status --short` at the end of every session** — zero untracked files before stopping
+- **All planning artifacts** (brainstorms, task lists, specs) go in `docs/plans/` — never in repo root
+- **Tool scaffolding artifacts** (`*.pre-ruflo`, root `package*.json`) are gitignored — never commit them
 
 ## Project Architecture
 
 - **Backend**: Python 3.12 + FastAPI + Pydantic v2 + LangChain/LangGraph
-- **Database**: SurrealDB v2 (schema-full, 46+ migrations in `open_notebook/database/migrations/`)
+- **Database**: SurrealDB v2 (schema-full, **50 migrations** in `open_notebook/database/migrations/`)
 - **Vector Search**: PostgreSQL pg17 + pgvector (hybrid RRF search)
 - **Frontend**: Next.js 16 + React 19 + TypeScript + Tailwind CSS + shadcn/ui
 - **Voice AI**: LiveKit + Kokoro TTS + Whisper STT + WebRTC
@@ -142,7 +145,7 @@ graphify update .
 | `kokoro-tts` | kokoro-fastapi-cpu | 8880 | Text-to-speech |
 | `whisper-stt` | faster-whisper-server | 8881 | Speech-to-text |
 
-### API Structure (49 Routers)
+### API Structure (47 Registered Routers)
 
 All FastAPI routers in `api/routers/`. Key groups:
 - **CRM**: customers, contacts, organizations, pipeline, projects
@@ -204,6 +207,8 @@ ruff check . --fix
 - ALWAYS verify `npx tsc --noEmit` exits 0 before committing
 - ALWAYS verify Docker build succeeds for infrastructure changes
 - ALWAYS run `graphify update .` after architectural changes
+- ALWAYS run `git status --short` before ending a session — commit or gitignore all untracked files
+- See `tests/STRATEGY.md` for explanation of test categories and why ~53 tests require live Docker
 
 ## Database Migrations
 

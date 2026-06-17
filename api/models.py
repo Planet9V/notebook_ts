@@ -553,12 +553,18 @@ class NoteCreate(BaseModel):
     customer_id: Optional[str] = Field(
         None, description="Customer/organization ID to attach the note to"
     )
+    content_format: Optional[str] = Field("markdown", description="Format of content (markdown, block)")
+    content_markdown_backup: Optional[str] = Field(None, description="Backup of markdown content")
 
 
 class NoteUpdate(BaseModel):
     title: Optional[str] = Field(None, description="Note title")
     content: Optional[str] = Field(None, description="Note content")
     note_type: Optional[str] = Field(None, description="Type of note (human, ai)")
+    content_format: Optional[str] = Field(None, description="Format of content (markdown, block)")
+    content_markdown_backup: Optional[str] = Field(None, description="Backup of markdown content")
+    location_id: Optional[str] = Field(None, description="Location/facility ID to attach the note to")
+    customer_id: Optional[str] = Field(None, description="Customer/organization ID to attach the note to")
 
 
 class NoteResponse(BaseModel):
@@ -572,6 +578,8 @@ class NoteResponse(BaseModel):
     location_id: Optional[str] = None
     location_name: Optional[str] = None
     customer_id: Optional[str] = None
+    content_format: Optional[str] = "markdown"
+    content_markdown_backup: Optional[str] = None
 
 
 class LocationNotesRollup(BaseModel):
@@ -2269,5 +2277,132 @@ class ScheduledPostResponse(BaseModel):
     interactions: int = 0
     created: str
     updated: str
+
+
+class TaskTableCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    status: Optional[str] = "todo"
+    priority: Optional[str] = "medium"
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class TaskTableUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class TaskTableResponse(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    priority: Optional[str] = None
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: Optional[str] = None
+    tags: List[str]
+    created: str
+    updated: str
+
+
+class CampaignCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    theme: Optional[str] = None
+    status: Optional[str] = "draft"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    target_audience: Optional[str] = None
+    channels: Optional[List[str]] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+
+
+class CampaignUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    theme: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    target_audience: Optional[str] = None
+    channels: Optional[List[str]] = None
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+
+
+class CampaignResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    theme: Optional[str] = None
+    status: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    target_audience: Optional[str] = None
+    channels: List[str]
+    customer_id: Optional[str] = None
+    notebook_id: Optional[str] = None
+    created: str
+    updated: str
+
+
+class TagCreate(BaseModel):
+    name: str
+    category_type: Optional[str] = None
+
+
+class TagResponse(BaseModel):
+    id: str
+    name: str
+    category_type: Optional[str] = None
+
+
+class NodeLayoutCreate(BaseModel):
+    node_id: str
+    x: float
+    y: float
+    view_type: str
+
+
+class NodeLayoutResponse(BaseModel):
+    id: str
+    node_id: str
+    x: float
+    y: float
+    view_type: str
+
+
+class TaskSpecLinkRequest(BaseModel):
+    task_id: str
+    spec_id: str
+
+
+class TaskSpecLinkResponse(BaseModel):
+    id: str
+    task_id: str
+    spec_id: str
+    created_at: str
+
+
 
 

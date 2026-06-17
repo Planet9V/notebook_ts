@@ -1,0 +1,4 @@
+REMOVE FIELD assigned_to_user ON TABLE project;
+REMOVE FIELD assigned_to_user ON TABLE notebook;
+REMOVE INDEX idx_project_assigned ON TABLE project;
+REMOVE INDEX idx_notebook_assigned ON TABLE notebook;

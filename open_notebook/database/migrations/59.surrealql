@@ -1,0 +1,17 @@
+-- Migration 59: Dynamic Card Categories, Graph Tagging, & Multi-View Relations Graph
+DEFINE TABLE IF NOT EXISTS tag SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS name          ON TABLE tag TYPE string;
+DEFINE FIELD IF NOT EXISTS category_type ON TABLE tag TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS idx_tag_name  ON TABLE tag FIELDS name UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS note_tag TYPE RELATION
+  FROM note
+  TO tag;
+DEFINE INDEX IF NOT EXISTS idx_note_tag_unique ON TABLE note_tag FIELDS in, out UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS node_layout SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS node_id   ON TABLE node_layout TYPE string;
+DEFINE FIELD IF NOT EXISTS x         ON TABLE node_layout TYPE float;
+DEFINE FIELD IF NOT EXISTS y         ON TABLE node_layout TYPE float;
+DEFINE FIELD IF NOT EXISTS view_type ON TABLE node_layout TYPE string;
+DEFINE INDEX IF NOT EXISTS idx_node_layout_view ON TABLE node_layout FIELDS node_id, view_type UNIQUE;

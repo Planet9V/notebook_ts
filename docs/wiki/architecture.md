@@ -3,7 +3,10 @@ title: "System Architecture, Stack & Specifications"
 description: "Exhaustive documentation of the technology stack, multi-stage Docker builds, supervisord orchestration, hardware specifications, site maps, and administration."
 ---
 
+> **📌 Canonical source**: For the most complete and current architecture reference, see [docs/7-DEVELOPMENT/architecture.md](../7-DEVELOPMENT/architecture.md). This wiki page is the user-facing summary; the 7-DEVELOPMENT version is the authoritative developer reference.
+
 # System Architecture, Stack & Specifications
+
 
 This document covers the **System Architecture, Technology Stack, Hardware Specifications, Site Maps, and Administration Controls** of the Tetrel Security (Open Notebook) platform.
 

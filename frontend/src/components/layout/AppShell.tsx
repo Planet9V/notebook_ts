@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar'
 import { SetupBanner } from './SetupBanner'
 import { VoiceChatPanel } from '@/components/voice/VoiceChatPanel'
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
+import { CopilotSidebar } from './CopilotSidebar'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -31,6 +32,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
       <VoiceChatPanel />
+      <CopilotSidebar />
     </div>
   )
 }

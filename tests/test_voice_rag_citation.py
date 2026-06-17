@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi.testclient import TestClient
@@ -5,9 +6,8 @@ from api.main import app
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
 @patch("open_notebook.ai.provision.provision_langchain_model", new_callable=AsyncMock)
-async def test_voice_rag_dialogue_memory(mock_provision):
+def test_voice_rag_dialogue_memory(mock_provision):
     # Set up mock langchain model
     mock_llm = AsyncMock()
     
@@ -69,10 +69,9 @@ async def test_voice_rag_dialogue_memory(mock_provision):
     assert "John" in mock_provision.call_args_list[-1][1]["content"] or "John" in last_call_kwargs.get("content", "")
 
 
-@pytest.mark.asyncio
 @patch("api.routers.voice_rag.vector_search", new_callable=AsyncMock)
 @patch("open_notebook.ai.provision.provision_langchain_model", new_callable=AsyncMock)
-async def test_voice_rag_citations_streaming(mock_provision, mock_vector_search):
+def test_voice_rag_citations_streaming(mock_provision, mock_vector_search):
     # Mock vector search results
     mock_vector_search.return_value = [
         {"title": "CISA Cross-Sector Goals", "content": "RAG document content about boundary isolation."},

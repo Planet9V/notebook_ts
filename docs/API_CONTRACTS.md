@@ -1,12 +1,13 @@
 # OpenAPI API Contracts — Tetrel Notebook
 
-> **Version:** 1.0  
-> **Last Updated:** 2026-06-02  
-> **Status:** Pending Implementation  
-> **Target Framework:** FastAPI (Python 3.11+)  
-> **Purpose:** Detailed REST API contracts for Layer 1 (Agent Workflows), Layer 2 (Skills & MCP Servers), and Phase 2 (Customer Organizations). Prepared for direct execution in routers.
+> **⚠️ This document describes planned Phase 2 contract schemas (agents, skills, multi-tenant orgs) — not the current live API.**
+>
+> For the **current live API reference** (47 registered routers), see: **[docs/wiki/api-reference.md](wiki/api-reference.md)**
+>
+> **Version:** 1.0 | **Last Updated:** 2026-06-02 | **Status:** Phase 2 Planning Document
 
 ---
+
 
 ## 1. OpenAPI 3.0 Specification Map
 

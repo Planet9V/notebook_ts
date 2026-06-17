@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -17,10 +18,9 @@ def client():
 class TestSkillsApi:
     """Comprehensive tests for skills registration and config management."""
 
-    @pytest.mark.asyncio
     @patch("api.routers.skills.SkillRegistry.get_all")
     @patch("api.routers.skills._sync_local_skills")
-    async def test_list_skills_sync_and_merge(self, mock_sync, mock_get_all, client):
+    def test_list_skills_sync_and_merge(self, mock_sync, mock_get_all, client):
         """Discovered disk skills are synchronized and merged with SurrealDB configurations."""
         # Setup static disk skills
         mock_sync.return_value = [
@@ -62,10 +62,9 @@ class TestSkillsApi:
             assert linkedin["enabled"] is True
             assert linkedin["config_vars"] == {}
 
-    @pytest.mark.asyncio
     @patch("api.routers.skills.SkillRegistry.get_all")
     @patch("api.routers.skills.SkillRegistry.save", autospec=True)
-    async def test_create_custom_skill(self, mock_save, mock_get_all, client):
+    def test_create_custom_skill(self, mock_save, mock_get_all, client):
         """Creating a new custom skill configuration works cleanly."""
         mock_get_all.return_value = []
 
@@ -91,9 +90,8 @@ class TestSkillsApi:
         assert data["config_vars"] == {"TIMEOUT": 30}
         mock_save.assert_called_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.skills.SkillRegistry.get")
-    async def test_update_skill_config_vars(self, mock_get, client):
+    def test_update_skill_config_vars(self, mock_get, client):
         """Updating skill configuration variables, toggles, or categories updates SurrealDB."""
         mock_skill = AsyncMock()
         mock_skill.id = "skill_registry:123"
@@ -123,9 +121,8 @@ class TestSkillsApi:
         assert data["config_vars"] == {"CLIENT_ID": "123", "CLIENT_SECRET": "abc"}
         mock_skill.save.assert_awaited_once()
 
-    @pytest.mark.asyncio
     @patch("api.routers.skills.SkillRegistry.get")
-    async def test_delete_custom_skill(self, mock_get, client):
+    def test_delete_custom_skill(self, mock_get, client):
         """Subtracting a custom skill configuration calls delete on the database."""
         mock_skill = AsyncMock()
         mock_skill.id = "skill_registry:123"
@@ -143,9 +140,8 @@ class TestSkillsApi:
 class TestMcpApi:
     """Comprehensive tests for static and dynamic MCP discovery endpoints."""
 
-    @pytest.mark.asyncio
     @patch("api.routers.mcp._discover_mcp_servers")
-    async def test_list_mcp_servers(self, mock_discover, client):
+    def test_list_mcp_servers(self, mock_discover, client):
         """Registered MCP servers are correctly cataloged and tool parameters returned."""
         mock_discover.return_value = [
             {

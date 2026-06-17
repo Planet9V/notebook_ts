@@ -1,13 +1,13 @@
 from unittest.mock import AsyncMock, patch, MagicMock
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 
 client = TestClient(app)
 
-@pytest.mark.asyncio
 @patch("open_notebook.ai.models.model_manager.get_default_model", new_callable=AsyncMock)
-async def test_draft_copilot_endpoint(mock_get_default_model):
+def test_draft_copilot_endpoint(mock_get_default_model):
     # Mock default chat model invocation
     mock_model = MagicMock()
     

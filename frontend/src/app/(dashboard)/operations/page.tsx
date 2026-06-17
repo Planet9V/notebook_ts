@@ -212,8 +212,37 @@ function OperationsWorkspaceContent() {
             )}
           </div>
 
-          {/* Workspace Tabs */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            {/* Persistent DeliveryTree Panel (Left Column) */}
+            <div className="lg:col-span-1 h-[calc(100vh-220px)] min-h-[500px]">
+              <DeliveryTree
+                activeLocationId={selectedLocationId}
+                activeCustomerId={selectedCustomerId}
+                onSelectLocation={(locId) => {
+                  setSelectedLocationId(locId)
+                  if (locId) {
+                    const locObj = allLocations.find(l => l.id === locId)
+                    if (locObj && locObj.customer_id) {
+                      setSelectedCustomerId(locObj.customer_id)
+                    }
+                  }
+                }}
+                onSelectCustomer={(custId) => {
+                  setSelectedCustomerId(custId)
+                  setSelectedLocationId(null)
+                }}
+                onAttachDocument={(custId, locId) => {
+                  setAttachCustomerId(custId)
+                  setAttachLocationId(locId)
+                  setIsAttachModalOpen(true)
+                }}
+              />
+            </div>
+
+            {/* Right Column: Tab View and details */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Workspace Tabs */}
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Select Operations View</p>
               <TabsList className="w-full max-w-7xl flex flex-wrap bg-slate-900/60 p-1 border border-white/5 rounded-xl h-auto gap-1">
@@ -474,45 +503,22 @@ function OperationsWorkspaceContent() {
 
             {/* Sales Tab */}
             <TabsContent value="sales" className="mt-0 outline-none">
-              <PipelinePage embedded={true} overrideTab="sales" />
+              <PipelinePage
+                embedded={true}
+                overrideTab="sales"
+                locationId={selectedLocationId}
+                customerId={selectedCustomerId}
+              />
             </TabsContent>
 
             {/* Projects Tab */}
             <TabsContent value="projects" className="mt-0 outline-none">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="md:col-span-1 h-[calc(100vh-280px)] min-h-[500px]">
-                  <DeliveryTree
-                    activeLocationId={selectedLocationId}
-                    activeCustomerId={selectedCustomerId}
-                    onSelectLocation={(locId) => {
-                      setSelectedLocationId(locId)
-                      if (locId) {
-                        const locObj = allLocations.find(l => l.id === locId)
-                        if (locObj && locObj.customer_id) {
-                          setSelectedCustomerId(locObj.customer_id)
-                        }
-                      }
-                    }}
-                    onSelectCustomer={(custId) => {
-                      setSelectedCustomerId(custId)
-                      setSelectedLocationId(null)
-                    }}
-                    onAttachDocument={(custId, locId) => {
-                      setAttachCustomerId(custId)
-                      setAttachLocationId(locId)
-                      setIsAttachModalOpen(true)
-                    }}
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <PipelinePage
-                    embedded={true}
-                    overrideTab="projects"
-                    locationId={selectedLocationId}
-                    customerId={selectedCustomerId}
-                  />
-                </div>
-              </div>
+              <PipelinePage
+                embedded={true}
+                overrideTab="projects"
+                locationId={selectedLocationId}
+                customerId={selectedCustomerId}
+              />
             </TabsContent>
 
             {/* Customer Ledger Tab */}
@@ -537,7 +543,12 @@ function OperationsWorkspaceContent() {
 
             {/* Research Tab */}
             <TabsContent value="research" className="mt-0 outline-none">
-              <PipelinePage embedded={true} overrideTab="research" />
+              <PipelinePage
+                embedded={true}
+                overrideTab="research"
+                locationId={selectedLocationId}
+                customerId={selectedCustomerId}
+              />
             </TabsContent>
 
             {/* Ingest Intel Tab */}
@@ -561,6 +572,8 @@ function OperationsWorkspaceContent() {
             </TabsContent>
           </Tabs>
         </div>
+      </div>
+      </div>
       </div>
       {/* Attach Document Modal */}
       {attachCustomerId && (

@@ -357,7 +357,9 @@ async def check_and_run_scheduled_backups() -> List[str]:
                 )
                 try:
                     backup_res = await create_backup(backup_type="scheduled")
-                    triggered_backups.append(backup_res["filename"])
+                    # repo_create returns a list of records — get the first item
+                    record = backup_res[0] if isinstance(backup_res, list) else backup_res
+                    triggered_backups.append(record["filename"])
 
                     # Update last_run_at
                     await repo_update(

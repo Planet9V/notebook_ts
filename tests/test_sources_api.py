@@ -3,6 +3,7 @@
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,11 +27,10 @@ class TestAsyncSourceAssetPersistence:
     asset set *before* async processing begins.
     """
 
-    @pytest.mark.asyncio
     @patch("api.routers.sources.CommandService.submit_command_job", new_callable=AsyncMock)
     @patch("api.routers.sources.Source.add_to_notebook", new_callable=AsyncMock)
     @patch("api.routers.sources.Notebook.get", new_callable=AsyncMock)
-    async def test_async_link_source_persists_url_asset(
+    def test_async_link_source_persists_url_asset(
         self, mock_nb_get, mock_add_nb, mock_submit, client
     ):
         """POST /sources with type=link and async_processing=true persists Asset(url=...)."""
@@ -63,12 +63,11 @@ class TestAsyncSourceAssetPersistence:
         assert source.asset.url == "https://example.com/article"
         assert source.asset.file_path is None
 
-    @pytest.mark.asyncio
     @patch("api.routers.sources.CommandService.submit_command_job", new_callable=AsyncMock)
     @patch("api.routers.sources.Source.add_to_notebook", new_callable=AsyncMock)
     @patch("api.routers.sources.Notebook.get", new_callable=AsyncMock)
     @patch("api.routers.sources.save_uploaded_file", new_callable=AsyncMock)
-    async def test_async_upload_source_persists_file_asset(
+    def test_async_upload_source_persists_file_asset(
         self, mock_upload, mock_nb_get, mock_add_nb, mock_submit, client
     ):
         """POST /sources with type=upload and async_processing=true persists Asset(file_path=...)."""
@@ -102,11 +101,10 @@ class TestAsyncSourceAssetPersistence:
         assert source.asset.file_path == os.path.join(os.path.abspath(UPLOADS_FOLDER), "video.mp4")
         assert source.asset.url is None
 
-    @pytest.mark.asyncio
     @patch("api.routers.sources.CommandService.submit_command_job", new_callable=AsyncMock)
     @patch("api.routers.sources.Source.add_to_notebook", new_callable=AsyncMock)
     @patch("api.routers.sources.Notebook.get", new_callable=AsyncMock)
-    async def test_async_text_source_has_no_asset(
+    def test_async_text_source_has_no_asset(
         self, mock_nb_get, mock_add_nb, mock_submit, client
     ):
         """POST /sources with type=text and async_processing=true has asset=None."""

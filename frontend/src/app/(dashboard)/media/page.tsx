@@ -24,6 +24,7 @@ import VoicePlaygroundPage from '@/app/(dashboard)/voice-playground/page'
 import { useStyleguides } from '@/lib/hooks/use-styleguides'
 import { useAllNotes } from '@/lib/hooks/use-notes'
 import { publicationsApi } from '@/lib/api/publications'
+import { apiClient } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -60,7 +61,7 @@ function SocialBuilderTab() {
     setScheduleDate(`${yyyy}-${mm}-${dd}`)
   }, [])
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!selectedNoteId) {
       toast.error('Please select a source note first.')
       return
@@ -74,55 +75,62 @@ function SocialBuilderTab() {
 
     setGenerating(true)
 
-    // Simulate LLM agent generation with actual note context
-    setTimeout(() => {
+    try {
       const guideName = styleguides.find((g) => g.id === selectedStyleguideId)?.name || 'Default Guide'
       const noteTitle = note.title || 'Research Project'
       const noteContent = note.content || ''
 
+      const channelInstructions: Record<string, string> = {
+        linkedin: `You are a B2B LinkedIn content strategist. Write a professional LinkedIn post based on the research note provided.
+Format: 3-5 short paragraphs. Include 3-5 relevant hashtags at the end.
+The post should highlight key insights, include a hook in the first sentence, and end with a call to action.
+Title should be a compelling headline (max 12 words).`,
+        twitter: `You are a Twitter/X content expert. Write an engaging Twitter thread based on the research note provided.
+Format: Number each tweet (1/, 2/, 3/) with max 280 characters each. Write 3-5 tweets.
+The first tweet must be the hook. End with a reply tweet that asks a question or summarizes.
+Title should be the thread topic (max 10 words).`,
+        email: `You are a newsletter writer. Write a professional email newsletter summary based on the research note provided.
+Format: Start with a greeting, provide a structured summary with bullet points, and end with a sign-off.
+Keep it concise (under 400 words). Include a subject line as the title.`,
+      }
+
+      const instruction = `${channelInstructions[selectedChannel] || channelInstructions.linkedin}
+
+Style guide: ${guideName}
+Tone: ${selectedTone}
+Topic / Note title: ${noteTitle}
+
+Respond ONLY with JSON in this exact format:
+{"title": "<post title or subject line>", "body": "<post body content>"}`
+
+      const response = await apiClient.post('/transformations/run-inline', {
+        input_text: noteContent || noteTitle,
+        instruction,
+      })
+
+      // Parse the JSON response from the LLM
       let postTitle = ''
       let postBody = ''
-
-      if (selectedChannel === 'twitter') {
-        postTitle = `Thread: Insights on ${noteTitle}`
-        postBody = `1/ We just compiled key research findings on "${noteTitle}". Here is what we discovered:
-
-${noteContent.slice(0, 120)}...
-
-2/ Adapting our workflow dynamically allows us to scale operations safely. Styled according to ${guideName} in a ${selectedTone} tone. #research #ai`
-      } else if (selectedChannel === 'linkedin') {
-        postTitle = `Analyzing ${noteTitle} - Core Findings`
-        postBody = `I am excited to share a summary of our latest research on "${noteTitle}".
-
-Key takeaways:
-• Primary insight: ${noteContent.slice(0, 100)}...
-• Methodology aligned with our corporate "${guideName}" framework.
-
-We are applying these findings to build a more robust, compliant delivery system.
-
-Read more in our dashboard. #research #compliance #innovation`
-      } else {
-        postTitle = `Newsletter: Weekly Update on ${noteTitle}`
-        postBody = `Hello Team,
-
-Welcome to this week's technical newsletter update. Today, we are deep diving into:
-
-"${noteTitle}"
-
-Summary of Findings:
-${noteContent || 'No details provided.'}
-
-This summary has been formatted according to the style guide: "${guideName}" using a ${selectedTone} tone profile.
-
-Best regards,
-Research & Operations Team`
+      try {
+        const parsed = JSON.parse(response.data.output)
+        postTitle = parsed.title || ''
+        postBody = parsed.body || response.data.output
+      } catch {
+        // LLM returned plain text instead of JSON — use it directly
+        postBody = response.data.output
+        postTitle = `${selectedChannel.charAt(0).toUpperCase() + selectedChannel.slice(1)}: ${noteTitle}`
       }
 
       setGeneratedTitle(postTitle)
       setGeneratedContent(postBody)
-      setGenerating(false)
       toast.success('AI publication draft generated successfully.')
-    }, 1500)
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string }
+      console.error(err)
+      toast.error('Failed to generate draft: ' + (axiosErr.response?.data?.detail || axiosErr.message || 'Unknown error'))
+    } finally {
+      setGenerating(false)
+    }
   }
 
   const handleSchedule = async () => {

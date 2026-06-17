@@ -277,12 +277,29 @@ async def get_voice_config():
         _check_service_health("Faster Whisper STT", WHISPER_STT_URL, "/health"),
     )
 
+    # Fetch live voice list from Kokoro; fall back to static list if unavailable
+    available_voices = KOKORO_VOICES
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{KOKORO_TTS_URL}/v1/audio/voices")
+            if resp.status_code == 200:
+                data = resp.json()
+                raw = data.get("voices", data) if isinstance(data, dict) else data
+                live_voices = [
+                    v.get("id", v) if isinstance(v, dict) else str(v)
+                    for v in raw
+                ]
+                if live_voices:
+                    available_voices = live_voices
+    except Exception as e:
+        logger.debug(f"Kokoro voice list fetch failed, using fallback: {e}")
+
     return VoiceConfigResponse(
         livekit_ws_url=LIVEKIT_WS_URL,
         livekit_api_key_set=bool(LIVEKIT_API_KEY),
         kokoro_tts_url=KOKORO_TTS_URL,
         whisper_stt_url=WHISPER_STT_URL,
-        available_voices=KOKORO_VOICES,
+        available_voices=available_voices,
         services=services,
     )
 

@@ -15,15 +15,14 @@ def client():
 
 
 def is_live_valyu() -> bool:
-    """Check if we have a real Valyu API key set in the environment."""
-    return bool(os.environ.get("VALYU_API_KEY"))
+    """Check if we have a real Valyu API key set in the environment and explicitly enabled."""
+    return bool(os.environ.get("VALYU_API_KEY")) and bool(os.environ.get("RUN_LIVE_VALYU"))
 
 
 class TestDeepResearchAPI:
     """Test suite for the Unified Deep Research endpoint."""
 
-    @pytest.mark.asyncio
-    async def test_perplexity_research_stream(self, client):
+    def test_perplexity_research_stream(self, client):
         """Test that perplexity research stream returns citations and content chunks correctly.
         
         Runs actual Valyu queries if API key is present; otherwise mocks the SDK client.
@@ -52,9 +51,8 @@ class TestDeepResearchAPI:
             assert "status" in event_types
             assert "complete" in event_types
             assert any(e["type"] == "answer" for e in events)
-        else:
             # ── Mock Mode ──
-            with patch("api.routers.search.Valyu") as mock_valyu_cls:
+            with patch("valyu.Valyu") as mock_valyu_cls:
                 mock_client = MagicMock()
                 mock_valyu_cls.return_value = mock_client
 
@@ -101,10 +99,9 @@ class TestDeepResearchAPI:
                 assert events[3]["type"] == "answer"
                 assert events[3]["content"] == "security regulations."
 
-    @pytest.mark.asyncio
     @patch("open_notebook.domain.notebook.vector_search", new_callable=AsyncMock)
     @patch("open_notebook.ai.provision.provision_langchain_model", new_callable=AsyncMock)
-    async def test_hybrid_research_stream(self, mock_provision, mock_vector, client):
+    def test_hybrid_research_stream(self, mock_provision, mock_vector, client):
         """Test that Hybrid deep research fetches from Local KB + Valyu, then synthesizes."""
         # Mock local KB vector search
         mock_vector.return_value = [
@@ -241,7 +238,6 @@ class TestResearchItemDeepResearch:
                 assert updated_ri.stage == "review_enhance"
                 assert len(updated_ri.results_content) > 0
                 assert len(updated_ri.deep_research_events) > 0
-            else:
                 # ── Mock Mode ──
                 mock_res = {
                     "output": "# NIST CSF Report\n\nNIST CSF provides guidelines [Source 1].\n\n## Bibliography\n- [Source 1]: http://example.com/source1",
@@ -250,7 +246,7 @@ class TestResearchItemDeepResearch:
                     "elapsed_seconds": 12.5,
                     "deepresearch_id": "mock_task_123"
                 }
-                with patch("api.routers.research_items.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
+                with patch("open_notebook.search.deep_research.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
                     mock_run_dr.return_value = mock_res
 
                     await background_run_research(ri.id)
@@ -285,7 +281,6 @@ class TestResearchItemDeepResearch:
                 updated_ri = await ResearchItem.get(ri.id)
                 assert updated_ri.stage == "review_enhance"
                 assert len(updated_ri.results_content) > 0
-            else:
                 # ── Mock Mode ──
                 mock_res = {
                     "output": "# Final Report with citation [Source 1]\n\n## Sources\n- [Source 1]: http://perplexity.com",
@@ -294,7 +289,7 @@ class TestResearchItemDeepResearch:
                     "elapsed_seconds": 5.0,
                     "deepresearch_id": "mock_resilience"
                 }
-                with patch("api.routers.research_items.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
+                with patch("open_notebook.search.deep_research.run_deep_research", new_callable=AsyncMock) as mock_run_dr:
                     mock_run_dr.return_value = mock_res
 
                     await background_run_research(ri.id)

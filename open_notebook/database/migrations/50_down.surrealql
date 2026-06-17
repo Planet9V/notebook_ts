@@ -1,0 +1,2 @@
+-- Migration 50 Down: Remove unique index on custom_voice name
+REMOVE INDEX idx_custom_voice_name_unique ON TABLE custom_voice;

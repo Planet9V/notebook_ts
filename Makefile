@@ -1,6 +1,7 @@
-.PHONY: run frontend check ruff database lint api start-all stop-all status clean-cache worker worker-start worker-stop worker-restart
+.PHONY: run frontend check ruff database lint api start-all stop-all status clean-cache worker worker-start worker-stop worker-restart setup-hooks
 .PHONY: docker-buildx-prepare docker-buildx-clean docker-buildx-reset
 .PHONY: docker-push docker-push-latest docker-release docker-build-local tag export-docs
+
 
 # Get version from pyproject.toml
 VERSION := $(shell grep -m1 version pyproject.toml | cut -d'"' -f2)
@@ -27,6 +28,10 @@ lint:
 
 ruff:
 	ruff check . --fix
+
+setup-hooks:
+	@echo "🔧 Installing git hooks..."
+	bash scripts/setup-hooks.sh
 
 # === Docker Build Setup ===
 docker-buildx-prepare:

@@ -12,6 +12,8 @@ from open_notebook.domain.research_item import ResearchItem
 from open_notebook.domain.agent import AgentConfig, AgentExecution, AgentLog
 from open_notebook.domain.skill import SkillRegistry
 from open_notebook.domain.scheduled_episode import ScheduledEpisode
+from open_notebook.domain.task import Task
+from open_notebook.domain.campaign import Campaign
 
 __all__: list[str] = [
     "Contact",
@@ -24,5 +26,8 @@ __all__: list[str] = [
     "AgentLog",
     "SkillRegistry",
     "ScheduledEpisode",
+    "Task",
+    "Campaign",
 ]
+
 

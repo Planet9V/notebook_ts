@@ -64,34 +64,27 @@ class PodcastService:
             if not content and notebook_id:
                 try:
                     notebook = await Notebook.get(notebook_id)
-                    # Build context from notebook's sources and notes
-                    parts = [f"Notebook: {notebook.name}"]
-                    if notebook.description:
-                        parts.append(f"Description: {notebook.description}")
-
-                    try:
-                        sources = await notebook.get_sources()
-                        for src in sources[:10]:
-                            title = src.title or "Untitled"
-                            parts.append(f"Source: {title}")
-                    except Exception as src_err:
-                        logger.warning(f"Failed to get notebook sources: {src_err}")
-
-                    try:
-                        notes = await notebook.get_notes()
-                        for note in notes[:10]:
-                            title = note.title or "Untitled"
-                            note_content = (note.content or "")[:500]
-                            parts.append(f"Note: {title}\n{note_content}")
-                    except Exception as note_err:
-                        logger.warning(f"Failed to get notebook notes: {note_err}")
-
-                    content = "\n\n".join(parts)
+                    # Use get_sources/get_notes (not get_context) for full text
+                    sources = await notebook.get_sources(include_full_text=True)
+                    notes = await notebook.get_notes()
+                    parts = []
+                    for source in sources:
+                        title = getattr(source, "title", "Source")
+                        text = getattr(source, "full_text", "") or ""
+                        if text:
+                            parts.append(f"## Source: {title}\n\n{text}")
+                    for note in notes:
+                        title = getattr(note, "title", "Note") or "Note"
+                        note_content = getattr(note, "content", "") or ""
+                        if note_content:
+                            parts.append(f"## Note: {title}\n\n{note_content}")
+                    content = "\n\n---\n\n".join(parts) if parts else None
                 except Exception as e:
                     logger.warning(
                         f"Failed to get notebook content, using notebook_id as content: {e}"
                     )
                     content = f"Notebook ID: {notebook_id}"
+
 
             if not content:
                 raise ValueError(

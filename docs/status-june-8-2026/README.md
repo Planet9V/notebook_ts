@@ -1,5 +1,11 @@
 # Tetrel Notebook: June 8, 2026 Product Dossier
 
+> **⚠️ SUPERSEDED** — This document reflects system state as of June 8, 2026.
+> Since then: Voice TTS fixed (DB-driven, no hardcoded defaults), landing page cleaned (Perspective+ only), voice session API updated (unique title required, custom_voice persistence), migration 50 added, 50 migrations total.
+> **For current state, see: [docs/status_12_JUN_2026/](../status_12_JUN_2026/README.md)**
+
+
+
 Welcome to the official product dossier and status documentation for **Tetrel Notebook** as of **June 8, 2026**. This set of documents provides an exhaustive explanation of the application's business value, positioning, tech stack, database architecture, multi-agent workflows, interface structure, and current execution modules.
 
 ## Document Index

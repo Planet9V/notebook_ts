@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, patch
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -12,9 +13,8 @@ def client():
 class TestEpisodeProfilesJsonValidation:
     """Test suite for structured JSON output validation in episode profiles."""
 
-    @pytest.mark.asyncio
     @patch("open_notebook.domain.base.repo_query")
-    async def test_get_models_with_supports_json_filter(self, mock_repo_query, client):
+    def test_get_models_with_supports_json_filter(self, mock_repo_query, client):
         """Test GET /api/models?supports_json=true filters correctly."""
         # Mock models in DB
         mock_repo_query.return_value = [
@@ -52,10 +52,9 @@ class TestEpisodeProfilesJsonValidation:
         assert "unsupported-model" not in model_names
         assert len(data) == 2
 
-    @pytest.mark.asyncio
     @patch("open_notebook.ai.models.Model.get")
     @patch("api.routers.episode_profiles.EpisodeProfile.save", new_callable=AsyncMock)
-    async def test_create_profile_with_unsupported_outline_model(
+    def test_create_profile_with_unsupported_outline_model(
         self, mock_save, mock_model_get, client
     ):
         """Test creating episode profile with unsupported outline model returns 400."""
@@ -85,10 +84,9 @@ class TestEpisodeProfilesJsonValidation:
         assert "does not support structured JSON output" in response.json()["detail"]
         mock_save.assert_not_called()
 
-    @pytest.mark.asyncio
     @patch("open_notebook.ai.models.Model.get")
     @patch("api.routers.episode_profiles.EpisodeProfile.save", new_callable=AsyncMock)
-    async def test_create_profile_with_supported_models(
+    def test_create_profile_with_supported_models(
         self, mock_save, mock_model_get, client
     ):
         """Test creating episode profile with supported models succeeds."""
