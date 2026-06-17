@@ -5,9 +5,10 @@ CRUD operations for first-class Task entities.
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 
+from api.auth import require_role
 from api.models import TaskTableCreate, TaskTableResponse, TaskTableUpdate
 from open_notebook.domain.task import Task
 from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, NotFoundError
@@ -65,7 +66,7 @@ async def list_tasks(
 
 
 @router.post("/tasks", response_model=TaskTableResponse, status_code=201)
-async def create_task(data: TaskTableCreate):
+async def create_task(data: TaskTableCreate, _ = Depends(require_role("editor"))):
     """Create a new first-class task."""
     try:
         task = Task(
@@ -123,7 +124,7 @@ async def get_task(task_id: str):
 
 
 @router.put("/tasks/{task_id}", response_model=TaskTableResponse)
-async def update_task(task_id: str, data: TaskTableUpdate):
+async def update_task(task_id: str, data: TaskTableUpdate, _ = Depends(require_role("editor"))):
     """Update a task."""
     try:
         task = await Task.get(task_id)
@@ -145,7 +146,7 @@ async def update_task(task_id: str, data: TaskTableUpdate):
 
 
 @router.delete("/tasks/{task_id}")
-async def delete_task(task_id: str):
+async def delete_task(task_id: str, _ = Depends(require_role("editor"))):
     """Delete a task."""
     try:
         from open_notebook.database.repository import repo_delete, ensure_record_id

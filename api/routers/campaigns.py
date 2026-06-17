@@ -5,9 +5,10 @@ CRUD operations for Campaign entities.
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 
+from api.auth import require_role
 from api.models import CampaignCreate, CampaignResponse, CampaignUpdate
 from open_notebook.domain.campaign import Campaign
 from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, NotFoundError
@@ -58,7 +59,7 @@ async def list_campaigns(
 
 
 @router.post("/campaigns", response_model=CampaignResponse, status_code=201)
-async def create_campaign(data: CampaignCreate):
+async def create_campaign(data: CampaignCreate, _ = Depends(require_role("editor"))):
     """Create a new campaign."""
     try:
         campaign = Campaign(
@@ -96,7 +97,7 @@ async def get_campaign(campaign_id: str):
 
 
 @router.put("/campaigns/{campaign_id}", response_model=CampaignResponse)
-async def update_campaign(campaign_id: str, data: CampaignUpdate):
+async def update_campaign(campaign_id: str, data: CampaignUpdate, _ = Depends(require_role("editor"))):
     """Update a campaign."""
     try:
         campaign = await Campaign.get(campaign_id)
@@ -118,7 +119,7 @@ async def update_campaign(campaign_id: str, data: CampaignUpdate):
 
 
 @router.delete("/campaigns/{campaign_id}")
-async def delete_campaign(campaign_id: str):
+async def delete_campaign(campaign_id: str, _ = Depends(require_role("editor"))):
     """Delete a campaign."""
     try:
         from open_notebook.database.repository import repo_delete

@@ -318,6 +318,33 @@ export function KanbanBoard({ notebooks, onCardClick, pipelineType = 'sales' }: 
 
   return (
     <div className="flex flex-col space-y-4">
+      {pipelineType === 'sales' && (
+        <div className="flex flex-wrap gap-4 items-center p-4 rounded-xl border border-sidebar-border/50 bg-background/25 backdrop-blur-sm shrink-0">
+          <div className="text-xs font-bold font-mono uppercase tracking-wider text-muted-foreground mr-2 border-r border-sidebar-border/50 pr-4">
+            Revenue Forecast
+          </div>
+          <div className="flex flex-wrap gap-6 items-center flex-1">
+            {columns.map((col) => {
+              const value = columnTotals[col.id] || 0
+              if (value === 0) return null
+              return (
+                <div key={col.id} className="flex flex-col min-w-[120px]">
+                  <span className="text-[10px] text-muted-foreground font-medium truncate uppercase tracking-wider">{col.title}</span>
+                  <span className="text-sm font-bold font-mono text-foreground mt-0.5">
+                    ${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              )
+            })}
+            <div className="ml-auto flex flex-col min-w-[150px] border-l border-sidebar-border/55 pl-6 text-right">
+              <span className="text-[10px] text-primary font-bold uppercase tracking-wider">Total Active Pipeline</span>
+              <span className="text-lg font-black font-mono text-emerald-400 mt-0.5">
+                ${Object.values(columnTotals).reduce((a, b) => a + b, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Board Canvas */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">

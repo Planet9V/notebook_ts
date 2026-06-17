@@ -70,6 +70,8 @@ const getNavigation = (t: TFunction) => [
     items: [
       { name: 'Operations Hub', href: '/operations', icon: LayoutDashboard },
       { name: 'Pipeline & CRM', href: '/pipeline', icon: TrendingUp },
+      { name: 'Tasks', href: '/tasks', icon: ScrollText },
+      { name: 'Campaigns', href: '/campaigns', icon: Calendar },
       { name: 'Customers', href: '/customers', icon: Users },
       { name: 'Contacts', href: '/contacts', icon: Contact2 },
     ],
@@ -299,6 +301,10 @@ export function AppSidebar() {
                       isActive = (pathname === '/operations' && !tab) || (pathname === '/operations' && tab === 'dashboard')
                     } else if (item.href === '/pipeline') {
                       isActive = pathname.startsWith('/pipeline') || pathname.startsWith('/projects')
+                    } else if (item.href === '/tasks') {
+                      isActive = pathname.startsWith('/tasks')
+                    } else if (item.href === '/campaigns') {
+                      isActive = pathname.startsWith('/campaigns')
                     } else if (item.href === '/customers') {
                       isActive = pathname.startsWith('/customers')
                     } else if (item.href === '/contacts') {

@@ -112,3 +112,51 @@ def check_api_password(
         )
 
     return True
+
+
+class RoleChecker:
+    def __init__(self, min_role: str):
+        self.min_role = min_role
+
+    async def __call__(self, request: Request) -> str:
+        user_role = request.headers.get("X-User-Role")
+        user_id = request.headers.get("X-User-Id")
+
+        if not user_role and user_id:
+            try:
+                from open_notebook.database.repository import repo_query, ensure_record_id
+                # User ID could be format user:123 or just 123
+                if ":" not in user_id:
+                    user_id = f"user:{user_id}"
+                rid = ensure_record_id(user_id)
+                users = await repo_query("SELECT role FROM user WHERE id = $id", {"id": rid})
+                if users and isinstance(users, list):
+                    user_role = users[0].get("role")
+            except Exception as e:
+                logger.error(f"Error checking user role for {user_id}: {e}")
+
+        # Default role if none provided to ensure backward compatibility / ease of use
+        if not user_role:
+            user_role = "admin"
+
+        role_levels = {
+            "admin": 100,
+            "editor": 50,
+            "developer": 50,
+            "viewer": 10,
+        }
+
+        user_level = role_levels.get(user_role.lower(), 10)
+        min_level = role_levels.get(self.min_role.lower(), 10)
+
+        if user_level < min_level:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Operation forbidden. Minimum role required: {self.min_role}"
+            )
+        return user_role
+
+
+def require_role(min_role: str):
+    return RoleChecker(min_role)
+

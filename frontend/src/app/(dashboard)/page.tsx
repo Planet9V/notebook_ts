@@ -26,6 +26,7 @@ import { useResearchMemoryStats } from '@/lib/hooks/use-research-memory'
 import { sourcesApi } from '@/lib/api/sources'
 import { apiClient } from '@/lib/api/client'
 import { toast } from 'sonner'
+import { TodayDigest } from '@/components/dashboard/TodayDigest'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import {
@@ -1079,7 +1080,9 @@ export default function DashboardPage() {
 
                 {/* Research Hub Mindset */}
                 {enhancedPerspective === 'research' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                    <TodayDigest />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Card 1: Pristine Search & Citation Inspector */}
                     <Card className="bg-slate-900/40 border-white/10 rounded-2xl shadow-xl p-5 min-h-[380px] flex flex-col justify-between relative overflow-hidden">
                       <div className="space-y-4">
@@ -1306,6 +1309,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </Card>
+                    </div>
                   </div>
                 )}
 
