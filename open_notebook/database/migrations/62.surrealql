@@ -1,0 +1,2 @@
+-- Migration 62: System Default Workspace Notebook Definition
+UPSERT notebook:system_default_workspace SET name = 'Default Research Workspace', description = 'System-wide container for research scratchpad notes and standalone findings', archived = false;

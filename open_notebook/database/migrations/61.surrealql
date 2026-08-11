@@ -1,0 +1,29 @@
+-- Migration 61: OXOT Sell-Side Engine & Vector Tuning Schema
+DEFINE TABLE IF NOT EXISTS oxot_sales_campaign TYPE NORMAL;
+DEFINE FIELD IF NOT EXISTS title ON TABLE oxot_sales_campaign TYPE string;
+DEFINE FIELD IF NOT EXISTS target_industry ON TABLE oxot_sales_campaign TYPE string;
+DEFINE FIELD IF NOT EXISTS status ON TABLE oxot_sales_campaign TYPE string DEFAULT 'draft';
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE oxot_sales_campaign TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_oxot_campaign_industry ON TABLE oxot_sales_campaign FIELDS target_industry, status;
+
+DEFINE TABLE IF NOT EXISTS oxot_offering TYPE NORMAL;
+DEFINE FIELD IF NOT EXISTS name ON TABLE oxot_offering TYPE string;
+DEFINE FIELD IF NOT EXISTS category ON TABLE oxot_offering TYPE string;
+DEFINE FIELD IF NOT EXISTS retainer_fee_eur ON TABLE oxot_offering TYPE number;
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE oxot_offering TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_oxot_offering_category ON TABLE oxot_offering FIELDS category;
+
+DEFINE TABLE IF NOT EXISTS oxot_cra_assessment TYPE NORMAL;
+DEFINE FIELD IF NOT EXISTS product_name ON TABLE oxot_cra_assessment TYPE string;
+DEFINE FIELD IF NOT EXISTS cra_class ON TABLE oxot_cra_assessment TYPE string;
+DEFINE FIELD IF NOT EXISTS sbom_currency ON TABLE oxot_cra_assessment TYPE bool DEFAULT true;
+DEFINE FIELD IF NOT EXISTS ce_mark_status ON TABLE oxot_cra_assessment TYPE string DEFAULT 'pending';
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE oxot_cra_assessment TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_oxot_cra_status ON TABLE oxot_cra_assessment FIELDS cra_class, ce_mark_status;
+
+DEFINE TABLE IF NOT EXISTS oxot_cyber_twin TYPE NORMAL;
+DEFINE FIELD IF NOT EXISTS facility_name ON TABLE oxot_cyber_twin TYPE string;
+DEFINE FIELD IF NOT EXISTS ot_protocol ON TABLE oxot_cyber_twin TYPE string;
+DEFINE FIELD IF NOT EXISTS vulnerability_count ON TABLE oxot_cyber_twin TYPE number DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE oxot_cyber_twin TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_oxot_cyber_twin_facility ON TABLE oxot_cyber_twin FIELDS facility_name, ot_protocol;

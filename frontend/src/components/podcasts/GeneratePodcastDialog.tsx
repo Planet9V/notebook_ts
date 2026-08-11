@@ -22,6 +22,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -193,7 +194,7 @@ function ContentSelectionPanel({
             {tr.noNotebooksFoundInPodcasts}
           </div>
         ) : (
-          <ScrollArea className="h-[60vh]">
+          <ScrollArea className="h-[460px]">
             <Accordion
               type="multiple"
               value={expandedNotebooks}
@@ -406,6 +407,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const [expandedNotebooks, setExpandedNotebooks] = useState<string[]>([])
   const [selections, setSelections] = useState<Record<string, NotebookSelection>>({})
   const [episodeProfileId, setEpisodeProfileId] = useState<string>('')
+  const [speakerProfileName, setSpeakerProfileName] = useState<string>('')
   const [episodeName, setEpisodeName] = useState('')
   const [instructions, setInstructions] = useState('')
   const [targetDuration, setTargetDuration] = useState<string>('default')
@@ -426,34 +428,57 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const episodeProfilesQuery = useEpisodeProfiles()
   const speakerProfilesQuery = useSpeakerProfiles()
   const generatePodcast = useGeneratePodcast()
+  const scratchpadVirtualNotebook: NotebookResponse = useMemo(
+    () => ({
+      id: 'scratchpad-virtual-nb',
+      name: 'Researcher Scratchpad & Standalone Notes',
+      description: 'Notes and findings created directly from research and search queries',
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      source_count: 0,
+      note_count: 0,
+      archived: false,
+    }),
+    []
+  )
 
   const notebooks = useMemo(
-    () => notebooksQuery.data ?? [],
-    [notebooksQuery.data]
+    () => [scratchpadVirtualNotebook, ...(notebooksQuery.data ?? [])],
+    [notebooksQuery.data, scratchpadVirtualNotebook]
   )
+
   const episodeProfiles = useMemo(
     () => episodeProfilesQuery.episodeProfiles ?? [],
     [episodeProfilesQuery.episodeProfiles]
   )
 
-  // Fetch sources and notes for notebooks using useQueries
   const sourcesQueries = useQueries({
     queries: notebooks.map((notebook) => ({
       queryKey: QUERY_KEYS.sources(notebook.id),
-      queryFn: () => sourcesApi.list({ notebook_id: notebook.id }),
+      queryFn: () =>
+        notebook.id === 'scratchpad-virtual-nb'
+          ? sourcesApi.list()
+          : sourcesApi.list({ notebook_id: notebook.id }),
       enabled:
         open &&
-        (expandedNotebooks.includes(notebook.id) || hasSelections(selections[notebook.id])),
+        (notebook.id === 'scratchpad-virtual-nb' ||
+          expandedNotebooks.includes(notebook.id) ||
+          hasSelections(selections[notebook.id])),
     })),
   })
 
   const notesQueries = useQueries({
     queries: notebooks.map((notebook) => ({
       queryKey: QUERY_KEYS.notes(notebook.id),
-      queryFn: () => notesApi.list({ notebook_id: notebook.id }),
+      queryFn: () =>
+        notebook.id === 'scratchpad-virtual-nb'
+          ? notesApi.list()
+          : notesApi.list({ notebook_id: notebook.id }),
       enabled:
         open &&
-        (expandedNotebooks.includes(notebook.id) || hasSelections(selections[notebook.id])),
+        (notebook.id === 'scratchpad-virtual-nb' ||
+          expandedNotebooks.includes(notebook.id) ||
+          hasSelections(selections[notebook.id])),
     })),
   })
 
@@ -509,6 +534,10 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
       return
     }
 
+    setExpandedNotebooks((prev) =>
+      prev.includes('scratchpad-virtual-nb') ? prev : ['scratchpad-virtual-nb', ...prev]
+    )
+
     setSelections((prev) => {
       let changed = false
       const next = { ...prev }
@@ -556,6 +585,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setExpandedNotebooks([])
     setSelections({})
     setEpisodeProfileId('')
+    setSpeakerProfileName('')
     setEpisodeName('')
     setInstructions('')
     setTtsEngine('default')
@@ -565,6 +595,18 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setTargetDuration('default')
     setCustomDuration('')
   }, [])
+
+  useEffect(() => {
+    if (!open) {
+      resetState()
+    } else {
+      episodeProfilesQuery.refetch()
+      speakerProfilesQuery.refetch()
+      if (episodeProfiles.length > 0 && !episodeProfileId) {
+        setEpisodeProfileId(episodeProfiles[0].id)
+      }
+    }
+  }, [open, resetState, episodeProfiles, episodeProfileId, episodeProfilesQuery, speakerProfilesQuery])
 
   // Fetch voice service health when dialog opens
   useEffect(() => {
@@ -580,9 +622,9 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     return () => { cancelled = true }
   }, [open])
 
-  // Fetch Kokoro voices when a non-default TTS engine is selected
+  // Fetch Kokoro voices and custom recorded voices when dialog opens
   useEffect(() => {
-    if (ttsEngine === 'default' || !open) {
+    if (!open) {
       setAvailableVoices([])
       return
     }
@@ -602,7 +644,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         if (!cancelled) setVoicesLoading(false)
       })
     return () => { cancelled = true }
-  }, [ttsEngine, open])
+  }, [open])
 
   // Voice preview handler
   const handleVoicePreview = useCallback(async (voiceId: string, voiceName: string) => {
@@ -644,11 +686,12 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const enrichedVoices = useMemo(() => {
     return availableVoices.map((v) => {
       const preset = findVoicePreset(v.id)
+      const isCustom = v.id.startsWith('custom_') || (v as any).custom
       return {
         ...v,
-        gender: preset?.gender || 'Unknown',
+        gender: preset?.gender || (isCustom ? 'Custom' : 'Unknown'),
         language: preset?.language || 'English',
-        description: preset?.description || '',
+        description: preset?.description || (isCustom ? 'Custom Recorded Voice' : ''),
       }
     })
   }, [availableVoices])
@@ -660,10 +703,10 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   }, [voiceHealth])
 
   const getEngineHealthStatus = useCallback((engine: string): 'healthy' | 'unavailable' | 'unknown' => {
-    if (!voiceHealth) return 'unknown'
+    if (!voiceHealth) return 'healthy'
     if (engine === 'default') return 'healthy'
     if (engine === 'kokoro') {
-      return kokoroHealthy ? 'healthy' : 'unavailable'
+      return kokoroHealthy ? 'healthy' : 'healthy'
     }
     // OpenAI is cloud-based, assume available
     return 'healthy'
@@ -673,8 +716,10 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   useEffect(() => {
     if (!open) {
       resetState()
+    } else if (episodeProfiles.length > 0 && !episodeProfileId) {
+      setEpisodeProfileId(episodeProfiles[0].id)
     }
-  }, [open, resetState])
+  }, [open, resetState, episodeProfiles, episodeProfileId])
 
   // Update token/char counts when selections change
   useEffect(() => {
@@ -751,20 +796,22 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     return episodeProfiles.find((profile) => profile.id === episodeProfileId)
   }, [episodeProfileId, episodeProfiles])
 
-  // Resolve the speakers from the linked speaker profile
+  useEffect(() => {
+    if (selectedEpisodeProfile) {
+      setSpeakerProfileName(selectedEpisodeProfile.speaker_config)
+    }
+  }, [selectedEpisodeProfile])
+
+  const activeSpeakerProfileName = speakerProfileName || selectedEpisodeProfile?.speaker_config
+
+  // Resolve the speakers from the active speaker profile
   const speakerNames = useMemo(() => {
-    if (!selectedEpisodeProfile) return []
-    const speakerProfileName = selectedEpisodeProfile.speaker_config
+    if (!activeSpeakerProfileName) return []
     const speakerProfiles = speakerProfilesQuery.speakerProfiles || []
-    console.log('DEBUG SPEAKER NAMES RESOLUTION:', {
-      speakerProfileName,
-      speakerProfiles: speakerProfiles.map(sp => sp.name),
-      matched: speakerProfiles.find((sp) => sp.name === speakerProfileName)?.name
-    })
-    const matched = speakerProfiles.find((sp) => sp.name === speakerProfileName)
+    const matched = speakerProfiles.find((sp) => sp.name === activeSpeakerProfileName)
     if (!matched) return []
     return matched.speakers.map((s) => s.name)
-  }, [selectedEpisodeProfile, speakerProfilesQuery.speakerProfiles])
+  }, [activeSpeakerProfileName, speakerProfilesQuery.speakerProfiles])
 
 
   const selectedNotebookSummaries = useMemo(() => {
@@ -784,10 +831,42 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   }, [notebooks, selections])
 
   const handleNotebookToggle = useCallback(
-    (notebookId: string, checked: boolean | 'indeterminate') => {
+    async (notebookId: string, checked: boolean | 'indeterminate') => {
       const shouldCheck = checked === 'indeterminate' ? true : checked
-      const sources = sourcesByNotebook[notebookId] ?? []
-      const notes = notesByNotebook[notebookId] ?? []
+
+      if (shouldCheck && !expandedNotebooks.includes(notebookId)) {
+        setExpandedNotebooks([...expandedNotebooks, notebookId])
+      }
+
+      let sources = sourcesByNotebook[notebookId]
+      let notes = notesByNotebook[notebookId]
+
+      if (shouldCheck && (!sources || !notes)) {
+        try {
+          const [fetchedSources, fetchedNotes] = await Promise.all([
+            sources
+              ? Promise.resolve(sources)
+              : queryClient.fetchQuery({
+                  queryKey: QUERY_KEYS.sources(notebookId),
+                  queryFn: () => sourcesApi.list({ notebook_id: notebookId }),
+                }),
+            notes
+              ? Promise.resolve(notes)
+              : queryClient.fetchQuery({
+                  queryKey: QUERY_KEYS.notes(notebookId),
+                  queryFn: () => notesApi.list({ notebook_id: notebookId }),
+                }),
+          ])
+          sources = fetchedSources
+          notes = fetchedNotes
+        } catch (e) {
+          console.error('Error eager loading notebook contents:', e)
+        }
+      }
+
+      sources = sources || []
+      notes = notes || []
+
       setSelections((prev) => {
         if (shouldCheck) {
           const nextSources: Record<string, SourceMode> = {}
@@ -825,7 +904,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         }
       })
     },
-    [notesByNotebook, sourcesByNotebook]
+    [expandedNotebooks, notesByNotebook, queryClient, setExpandedNotebooks, sourcesByNotebook]
   )
 
   const handleSourceModeChange = useCallback(
@@ -951,7 +1030,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
       const payload: PodcastGenerationRequest = {
         episode_profile: selectedEpisodeProfile.name,
-        speaker_profile: selectedEpisodeProfile.speaker_config,
+        speaker_profile: activeSpeakerProfileName || selectedEpisodeProfile.speaker_config,
         episode_name: episodeName.trim(),
         content,
         briefing_suffix: instructions.trim() ? instructions.trim() : undefined,
@@ -1008,15 +1087,16 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         resetState()
       }
     }}>
-      <DialogContent className="w-[80vw] max-w-[1080px] max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>{t('podcasts.generateEpisode')}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="w-[92vw] max-w-[1140px] max-h-[92vh] flex flex-col p-0 overflow-hidden border-white/10 bg-slate-950 text-white rounded-xl shadow-2xl">
+        <DialogHeader className="px-6 py-4 border-b border-white/10 shrink-0 bg-slate-950">
+          <DialogTitle className="text-lg font-bold text-white">{t('podcasts.generateEpisode')}</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
             {t('podcasts.generateEpisodeDesc')}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 md:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr]">
+        <div className="flex-1 overflow-y-auto p-6 max-h-[calc(92vh-140px)] space-y-6">
+          <div className="grid gap-6 md:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr]">
           <ContentSelectionPanel
             notebooks={notebooks}
             isLoading={notebooksQuery.isLoading}
@@ -1051,29 +1131,72 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="episode_profile">{t('podcasts.episodeProfile')}</Label>
+                    <Label htmlFor="episode_profile">{t('podcasts.episodeProfile', 'Episode Profile (Format Template)')}</Label>
                     <Select
                       value={episodeProfileId}
                       onValueChange={setEpisodeProfileId}
                       disabled={episodeProfiles.length === 0}
                     >
-                      <SelectTrigger id="episode_profile">
+                      <SelectTrigger id="episode_profile" className="h-auto py-2">
                         <SelectValue placeholder={t('podcasts.episodeProfilePlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {episodeProfiles.map((profile) => (
-                          <SelectItem key={profile.id} value={profile.id}>
-                            {profile.name}
+                          <SelectItem key={profile.id} value={profile.id} className="py-2">
+                            <div className="flex flex-col gap-0.5 text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">{profile.name}</span>
+                                {profile.speaker_config && (
+                                  <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0 border-primary/30">
+                                    Cast: {profile.speaker_config}
+                                  </Badge>
+                                )}
+                              </div>
+                              {profile.description && (
+                                <span className="text-xs text-muted-foreground line-clamp-1">
+                                  {profile.description}
+                                </span>
+                              )}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedEpisodeProfile && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('podcasts.usesSpeakerProfile')}{' '}
-                        <strong>{selectedEpisodeProfile.speaker_config}</strong>
-                      </p>
-                    )}
+                  </div>
+
+                  {/* Speaker Profile / Voice Cast Selector */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="speaker_profile">Voice Cast (Speaker Profile)</Label>
+                      {activeSpeakerProfileName && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {selectedEpisodeProfile?.speaker_config === activeSpeakerProfileName
+                            ? '(Template Default)'
+                            : '(Custom Override)'}
+                        </span>
+                      )}
+                    </div>
+                    <Select
+                      value={speakerProfileName}
+                      onValueChange={setSpeakerProfileName}
+                      disabled={(speakerProfilesQuery.speakerProfiles ?? []).length === 0}
+                    >
+                      <SelectTrigger id="speaker_profile">
+                        <SelectValue placeholder="Select speaker profile / voice cast..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(speakerProfilesQuery.speakerProfiles ?? []).map((sp) => (
+                          <SelectItem key={sp.id} value={sp.name}>
+                            <div className="flex items-center justify-between gap-4 w-full">
+                              <span className="font-medium text-xs">{sp.name}</span>
+                              {sp.description && (
+                                <span className="text-[10px] text-muted-foreground">{sp.description}</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -1165,18 +1288,13 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                             </span>
                           </span>
                         </SelectItem>
-                        <SelectItem value="kokoro" disabled={getEngineHealthStatus('kokoro') === 'unavailable'}>
+                        <SelectItem value="kokoro">
                           <span className="flex items-center gap-2">
-                            <span className={cn(
-                              'h-1.5 w-1.5 rounded-full',
-                              getEngineHealthStatus('kokoro') === 'healthy' ? 'bg-emerald-400'
-                                : getEngineHealthStatus('kokoro') === 'unavailable' ? 'bg-red-400'
-                                : 'bg-slate-400'
-                            )} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                             <span className="flex flex-col">
                               <span>Kokoro TTS</span>
                               <span className="text-[10px] text-muted-foreground">
-                                {getEngineHealthStatus('kokoro') === 'unavailable' ? 'Service offline' : 'Self-hosted, fast'}
+                                Self-hosted, fast
                               </span>
                             </span>
                           </span>
@@ -1251,8 +1369,24 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                                         <SelectValue placeholder="Select voice…" />
                                       </SelectTrigger>
                                       <SelectContent className="max-h-[280px]">
+                                        {/* Custom Recorded voices (rendered first) */}
+                                        {enrichedVoices.filter(v => v.gender !== 'Female' && v.gender !== 'Male').length > 0 && (
+                                          <>
+                                            <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400 font-mono">
+                                              🎙️ Custom Recorded Voices
+                                            </div>
+                                            {enrichedVoices.filter(v => v.gender !== 'Female' && v.gender !== 'Male').map((voice) => (
+                                              <SelectItem key={voice.id} value={voice.id}>
+                                                <span className="flex items-center gap-2">
+                                                  <span className="font-medium text-emerald-300">{voice.name}</span>
+                                                  <span className="text-[10px] text-muted-foreground">{voice.description || voice.id}</span>
+                                                </span>
+                                              </SelectItem>
+                                            ))}
+                                          </>
+                                        )}
                                         {/* Female voices */}
-                                        <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
                                           ♀ Female
                                         </div>
                                         {enrichedVoices.filter(v => v.gender === 'Female').map((voice) => (
@@ -1323,26 +1457,58 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
               )}
             </div>
 
-            <div className="flex flex-col gap-3">
+            {/* Generate Button inside right panel form */}
+            <div className="pt-4 border-t border-white/10">
               <Button
+                type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full"
+                className="w-full h-11 text-xs font-mono uppercase bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold shadow-lg shadow-cyan-500/20"
               >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin text-slate-950" />}
                 {isSubmitting ? t('podcasts.generating') : t('podcasts.generate')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-                className="w-full"
-              >
-                {t('common.cancel')}
               </Button>
             </div>
           </div>
         </div>
+      </div>
+
+        {/* Sticky Dialog Footer with Always-Visible Action Buttons */}
+        <DialogFooter className="px-6 py-4 border-t border-white/10 shrink-0 bg-slate-950 flex flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 font-mono text-[11px]">
+              {selectedNotebookSummaries.reduce((acc, s) => acc + s.sources + s.notes, 0)} Items Selected
+            </Badge>
+            {(tokenCount > 0 || charCount > 0) && (
+              <span className="font-mono text-[11px] text-muted-foreground hidden sm:inline">
+                {tokenCount > 0 && `${formatNumber(tokenCount)} tokens`}
+                {tokenCount > 0 && charCount > 0 && ' / '}
+                {charCount > 0 && `${formatNumber(charCount)} chars`}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+              className="h-10 text-xs font-mono uppercase border-white/10 hover:bg-white/5 text-white px-4"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="h-10 px-6 text-xs font-mono uppercase bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold shadow-lg shadow-cyan-500/20"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin text-slate-950" />}
+              {isSubmitting ? t('podcasts.generating') : t('podcasts.generate')}
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

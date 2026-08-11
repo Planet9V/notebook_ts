@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
-from api.models import TagCreate, TagResponse, NodeLayoutCreate, NodeLayoutResponse
+
+from api.models import NodeLayoutCreate, NodeLayoutResponse, TagCreate, TagResponse
 from open_notebook.database.repository import RecordID
 
 

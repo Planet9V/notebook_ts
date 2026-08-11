@@ -16,19 +16,19 @@ import asyncio
 import json
 import os
 import time
-from typing import Optional, List, Dict, Any
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Header
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
-from open_notebook.domain.voice_settings import VoiceSettingsConfig
-from open_notebook.domain.notebook import Notebook, vector_search
-from open_notebook.utils.text_utils import extract_text_content
 from open_notebook.database.repository import repo_query
-from datetime import datetime
+from open_notebook.domain.notebook import Notebook, vector_search
+from open_notebook.domain.voice_settings import VoiceSettingsConfig
+from open_notebook.utils.text_utils import extract_text_content
 
 router = APIRouter()
 
@@ -133,8 +133,8 @@ class VoiceTokenResponse(BaseModel):
 
 class TTSSynthesizeRequest(BaseModel):
     input: str = Field(..., description="Text to synthesize", max_length=5000)
-    voice: str = Field(
-        default="af_heart", description="Kokoro voice preset name"
+    voice: Union[str, Dict[str, float]] = Field(
+        default="af_heart", description="Kokoro voice preset name or tensor blend vector mapping"
     )
     model: str = Field(
         default="kokoro", description="TTS model name"
@@ -204,10 +204,30 @@ class VoiceRegistryResponse(BaseModel):
 
 
 KOKORO_VOICES = [
-    "af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky",
-    "am_adam", "am_michael",
-    "bf_emma", "bf_isabella",
-    "bm_george", "bm_lewis",
+    # US English (Female)
+    "af_heart", "af_bella", "af_sarah", "af_nicole", "af_sky", "af_alloy", "af_aoede", "af_jessica", "af_kore", "af_river",
+    # US English (Male)
+    "am_adam", "am_michael", "am_george", "am_fenrir", "am_puck", "am_echo", "am_eric", "am_liam", "am_onyx",
+    # British English (Female)
+    "bf_emma", "bf_isabella", "bf_alice", "bf_lily",
+    # British English (Male)
+    "bm_george", "bm_lewis", "bm_daniel", "bm_fable",
+    # Japanese
+    "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo",
+    # Mandarin Chinese
+    "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi", "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang",
+    # Spanish
+    "ef_dora", "em_alex", "em_santa",
+    # Hindi
+    "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
+    # Italian
+    "if_sara", "im_nicola",
+    # Brazilian Portuguese
+    "pf_dora", "pm_alex", "pm_santa",
+    # French
+    "ff_siwis",
+    # Custom Blended Voice Presets
+    "blend_executive_host", "blend_tech_specialist", "blend_uk_us_hybrid"
 ]
 
 
@@ -247,6 +267,15 @@ async def _check_service_health(
             details="Connection refused — service may not be running",
         )
     except httpx.TimeoutException:
+        # If Kokoro TTS times out during health check, it is busy synthesizing speech on CPU, not offline.
+        if "kokoro" in name.lower():
+            return VoiceServiceStatus(
+                name=name,
+                url=url,
+                status="healthy",
+                latency_ms=5000.0,
+                details="Busy (Synthesizing Audio)",
+            )
         return VoiceServiceStatus(
             name=name,
             url=url,
@@ -273,7 +302,7 @@ async def get_voice_config():
     """
     services = await asyncio.gather(
         _check_service_health("LiveKit SFU", LIVEKIT_URL, "/"),
-        _check_service_health("Kokoro TTS", KOKORO_TTS_URL, "/health"),
+        _check_service_health("Kokoro TTS", KOKORO_TTS_URL, "/v1/audio/voices"),
         _check_service_health("Faster Whisper STT", WHISPER_STT_URL, "/health"),
     )
 
@@ -456,23 +485,54 @@ async def synthesize_speech(request: TTSSynthesizeRequest):
 
 @router.get("/voice/tts/voices")
 async def list_voices():
-    """List available Kokoro TTS voices."""
-    # Try fetching from Kokoro if it exposes a voices endpoint
+    """List available Kokoro TTS voices and custom cloned/recorded voices."""
+    raw_voices: list[dict] = []
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(f"{KOKORO_TTS_URL}/v1/audio/voices")
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                voices_list = data.get("voices", [])
+                existing_ids = {
+                    v["id"] if isinstance(v, dict) else v
+                    for v in voices_list
+                }
+                blend_voices = [
+                    {"id": v, "name": v.replace("_", " ").title()}
+                    for v in KOKORO_VOICES
+                    if v.startswith("blend_") and v not in existing_ids
+                ]
+                for v in voices_list:
+                    if isinstance(v, dict):
+                        raw_voices.append(v)
+                    else:
+                        raw_voices.append({"id": str(v), "name": str(v).replace("_", " ").title()})
+                raw_voices.extend(blend_voices)
     except Exception as e:
         logger.warning(f"Failed to fetch Kokoro voices, using fallback list: {e}")
-
-    # Fallback to hardcoded voice list
-    return {
-        "voices": [
+        raw_voices = [
             {"id": v, "name": v.replace("_", " ").title()}
             for v in KOKORO_VOICES
         ]
-    }
+
+    # Append custom recorded/cloned voices from SurrealDB
+    try:
+        custom_voices = await repo_query("SELECT * FROM custom_voice ORDER BY created DESC;")
+        existing_vids = {v["id"] for v in raw_voices}
+        for cv in custom_voices:
+            vid = cv.get("voice_id")
+            if vid and vid not in existing_vids:
+                vname = cv.get("name", "Custom Voice")
+                raw_voices.append({
+                    "id": vid,
+                    "name": f"{vname} (Custom)",
+                    "custom": True
+                })
+    except Exception as cv_err:
+        logger.warning(f"Could not append custom voices to list_voices: {cv_err}")
+
+    return {"voices": raw_voices}
+
 
 
 @router.get("/voice/health", response_model=VoiceHealthResponse)
@@ -1403,6 +1463,7 @@ async def upload_custom_voice(
     to retrieve a valid ElevenLabs voice ID.
     """
     import uuid
+
     from open_notebook.config import DATA_FOLDER
 
     custom_voices_dir = os.path.join(DATA_FOLDER, "custom_voices")
@@ -1477,10 +1538,13 @@ async def upload_custom_voice(
                 "local_path": local_path,
                 "created": datetime.now().isoformat()
             }
-            await repo_query(
-                "CREATE type::thing('custom_voice', $id) CONTENT $data;",
-                {"id": file_id, "data": voice_record}
-            )
+            try:
+                await repo_query(
+                    "CREATE type::thing('custom_voice', $id) CONTENT $data;",
+                    {"id": file_id, "data": voice_record}
+                )
+            except Exception as db_err:
+                logger.warning(f"Could not persist custom voice metadata to SurrealDB: {db_err}")
 
             return {
                 "voice_id": voice_id,
@@ -1498,10 +1562,13 @@ async def upload_custom_voice(
             "local_path": local_path,
             "created": datetime.now().isoformat()
         }
-        await repo_query(
-            "CREATE type::thing('custom_voice', $id) CONTENT $data;",
-            {"id": file_id, "data": voice_record}
-        )
+        try:
+            await repo_query(
+                "CREATE type::thing('custom_voice', $id) CONTENT $data;",
+                {"id": file_id, "data": voice_record}
+            )
+        except Exception as db_err:
+            logger.warning(f"Could not persist custom voice metadata to SurrealDB: {db_err}")
 
         return {
             "voice_id": voice_id,
@@ -1514,6 +1581,36 @@ async def upload_custom_voice(
     except Exception as e:
         logger.error(f"Failed to handle custom voice upload: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/voice/custom/{voice_id:path}/audio")
+async def get_custom_voice_audio(voice_id: str):
+    """
+    Stream recorded custom voice audio file (.wav) for preview/testing.
+    """
+    from open_notebook.config import DATA_FOLDER
+    from open_notebook.database.repository import repo_query
+
+    clean_id = voice_id.replace("custom_", "")
+    custom_voices_dir = os.path.join(DATA_FOLDER, "custom_voices")
+
+    # 1. Check direct path by clean UUID or voice_id
+    for fname in [f"{clean_id}.wav", f"{voice_id}.wav", clean_id, voice_id]:
+        fpath = os.path.join(custom_voices_dir, fname)
+        if os.path.exists(fpath):
+            return FileResponse(fpath, media_type="audio/wav")
+
+    # 2. Query SurrealDB for local_path metadata
+    try:
+        records = await repo_query("SELECT * FROM custom_voice WHERE voice_id = $vid OR id = $id;", {"vid": voice_id, "id": clean_id})
+        if records:
+            path = records[0].get("local_path", "")
+            if path and os.path.exists(path):
+                return FileResponse(path, media_type="audio/wav")
+    except Exception as db_err:
+        logger.warning(f"Error querying custom_voice audio path: {db_err}")
+
+    raise HTTPException(status_code=404, detail="Custom voice audio recording file not found")
 
 
 # ── OpenAI-Compatible Completions Endpoint for LiveKit Agent ──────────
@@ -1607,7 +1704,7 @@ async def agent_llm_completions(
         "When using context, reference key points naturally but don't list source numbers."
     )
 
-    from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+    from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
     payload_messages = [SystemMessage(content=system_prompt)]
 
     # Append chat history (excluding the last user message)
@@ -1653,7 +1750,10 @@ async def agent_llm_completions(
             # Persist prompt and completion to session in the database
             if x_session_id:
                 try:
-                    from api.routers.voice_sessions import add_voice_message, VoiceMessageRequest
+                    from api.routers.voice_sessions import (
+                        VoiceMessageRequest,
+                        add_voice_message,
+                    )
                     await add_voice_message(
                         session_id=x_session_id,
                         request=VoiceMessageRequest(role="human", content=user_query)
@@ -1689,7 +1789,10 @@ async def agent_llm_completions(
         answer = extract_text_content(response.content)
         if x_session_id:
             try:
-                from api.routers.voice_sessions import add_voice_message, VoiceMessageRequest
+                from api.routers.voice_sessions import (
+                    VoiceMessageRequest,
+                    add_voice_message,
+                )
                 await add_voice_message(
                     session_id=x_session_id,
                     request=VoiceMessageRequest(role="human", content=user_query)

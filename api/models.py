@@ -46,6 +46,40 @@ class UserUpdate(BaseModel):
     organization: Optional[str] = None
 
 
+class ProviderInfoResponse(BaseModel):
+    """Provider metadata from the provider registry."""
+
+    name: str = Field(..., description="Provider identifier (e.g. openai)")
+    display_name: str = Field(..., description="Human-friendly provider name")
+    modalities: List[str] = Field(
+        ..., description="Default modalities supported by the provider"
+    )
+    docs_url: Optional[str] = Field(
+        None, description="Where to get an API key / set the provider up"
+    )
+    env_configured: bool = Field(
+        False, description="Whether the provider is configured via environment variables"
+    )
+
+
+class CapabilitiesResponse(BaseModel):
+    """Runtime availability of the opt-in heavy extraction engines."""
+
+    docling_available: bool = Field(
+        False,
+        description="Docling is installed: the docling document engine, OCR toggle and image sources work.",
+    )
+    crawl4ai_available: bool = Field(
+        False,
+        description="Crawl4AI is usable: the local package is installed OR a remote server is configured.",
+    )
+    crawl4ai_remote_configured: bool = Field(
+        False,
+        description="A remote Crawl4AI endpoint is configured via CRAWL4AI_API_URL.",
+    )
+
+
+
 # Notebook models
 class NotebookCreate(BaseModel):
     name: str = Field(..., description="Name of the notebook")
@@ -565,6 +599,7 @@ class NoteUpdate(BaseModel):
     content_markdown_backup: Optional[str] = Field(None, description="Backup of markdown content")
     location_id: Optional[str] = Field(None, description="Location/facility ID to attach the note to")
     customer_id: Optional[str] = Field(None, description="Customer/organization ID to attach the note to")
+    notebook_id: Optional[str] = Field(None, description="Notebook container ID to attach or move note to")
 
 
 class NoteResponse(BaseModel):

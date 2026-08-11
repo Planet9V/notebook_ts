@@ -156,8 +156,8 @@ async def test_smtp_connection(payload: EmailSettingsUpdate):
                 "steps": steps
             }
 
-        import socket
         import smtplib
+        import socket
 
         # 1. DNS Resolution
         try:

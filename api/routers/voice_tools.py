@@ -1,10 +1,11 @@
 import base64
 import os
-import httpx
 from typing import Any, Dict, List, Optional
+
+import httpx
 from fastapi import APIRouter, Header, HTTPException, Request
-from pydantic import BaseModel, Field
 from loguru import logger
+from pydantic import BaseModel, Field
 
 from open_notebook.database.repository import repo_query, repo_update
 from open_notebook.domain.credential import Credential
@@ -432,7 +433,11 @@ async def execute_voice_tool(
                 )
                 
             # Invoke the active exporter function
-            from api.routers.notebooks import export_markdown_to_gdoc, export_topology_to_gslides, export_scorecard_to_gsheets
+            from api.routers.notebooks import (
+                export_markdown_to_gdoc,
+                export_scorecard_to_gsheets,
+                export_topology_to_gslides,
+            )
             
             if export_type == "gdocs":
                 doc_id = await export_markdown_to_gdoc(markdown_content, title, access_token)

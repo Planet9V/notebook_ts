@@ -319,6 +319,7 @@ async def delete_research_item(item_id: str):
 async def run_deep_research_workflow(ri: ResearchItem):
     import asyncio
     from datetime import datetime, timezone
+
     from open_notebook.search.deep_research import run_deep_research
     from open_notebook.search.research_memory import ResearchMemory
     from open_notebook.utils.embedding import generate_embedding

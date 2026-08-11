@@ -1,8 +1,10 @@
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
+
 
 @pytest.fixture
 def client():

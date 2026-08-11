@@ -1,26 +1,25 @@
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import unquote, urlparse
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from loguru import logger
 from pydantic import BaseModel
 
+from api.models import (
+    ScheduledEpisodeCreate,
+    ScheduledEpisodeResponse,
+    ScheduledEpisodeUpdate,
+)
 from api.podcast_service import (
     PodcastGenerationRequest,
     PodcastGenerationResponse,
     PodcastService,
 )
-from api.models import (
-    ScheduledEpisodeCreate,
-    ScheduledEpisodeUpdate,
-    ScheduledEpisodeResponse,
-)
+from open_notebook.database.repository import ensure_record_id, repo_delete, repo_query
 from open_notebook.domain.scheduled_episode import ScheduledEpisode
-from open_notebook.database.repository import repo_query, repo_delete, ensure_record_id
-
 
 router = APIRouter()
 

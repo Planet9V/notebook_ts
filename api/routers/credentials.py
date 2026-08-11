@@ -20,9 +20,9 @@ NEVER returns actual API key values - only metadata.
 
 from typing import List, Optional
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
-import httpx
 from loguru import logger
 from pydantic import SecretStr
 

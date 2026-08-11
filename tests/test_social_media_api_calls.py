@@ -1,7 +1,10 @@
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from open_notebook.tasks.publication_worker import publish_due_posts
+
 
 @pytest.mark.asyncio
 @patch("open_notebook.tasks.publication_worker.repo_query")

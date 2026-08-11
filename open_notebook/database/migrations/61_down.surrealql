@@ -1,0 +1,5 @@
+-- Down Migration 61
+REMOVE TABLE IF EXISTS oxot_sales_campaign;
+REMOVE TABLE IF EXISTS oxot_offering;
+REMOVE TABLE IF EXISTS oxot_cra_assessment;
+REMOVE TABLE IF EXISTS oxot_cyber_twin;

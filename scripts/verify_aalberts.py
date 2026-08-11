@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import asyncio
+
 import httpx
+
 
 async def main():
     async with httpx.AsyncClient() as client:

@@ -1,15 +1,18 @@
-import pytest
-import re
 import json
-from unittest.mock import patch, AsyncMock, MagicMock
+import re
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from open_notebook.database.repository import RecordID
 
 
 @pytest.fixture
 def client():
     """Create test client after conftest setup."""
-    from api.main import app
     from fastapi.testclient import TestClient
+
+    from api.main import app
     return TestClient(app)
 
 
@@ -57,7 +60,7 @@ class TestSlashCommands:
         client
     ):
         """Test that typing /deep-research triggers deep research and returns the synthesized source link."""
-        from open_notebook.domain.notebook import Notebook, ChatSession
+        from open_notebook.domain.notebook import ChatSession, Notebook
         
         # Setup notebook mock
         mock_notebook = AsyncMock(spec=Notebook)
@@ -124,7 +127,7 @@ class TestSlashCommands:
         client
     ):
         """Test that /planning-with-files init initializes the plan and returns a visual dashboard."""
-        from open_notebook.domain.notebook import Notebook, ChatSession, Note
+        from open_notebook.domain.notebook import ChatSession, Note, Notebook
         from open_notebook.domain.task import Task
         
         # Setup notebook mock
@@ -206,7 +209,7 @@ class TestSlashCommands:
         client
     ):
         """Test that /planning-with-files sync bidirectionally updates database tasks and roadmap plan checkboxes."""
-        from open_notebook.domain.notebook import Notebook, ChatSession, Note
+        from open_notebook.domain.notebook import ChatSession, Note, Notebook
         from open_notebook.domain.task import Task
         
         # Setup notebook mock with existing plan note

@@ -21,6 +21,12 @@ import {
   Zap,
   Database,
   RefreshCw,
+  Download,
+  FileText,
+  Scale,
+  Workflow,
+  FileCode,
+  CheckCircle,
 } from 'lucide-react'
 
 // ─── DOCUMENTATION DATA ─────────────────────────────────────────────────────
@@ -1317,6 +1323,168 @@ const DOCUMENTATION: DocSection[] = [
       },
     ],
   },
+  {
+    id: 'c4-architecture-spec',
+    title: 'C4 Enterprise Architecture Spec',
+    icon: Layers,
+    color: 'violet',
+    badge: 'C4 MODEL',
+    description: 'Principal-level C4 Context/Container/Component diagrams, PyTorch voice vector math, and OpenAPI 3.1 specs.',
+    subsections: [
+      {
+        id: 'c4-level-1-context',
+        title: '1. C4 Level 1: System Context',
+        content: 'System Context illustrates the high-level actors (Analysts, Producers, Sales Engineers) and external cloud infrastructure (ElevenLabs, Deepgram Aura, OpenAI, OpenRouter) interacting with Notebook Tetrel.\n\n' +
+                 'Actors: Users interact with the Next.js presentation tier via HTTPS and WebSockets.\n' +
+                 'External Dependencies: Speech synthesis falls back from local PyTorch Kokoro CPU containers to ElevenLabs or Deepgram when cloud providers are configured.',
+      },
+      {
+        id: 'c4-level-2-containers',
+        title: '2. C4 Level 2: Container Topology',
+        content: 'Decomposes Notebook Tetrel into its deployable execution units:\n\n' +
+                 '• Next.js 16 Web Application (Port 3000): React 19, TypeScript 5, Tailwind v4.\n' +
+                 '• FastAPI API Gateway (Port 5055): Python 3.12, Uvicorn ASGI server, Pydantic v2 validation.\n' +
+                 '• Background Command Worker Pool: LangGraph stateful multi-agent orchestrator, FFmpeg audio DSP engine.\n' +
+                 '• SurrealDB Multi-Model Database (Port 8000): Graph nodes, document records, and command queues.\n' +
+                 '• Kokoro Neural TTS Container (Port 8880): Local CPU speech synthesis running PyTorch voice style vectors.\n' +
+                 '• LiveKit WebRTC Media Server: Realtime voice agent communication pipeline.',
+      },
+      {
+        id: 'c4-pytorch-voice-math',
+        title: '3. PyTorch Voice Vector Linear Interpolation',
+        content: 'Kokoro 512-dimensional voice embeddings (v_a, v_b) are interpolated deterministically to create custom voice tensors:\n\n' +
+                 'Mathematical Formulation:\n' +
+                 'v_blended = w * v_a + (1 - w) * v_b\n\n' +
+                 'Code Reference: open_notebook/podcasts/voice_blender.py#L10-L35\n' +
+                 'Tensors are stored as .pt files and dynamically mounted into notebook_tetrel-kokoro-tts-1 at /app/api/src/voices/v1_0/ for zero-latency local CPU synthesis.',
+      },
+      {
+        id: 'c4-audio-dsp-ducking',
+        title: '4. FFmpeg Sidechain Ducking & EBU R128 Loudness',
+        content: 'Audio post-processing applies automated dynamic sidechain compression and broadcast loudness normalization:\n\n' +
+                 '• Sidechain Ducking: FFmpeg filter sidechaincompress=threshold=0.03:ratio=4:attack=200:release=1000 attenuates background music beds by -12.0 dB whenever speech stems are active.\n' +
+                 '• EBU R128 Normalization: Measures integrated loudness in LUFS via pyloudnorm, scaling waveform amplitude to exactly -16.0 LUFS with a peak ceiling limiter enforced at -1.0 dBTP.',
+      },
+      {
+        id: 'c4-openapi-specs',
+        title: '5. OpenAPI 3.1 Specification Summaries',
+        content: 'Defines REST API endpoints for podcast generation and custom voice registration.',
+        code: '# OpenAPI 3.1 Spec Summary\n' +
+              'POST /api/podcasts/generate:\n' +
+              '  summary: Enqueue podcast generation job\n' +
+              '  requestBody:\n' +
+              '    required: [episode_name, episode_profile, speaker_profile]\n' +
+              '  responses:\n' +
+              '    200: { command_id: "command:0d0f7xvbmgtn", status: "queued" }\n\n' +
+              'POST /api/voice/upload-custom:\n' +
+              '  summary: Register custom voice sample for local Kokoro or ElevenLabs\n' +
+              '  requestBody:\n' +
+              '    multipart/form-data: { file: binary, speaker_name: string, provider: kokoro|elevenlabs }\n' +
+              '  responses:\n' +
+              '    200: { voice_id: "custom_44ad2b2c", custom_voice_path: "./data/custom_voices/custom_44ad2b2c.wav" }',
+      },
+    ],
+  },
+  {
+    id: 'business-user-manual',
+    title: 'Business & User Operations Manual',
+    icon: Workflow,
+    color: 'emerald',
+    badge: 'BUSINESS',
+    description: 'User Story Mapping (Jeff Patton framework), Sales Demo playbooks, Marketing social repurposing, and Delivery Ops.',
+    subsections: [
+      {
+        id: 'business-user-story-map',
+        title: '1. User Story Mapping Matrix (Jeff Patton Framework)',
+        content: 'Maps high-level business activities to specific user steps, tasks, and release slices:\n\n' +
+                 '• Backbone Activities: [1. Ingest Knowledge] → [2. Configure Cast] → [3. Generate Episode] → [4. Master & Publish]\n' +
+                 '• Step 1: Upload RFP / Technical Whitepaper PDF → Extract Source Insights.\n' +
+                 '• Step 2: Pick Speaker Profile (Tech Specialists, Executive Briefing) → Calibrate Host Voice.\n' +
+                 '• Step 3: Set Duration Target (30s to 13m) → Run LangGraph Multi-Speaker Script Workflow.\n' +
+                 '• Step 4: Apply -12dB Ducking & -16 LUFS Master → Download MP3 & Export Social Clips.',
+      },
+      {
+        id: 'business-sales-playbook',
+        title: '2. Sales & Solutions Engineering Playbook',
+        content: 'How Sales Engineers run a 3-minute live prospect demo:\n\n' +
+                 '1. Log into Tetrel Dashboard at http://localhost:3000.\n' +
+                 '2. Create a new Notebook named "Prospect - [Account Name]".\n' +
+                 '3. Upload prospect technical RFP or architecture PDF as a source.\n' +
+                 '4. Open Podcasts → Click "Generate Episode" → Select "Executive Briefing" profile with "2 minutes" duration.\n' +
+                 '5. Stream generated MP3 briefing live to demonstrate instant document-to-audio synthesis.',
+      },
+      {
+        id: 'business-marketing-playbook',
+        title: '3. Marketing & Social Media Repurposing Playbook',
+        content: 'How Marketing leads convert whitepapers into multi-channel content suites:\n\n' +
+                 '1. Record 15-second host calibration sample in Settings → Voice.\n' +
+                 '2. Generate a 5-minute episode using "Tech Discussion" profile.\n' +
+                 '3. Download the -16 LUFS master MP3 file.\n' +
+                 '4. Extract 3 key quotes from JSON transcript and publish to X/LinkedIn alongside audio clip snippets.',
+      },
+      {
+        id: 'business-delivery-ops-playbook',
+        title: '4. Delivery Operations & QA Playbook',
+        content: 'Ensuring broadcast compliance for enterprise deliverables:\n\n' +
+                 '• Run automated Pytest unit suite before customer releases: ./.venv/bin/pytest tests/test_kokoro_podcast_enhancements.py\n' +
+                 '• Verify integrated loudness between -15.0 LUFS and -17.0 LUFS.\n' +
+                 '• Confirm peak limiter ceiling remains strictly below -1.0 dBTP.',
+      },
+    ],
+  },
+  {
+    id: 'general-counsel-audit',
+    title: 'General Counsel Legal & Risk Audit',
+    icon: Scale,
+    color: 'amber',
+    badge: 'LEGAL',
+    description: 'Voice Biometric Data privacy under BIPA/GDPR, FFmpeg LGPL licensing, DPA compliance, and warranty disclaimers.',
+    subsections: [
+      {
+        id: 'legal-voice-biometrics',
+        title: '1. Voice Biometric Privacy (BIPA / GDPR / CCPA)',
+        content: 'Recording user voices via microphone or uploading reference audio collects voice biometric data protected under Illinois BIPA, GDPR Article 9 (Special Category Data), and Texas CUBI.\n\n' +
+                 'Directive: Explicit consent checkboxes must be presented prior to recording or uploading audio files. Users must warrant ownership or license rights for third-party audio.',
+      },
+      {
+        id: 'legal-oss-licenses',
+        title: '2. Open Source Licensing & FFmpeg Compliance',
+        content: 'The platform integrates PyTorch (BSD), Kokoro-82M (Apache 2.0 open weights), pyloudnorm (MIT), and FFmpeg (LGPL/GPL).\n\n' +
+                 'Directive: Ensure FFmpeg container binaries maintain LGPL dynamic linking and avoid compiling GPL-only modules (--enable-gpl) for commercial proprietary distribution without source disclosure.',
+      },
+      {
+        id: 'legal-dpa-warranty',
+        title: '3. Data Processing Addendum (DPA) & Warranty Disclaimers',
+        content: 'Enterprise deployments require standard DPAs under GDPR Article 28. Disclose third-party cloud API routing (ElevenLabs, Deepgram, OpenAI) versus local container processing.\n\n' +
+                 'Warranty Disclaimer: Platform services are provided "AS IS". Users must review generated AI scripts and audio before public broadcast.',
+      },
+    ],
+  },
+  {
+    id: 'wiki-publication-module',
+    title: 'Wiki Publication Module',
+    icon: FileCode,
+    color: 'cyan',
+    badge: 'PUBLISHER',
+    description: 'Export, view, and render the complete markdown wiki documentation suite with global stylesheet alignment.',
+    subsections: [
+      {
+        id: 'pub-manuals-catalog',
+        title: '1. Complete Published Documentation Suite',
+        content: 'The application maintains 5 primary documentation manuals rendered seamlessly inside the web page:\n\n' +
+                 '1. BUSINESS_AND_USER_MANUAL.md — User Story Mapping, Sales Demo Flows, Marketing & Delivery Playbooks.\n' +
+                 '2. C4_ARCHITECTURE_AND_SYSTEM_MANUAL.md — C4 Levels 1-3 Diagrams, OpenAPI 3.1 Specs, PyTorch Vector Math.\n' +
+                 '3. DOCUMENTATION_AUDIT_AND_LEGAL_REVIEW.md — Truthful Ratings Matrix, General Counsel Review.\n' +
+                 '4. kokoro_podcast_architecture_wiki.md — PyTorch Voice Tensor Blender & Audio Post-Processing.\n' +
+                 '5. walkthrough.md — Test Execution Verification Evidence.',
+      },
+      {
+        id: 'pub-global-styling',
+        title: '2. Global Stylesheet Alignment & Formulas',
+        content: 'All markdown documentation rendered in the platform inherits the global Tailwind CSS theme variables, dark mode styling, HSL palette tokens, font stacks (Inter & JetBrains Mono), code syntax blocks, and KaTeX mathematical formula formatting.',
+      },
+    ],
+  },
 ]
 
 // ─── UTILITY FUNCTIONS ──────────────────────────────────────────────────────
@@ -1500,6 +1668,55 @@ export default function DocumentationPage() {
                   v1.8.5
                 </Badge>
               </div>
+            </div>
+
+            {/* Publication Module Mode Switcher Tabs */}
+            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/5 overflow-x-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToSection('overview')}
+                className="h-7 px-2.5 text-[10px] font-mono bg-slate-900/60 hover:bg-slate-800 text-slate-200 border border-white/5 flex items-center gap-1.5"
+              >
+                <BookOpen className="h-3 w-3 text-cyan-400" />
+                Structured Wiki
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToSection('c4-architecture-spec')}
+                className="h-7 px-2.5 text-[10px] font-mono bg-slate-900/60 hover:bg-slate-800 text-slate-200 border border-white/5 flex items-center gap-1.5"
+              >
+                <Layers className="h-3 w-3 text-violet-400" />
+                C4 Architecture Spec
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToSection('business-user-manual')}
+                className="h-7 px-2.5 text-[10px] font-mono bg-slate-900/60 hover:bg-slate-800 text-slate-200 border border-white/5 flex items-center gap-1.5"
+              >
+                <Workflow className="h-3 w-3 text-emerald-400" />
+                Business & Story Maps
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToSection('general-counsel-audit')}
+                className="h-7 px-2.5 text-[10px] font-mono bg-slate-900/60 hover:bg-slate-800 text-slate-200 border border-white/5 flex items-center gap-1.5"
+              >
+                <Scale className="h-3 w-3 text-amber-400" />
+                General Counsel Review
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToSection('wiki-publication-module')}
+                className="h-7 px-2.5 text-[10px] font-mono bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5"
+              >
+                <Download className="h-3 w-3 text-cyan-400" />
+                Export Markdown Wiki
+              </Button>
             </div>
 
             {/* Mobile Search */}

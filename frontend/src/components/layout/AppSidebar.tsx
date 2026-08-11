@@ -174,11 +174,12 @@ export function AppSidebar() {
             <>
               <div className="flex flex-col">
                 <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <Image src="/tetrel-logo.png" alt="Tetrel Security" width={109} height={32} className="object-contain" />
-                  <span className="sr-only">{t('common.appName')}</span>
+                  <span className="text-xl font-bold font-mono tracking-widest text-slate-100">
+                    O<span className="text-[#ff6b00]">X</span>OT
+                  </span>
                 </Link>
-                <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/50 mt-0.5 font-medium">
-                  Securing systems, from the hardware up
+                <p className="text-[9px] uppercase tracking-widest text-slate-400 mt-0.5 font-mono">
+                  Operational e<span className="text-[#ff6b00]">X</span>cellence in OT
                 </p>
               </div>
               <Button

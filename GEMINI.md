@@ -124,6 +124,7 @@ graphify update .
 - **Run `git status --short` at the end of every session** — zero untracked files before stopping
 - **All planning artifacts** (brainstorms, task lists, specs) go in `docs/plans/` — never in repo root
 - **Tool scaffolding artifacts** (`*.pre-ruflo`, root `package*.json`) are gitignored — never commit them
+- **STRICT OXOT-ADMIN CONTAINER ISOLATION**: NEVER modify, stop, restart, reconfigure, prune, or access ANY container, port, database, or volume belonging to `oxot-admin`, `oxot-postgres`, `oxot-neo4j`, `oxot-ner`, `oxot-worldmonitor`, `oxot-globalthreatmap`, `netbox`, or `bloodhound`. Refer to `docs/plans/karpathy_master_plan/00-ISOLATION-DIRECTIVES-OXOT.md`.
 
 ## Project Architecture
 

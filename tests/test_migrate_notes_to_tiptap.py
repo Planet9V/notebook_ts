@@ -1,7 +1,14 @@
 """Test Note Markdown-to-Tiptap HTML block migration script."""
 import asyncio
-from open_notebook.database.repository import repo_create, repo_delete, repo_query, ensure_record_id
+
+from open_notebook.database.repository import (
+    ensure_record_id,
+    repo_create,
+    repo_delete,
+    repo_query,
+)
 from scripts.migrate_notes_to_tiptap import migrate_notes
+
 
 def test_note_migration_and_idempotence():
     """Verify that migrate_notes renders markdown to HTML, sets backups, and is idempotent."""

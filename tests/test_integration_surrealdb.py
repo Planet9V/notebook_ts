@@ -30,11 +30,10 @@ from open_notebook.database.repository import (
     repo_create,
     repo_delete,
     repo_query,
+    repo_relate,
     repo_update,
     repo_upsert,
-    repo_relate,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 

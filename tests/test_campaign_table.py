@@ -1,7 +1,9 @@
 """Test Migration 53: Campaign table exists and accepts CRUD operations."""
 import asyncio
 import os
+
 import pytest
+
 from open_notebook.database.repository import repo_create, repo_delete, repo_query
 
 # Set environment variables BEFORE importing any app code

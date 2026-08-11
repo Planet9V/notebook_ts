@@ -1,8 +1,10 @@
 import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
-from open_notebook.database.repository import repo_query, repo_delete
+from open_notebook.database.repository import repo_delete, repo_query
 
 client = TestClient(app)
 

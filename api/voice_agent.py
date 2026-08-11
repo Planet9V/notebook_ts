@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+
 from dotenv import load_dotenv
 from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, llm
 from livekit.agents.voice import Agent
@@ -92,9 +93,9 @@ async def entrypoint(ctx: JobContext):
 
 
 def load_livekit_settings():
-    import urllib.request
     import json
     import time
+    import urllib.request
     
     # Try loading from local API with retries (up to 15 times, 2s sleep)
     is_docker = os.path.exists("/.dockerenv")

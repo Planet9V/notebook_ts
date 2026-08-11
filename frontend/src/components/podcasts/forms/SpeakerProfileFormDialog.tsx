@@ -5,7 +5,7 @@ import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import type { FieldErrorsImpl } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Trash2, Mic, Upload, Check } from 'lucide-react'
+import { Plus, Trash2, Mic, Upload, Check, Volume2, Pause } from 'lucide-react'
 
 import { SpeakerProfile } from '@/lib/types/podcasts'
 import {
@@ -95,6 +95,8 @@ interface SpeakerCardProps {
   startRecording: (index: number) => void
   stopRecording: () => void
   handleUploadBlob: (index: number, blob: Blob | File, filename: string) => Promise<void>
+  playCustomAudio: (voiceId: string) => void
+  playingVoiceId: string | null
   setValue: any
   t: TFunction
 }
@@ -114,6 +116,8 @@ function SpeakerCard({
   startRecording,
   stopRecording,
   handleUploadBlob,
+  playCustomAudio,
+  playingVoiceId,
   setValue,
   t,
 }: SpeakerCardProps) {
@@ -142,19 +146,18 @@ function SpeakerCard({
           size="sm"
           onClick={() => remove(index)}
           disabled={fieldsCount <= 1}
-          className="text-destructive"
         >
-          <Trash2 className="mr-2 h-4 w-4" /> {t('common.remove')}
+          <Trash2 className="h-4 w-4 text-red-500" />
         </Button>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor={`speaker-name-${index}`}>{t('common.name')} *</Label>
           <Input
             id={`speaker-name-${index}`}
+            placeholder={t('podcasts.speakerNamePlaceholder') || `Speaker ${index + 1}`}
             {...register(`speakers.${index}.name` as const)}
-            placeholder={t('podcasts.hostPlaceholder').replace('{number}', (index + 1).toString())}
             autoComplete="off"
           />
           {errors.speakers?.[index]?.name ? (
@@ -165,24 +168,25 @@ function SpeakerCard({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`speaker-override-tts-${index}`}>{t('podcasts.perSpeakerTtsOverride') || "Per-speaker TTS System"}</Label>
+          <Label htmlFor={`speaker-model-${index}`}>Voice Model Override (Optional)</Label>
           <Controller
             control={control}
             name={`speakers.${index}.voice_model` as const}
-            render={({ field: vmField }) => (
+            render={({ field }) => (
               <Select
-                value={vmField.value ?? 'default'}
-                onValueChange={(v) => vmField.onChange(v === 'default' ? null : v)}
+                value={field.value ?? 'default'}
+                onValueChange={(val) => field.onChange(val === 'default' ? null : val)}
               >
-                <SelectTrigger id={`speaker-override-tts-${index}`} className="w-full">
-                  <SelectValue placeholder="Use Profile Default" />
+                <SelectTrigger id={`speaker-model-${index}`}>
+                  <SelectValue placeholder="Use profile model" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Use Profile Default</SelectItem>
-                  <SelectItem value="model:kokoro">Kokoro (Local)</SelectItem>
-                  <SelectItem value="model:openai_tts">OpenAI TTS</SelectItem>
-                  <SelectItem value="model:elevenlabs_tts">ElevenLabs</SelectItem>
-                  <SelectItem value="model:deepgram_tts">Deepgram Aura</SelectItem>
+                  <SelectItem value="default">Use profile model</SelectItem>
+                  {models?.filter(m => m.model_type === 'tts').map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name || m.id}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
@@ -190,92 +194,110 @@ function SpeakerCard({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Controller
-            control={control}
-            name={`speakers.${index}.voice_id` as const}
-            render={({ field: voiceField }) => (
-              <VoiceIdPicker
-                label={`${t('podcasts.voiceId')} *`}
-                value={voiceField.value}
-                onChange={voiceField.onChange}
-                engine={resolvedEngine}
-                placeholder="Select a voice"
-              />
-            )}
-          />
-          {errors.speakers?.[index]?.voice_id ? (
-            <p className="text-xs text-red-600">
-              {errors.speakers[index]?.voice_id?.message}
-            </p>
-          ) : null}
-        </div>
+      <div className="space-y-2">
+        <Controller
+          control={control}
+          name={`speakers.${index}.voice_id` as const}
+          render={({ field: voiceField }) => (
+            <VoiceIdPicker
+              id={`speaker-voice-${index}`}
+              label={`${t('podcasts.voiceId')} *`}
+              value={voiceField.value}
+              onChange={voiceField.onChange}
+              engine={resolvedEngine}
+              placeholder="Select a voice"
+            />
+          )}
+        />
+        {errors.speakers?.[index]?.voice_id ? (
+          <p className="text-xs text-red-600">
+            {errors.speakers[index]?.voice_id?.message}
+          </p>
+        ) : null}
+      </div>
 
-        {/* Custom Voice Recording/Upload Widget */}
-        <div className="space-y-2">
-          <Label>Custom Voice Recording (Optional)</Label>
-          <div className="flex flex-wrap gap-2 items-center">
-            {recordingIndex === index ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={stopRecording}
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-pulse mr-2 inline-block" />
-                Stop Recording
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => startRecording(index)}
-                disabled={uploadingIndex !== null}
-              >
-                <Mic className="h-3.5 w-3.5 mr-1" />
-                Record Voice
-              </Button>
-            )}
-
+      {/* Custom Voice Recording/Upload Widget */}
+      <div className="space-y-2">
+        <Label>Custom Voice Recording (Optional)</Label>
+        <div className="flex flex-wrap gap-2 items-center">
+          {recordingIndex === index ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={stopRecording}
+            >
+              <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-pulse mr-2 inline-block" />
+              Stop Recording
+            </Button>
+          ) : (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={uploadingIndex !== null || recordingIndex !== null}
-              onClick={() => document.getElementById(`voice-upload-${index}`)?.click()}
+              onClick={() => startRecording(index)}
+              disabled={uploadingIndex !== null}
             >
-              <Upload className="h-3.5 w-3.5 mr-1" />
-              Upload File
+              <Mic className="h-3.5 w-3.5 mr-1" />
+              Record Voice
             </Button>
-            <input
-              id={`voice-upload-${index}`}
-              type="file"
-              accept="audio/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  handleUploadBlob(index, file, file.name)
-                }
-              }}
-            />
+          )}
 
-            {uploadingIndex === index && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <LoadingSpinner size="sm" />
-              </div>
-            )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploadingIndex !== null || recordingIndex !== null}
+            onClick={() => document.getElementById(`voice-upload-${index}`)?.click()}
+          >
+            <Upload className="h-3.5 w-3.5 mr-1" />
+            Upload File
+          </Button>
+          <input
+            id={`voice-upload-${index}`}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                handleUploadBlob(index, file, file.name)
+              }
+            }}
+          />
 
-            {speakerVoiceId?.startsWith('custom_') && (
+          {uploadingIndex === index && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <LoadingSpinner size="sm" />
+            </div>
+          )}
+
+          {speakerVoiceId?.startsWith('custom_') && (
+            <div className="flex items-center gap-2 border rounded px-2 py-1 bg-muted/40">
               <div className="flex items-center text-xs text-emerald-400 font-medium">
                 <Check className="h-3.5 w-3.5 mr-0.5" />
                 Active
               </div>
-            )}
-          </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-primary hover:text-primary/80"
+                onClick={() => playCustomAudio(speakerVoiceId)}
+              >
+                {playingVoiceId === speakerVoiceId ? (
+                  <Pause className="h-3.5 w-3.5 mr-1 text-amber-400 animate-pulse" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5 mr-1" />
+                )}
+                {playingVoiceId === speakerVoiceId ? 'Playing Sample...' : 'Play Sample'}
+              </Button>
+            </div>
+          )}
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Voice recordings are saved for sample playback and instant voice cloning with ElevenLabs. For local Kokoro TTS, select a Kokoro built-in voice model (e.g., <code>am_adam</code>, <code>af_heart</code>) in the <strong>Voice ID</strong> field.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -324,11 +346,42 @@ export function SpeakerProfileFormDialog({
   const updateProfile = useUpdateSpeakerProfile()
   const { data: models } = useModels()
 
-  // Voice recording state
+  // Voice recording & playback state
   const [recordingIndex, setRecordingIndex] = useState<number | null>(null)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const audioPlaybackRef = useRef<HTMLAudioElement | null>(null)
+
+  const playCustomAudio = (voiceId: string) => {
+    if (playingVoiceId === voiceId) {
+      if (audioPlaybackRef.current) {
+        audioPlaybackRef.current.pause()
+        audioPlaybackRef.current = null
+      }
+      setPlayingVoiceId(null)
+      return
+    }
+
+    if (audioPlaybackRef.current) {
+      audioPlaybackRef.current.pause()
+    }
+
+    const audio = new Audio(`/api/voice/custom/${voiceId}/audio`)
+    audioPlaybackRef.current = audio
+    setPlayingVoiceId(voiceId)
+
+    audio.play().catch((err) => {
+      console.error('Failed to play custom voice sample:', err)
+      setPlayingVoiceId(null)
+    })
+
+    audio.onended = () => {
+      setPlayingVoiceId(null)
+      audioPlaybackRef.current = null
+    }
+  }
 
   const getDefaults = useCallback((): SpeakerProfileFormValues => {
     if (initialData) {
@@ -582,6 +635,8 @@ export function SpeakerProfileFormDialog({
                 startRecording={startRecording}
                 stopRecording={stopRecording}
                 handleUploadBlob={handleUploadBlob}
+                playCustomAudio={playCustomAudio}
+                playingVoiceId={playingVoiceId}
                 setValue={setValue}
                 t={t}
               />

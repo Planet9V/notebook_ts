@@ -14,6 +14,7 @@ from api.models import (
     NotebookResponse,
     NotebookUpdate,
 )
+from api.routers.activity_emitter import emit_activity
 from open_notebook.database.repository import (
     ensure_record_id,
     repo_create,
@@ -23,8 +24,6 @@ from open_notebook.database.repository import (
 )
 from open_notebook.domain.notebook import Notebook, Source
 from open_notebook.exceptions import InvalidInputError
-
-from api.routers.activity_emitter import emit_activity
 
 router = APIRouter()
 
@@ -882,6 +881,8 @@ async def delete_notebook(
         )
 
 
+from typing import Optional
+
 from api.models import (
     GraphEdge,
     GraphNode,
@@ -889,9 +890,6 @@ from api.models import (
     GraphValidationResponse,
 )
 
-
-
-from typing import Optional
 
 def parse_version(v_str: str) -> tuple:
     """Helper to convert version string into comparable tuple of ints."""
@@ -962,6 +960,7 @@ async def validate_graph(request: GraphValidationRequest):
     """
     try:
         import ipaddress
+
         import networkx as nx
 
         # Validate that all edge endpoints exist in the nodes list
@@ -1290,19 +1289,22 @@ async def validate_graph(request: GraphValidationRequest):
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+
 class NotebookExportRequest(BaseModel):
     markdown: str
     clientName: str
     styleguide_id: Optional[str] = None
 
 async def compile_markdown_to_docx(markdown_text: str, client_name: str, styleguide_id: Optional[str] = None) -> str:
-    import tempfile
     import re
+    import tempfile
+
     from docx import Document
-    from docx.shared import Inches, Pt, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import parse_xml
     from docx.oxml.ns import nsdecls
+    from docx.shared import Inches, Pt, RGBColor
+
     from open_notebook.domain.styleguide import StyleGuide
 
     # StyleGuide units parsing helpers
@@ -1858,9 +1860,10 @@ async def export_proposal_gdocs(request: NotebookExportRequest):
     If credentials are not found, falls back to returning a simulated Google Doc URL.
     """
     try:
-        from open_notebook.domain.credential import Credential
-        from pydantic import SecretStr
         import httpx
+        from pydantic import SecretStr
+
+        from open_notebook.domain.credential import Credential
 
         # Try to get active credentials
         cred = None
@@ -1942,9 +1945,10 @@ async def export_proposal_gslides(request: NotebookExportSlidesRequest):
     If credentials are not found, falls back to simulated presentation URL.
     """
     try:
-        from open_notebook.domain.credential import Credential
-        from pydantic import SecretStr
         import httpx
+        from pydantic import SecretStr
+
+        from open_notebook.domain.credential import Credential
 
         # Try to get active credentials
         cred = None
@@ -2026,9 +2030,10 @@ async def export_proposal_gsheets(request: NotebookExportSheetsRequest):
     If credentials are not found, falls back to simulated spreadsheet URL.
     """
     try:
-        from open_notebook.domain.credential import Credential
-        from pydantic import SecretStr
         import httpx
+        from pydantic import SecretStr
+
+        from open_notebook.domain.credential import Credential
 
         # Try to get active credentials
         cred = None

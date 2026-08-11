@@ -1,5 +1,7 @@
 from typing import ClassVar, List, Optional
+
 from pydantic import Field, field_validator
+
 from open_notebook.domain.base import ObjectModel
 from open_notebook.exceptions import InvalidInputError
 

@@ -50,17 +50,30 @@ export function VoiceIdPicker({
     if (!registry) return []
     const options: ModelOption[] = []
     for (const ttsEngine of registry.tts_engines) {
-      if (engine) {
-        if (ttsEngine.engine.toLowerCase() !== engine.toLowerCase()) continue
-      } else {
-        if (ttsEngine.status === 'not_configured') continue
+      if (engine && ttsEngine.engine.toLowerCase() !== engine.toLowerCase()) {
+        // If an explicit engine filter is set, still preserve custom voices for that engine
+        const customVoices = ttsEngine.voices.filter(v => v.id.startsWith('custom_'))
+        for (const voice of customVoices) {
+          if (!options.some(o => o.id === voice.id)) {
+            options.push({
+              id: voice.id,
+              name: voice.name,
+              provider: 'Custom Voices',
+              description: '● Local Recorded Voice',
+            })
+          }
+        }
+        continue
       }
       for (const voice of ttsEngine.voices) {
+        const isCustom = voice.id.startsWith('custom_')
         options.push({
-          id: voice.id,  // Raw voice ID: "af_heart", NOT "kokoro:af_heart"
+          id: voice.id,  // Raw voice ID: "af_heart" or "custom_06064ded..."
           name: voice.name,
-          provider: ENGINE_LABELS[ttsEngine.engine] || ttsEngine.engine,
-          description: ttsEngine.status === 'healthy' ? '● Online' : ttsEngine.status === 'configured' ? '○ Configured' : '⚠ Not Configured',
+          provider: isCustom ? 'Custom Voices' : (ENGINE_LABELS[ttsEngine.engine] || ttsEngine.engine),
+          description: isCustom
+            ? '● Local Recorded Voice'
+            : (ttsEngine.status === 'healthy' ? '● Online' : ttsEngine.status === 'configured' ? '○ Configured' : '⚠ Not Configured'),
         })
       }
     }
@@ -70,8 +83,8 @@ export function VoiceIdPicker({
         options.push({
           id: value,
           name: `Custom Recorded Voice (${value.replace('custom_', '').substring(0, 8)})`,
-          provider: 'Custom (Local)',
-          description: '● Offline/Local',
+          provider: 'Custom Voices',
+          description: '● Local Recorded Voice',
         })
       }
     }

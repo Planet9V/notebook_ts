@@ -17,8 +17,10 @@ os.environ.setdefault("SURREAL_PASSWORD", "root")
 os.environ.setdefault("SURREAL_NAMESPACE", "open_notebook")
 os.environ.setdefault("SURREAL_DATABASE", "open_notebook")
 
-from open_notebook.database.repository import repo_query, repo_upsert
 from markdown_it import MarkdownIt
+
+from open_notebook.database.repository import repo_query, repo_upsert
+
 
 async def migrate_notes():
     try:

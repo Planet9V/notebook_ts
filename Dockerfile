@@ -7,7 +7,7 @@ WORKDIR /app/frontend
 # Copy dependency files first to maximize layer cache
 COPY frontend/package.json frontend/package-lock.json ./
 ARG NPM_REGISTRY=https://registry.npmjs.org/
-RUN npm config set registry ${NPM_REGISTRY} && npm ci
+RUN npm config set registry ${NPM_REGISTRY} && (npm ci || npm install --force)
 
 # Copy the rest of the frontend source and build Next.js in production standalone mode
 COPY frontend/ ./
@@ -129,7 +129,7 @@ RUN chmod +x /app/scripts/wait-for-api.sh /app/scripts/docker-entrypoint.sh
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Set ownership of writable directories to non-root user
-RUN chown -R appuser:appuser /app/data /var/log/supervisor /app/tiktoken-cache
+RUN chown -R appuser:appuser /app/data /var/log/supervisor /app/tiktoken-cache /app/frontend
 
 # Runtime API URL Configuration
 # The API_URL environment variable can be set at container runtime to configure

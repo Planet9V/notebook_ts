@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+import json
+import os
 import subprocess
 import sys
-import os
-import json
+
 
 def run_command(cmd, cwd=None):
     print(f"Running: {' '.join(cmd)}")

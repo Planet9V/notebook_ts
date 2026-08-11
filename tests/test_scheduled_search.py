@@ -346,8 +346,9 @@ class TestScheduledSearchDomainModel:
 
     def test_compute_next_run_hourly(self):
         """Test next run computation for hourly interval."""
-        from open_notebook.domain.scheduled_search import ScheduledSearch
         from datetime import timedelta
+
+        from open_notebook.domain.scheduled_search import ScheduledSearch
 
         search = ScheduledSearch(
             name="Test",
@@ -519,7 +520,9 @@ class TestScheduledSearchWorker:
     @pytest.mark.anyio
     async def test_execute_scheduled_search_success(self):
         """Test full execution flow with mocked search and save."""
-        from open_notebook.domain.scheduled_search_worker import execute_scheduled_search
+        from open_notebook.domain.scheduled_search_worker import (
+            execute_scheduled_search,
+        )
 
         mock_scheduled = MagicMock()
         mock_scheduled.name = "Test Search"
@@ -552,7 +555,9 @@ class TestScheduledSearchWorker:
     @pytest.mark.anyio
     async def test_execute_scheduled_search_failure(self):
         """Test execution flow when search raises an exception."""
-        from open_notebook.domain.scheduled_search_worker import execute_scheduled_search
+        from open_notebook.domain.scheduled_search_worker import (
+            execute_scheduled_search,
+        )
 
         mock_scheduled = MagicMock()
         mock_scheduled.name = "Failing Search"
@@ -578,7 +583,9 @@ class TestScheduledSearchWorker:
     @pytest.mark.anyio
     async def test_execute_scheduled_search_no_results(self):
         """Test execution flow when search returns empty results."""
-        from open_notebook.domain.scheduled_search_worker import execute_scheduled_search
+        from open_notebook.domain.scheduled_search_worker import (
+            execute_scheduled_search,
+        )
 
         mock_scheduled = MagicMock()
         mock_scheduled.name = "Empty Search"

@@ -1,8 +1,10 @@
 import asyncio
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
-import uuid
 
 client = TestClient(app)
 
@@ -47,8 +49,9 @@ def test_asset_persistence_crud():
 
 
 def test_assessment_session_quiz_and_report():
-    from open_notebook.database.repository import repo_upsert, repo_query, repo_delete
     import uuid
+
+    from open_notebook.database.repository import repo_delete, repo_query, repo_upsert
 
     # 1. Create unique identifiers
     unique_id = uuid.uuid4().hex[:8]

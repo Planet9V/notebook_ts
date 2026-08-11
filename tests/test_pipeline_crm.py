@@ -1,8 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
-from open_notebook.database.repository import repo_delete, repo_query, ensure_record_id
 from open_notebook.database.async_migrate import AsyncMigrationManager
+from open_notebook.database.repository import ensure_record_id, repo_delete, repo_query
 
 client = TestClient(app)
 

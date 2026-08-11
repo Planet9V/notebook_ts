@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import asyncio
 import os
+
 from open_notebook.database.repository import repo_query
+
 
 async def seed():
     print("Seeding Aalberts N.V. organizational structure and workstreams...")

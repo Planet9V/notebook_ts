@@ -9,6 +9,7 @@ Verifies that migrate_podcast_profiles:
 
 import asyncio
 import os
+
 import pytest
 
 # Ensure environment variables are loaded
@@ -19,8 +20,8 @@ os.environ.setdefault("SURREAL_NAMESPACE", "open_notebook")
 os.environ.setdefault("SURREAL_DATABASE", "open_notebook")
 
 from open_notebook.database.repository import repo_create, repo_delete, repo_query
-from open_notebook.podcasts.models import SpeakerProfile, EpisodeProfile
 from open_notebook.podcasts.migration import migrate_podcast_profiles
+from open_notebook.podcasts.models import EpisodeProfile, SpeakerProfile
 
 
 @pytest.mark.asyncio

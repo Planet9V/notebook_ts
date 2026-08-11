@@ -8,6 +8,7 @@ using Reciprocal Rank Fusion.
 
 import asyncio
 from typing import Any, Dict, List, Optional
+
 from loguru import logger
 
 from open_notebook.search.research_memory import ResearchMemory

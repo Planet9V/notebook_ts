@@ -1,8 +1,15 @@
 """Test Migration 55: task_relation RELATION table existence and connectivity."""
 import asyncio
 import os
+
 import pytest
-from open_notebook.database.repository import repo_create, repo_delete, repo_query, repo_relate
+
+from open_notebook.database.repository import (
+    repo_create,
+    repo_delete,
+    repo_query,
+    repo_relate,
+)
 
 # Set environment variables BEFORE importing any app code
 os.environ.setdefault("SURREAL_URL", "ws://localhost:8000/rpc")

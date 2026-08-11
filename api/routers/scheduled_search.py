@@ -178,7 +178,9 @@ async def trigger_scheduled_search(search_id: str):
         if not scheduled:
             raise HTTPException(status_code=404, detail="Scheduled search not found")
 
-        from open_notebook.domain.scheduled_search_worker import execute_scheduled_search
+        from open_notebook.domain.scheduled_search_worker import (
+            execute_scheduled_search,
+        )
         result = await execute_scheduled_search(scheduled)
         return {"message": f"Scheduled search '{scheduled.name}' executed", "result": result}
     except HTTPException:

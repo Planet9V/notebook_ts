@@ -1,9 +1,9 @@
 """Tests for the sources API endpoint."""
 
+import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import asyncio
 import pytest
 from fastapi.testclient import TestClient
 

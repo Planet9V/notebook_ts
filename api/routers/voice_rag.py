@@ -103,6 +103,7 @@ async def _stream_voice_chat(
     """Stream a voice RAG response as SSE."""
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
+
         from open_notebook.ai.provision import provision_langchain_model
 
         yield f"data: {json.dumps({'type': 'status', 'content': 'Processing query...'})}\n\n"
@@ -163,8 +164,10 @@ async def _stream_voice_chat(
                             from esperanto import LanguageModel
                             if isinstance(reranker_model, LanguageModel) and hasattr(reranker_model, "to_langchain"):
                                 reranker_model = reranker_model.to_langchain()
-                            from langchain_core.messages import SystemMessage as SysMsg, HumanMessage as HumMsg
                             import re as reranker_re
+
+                            from langchain_core.messages import HumanMessage as HumMsg
+                            from langchain_core.messages import SystemMessage as SysMsg
 
                             items_text = ""
                             for idx, r in enumerate(results):
@@ -310,6 +313,7 @@ async def voice_chat_simple(request: VoiceChatRequest):
 
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
+
         from open_notebook.ai.provision import provision_langchain_model
 
         # Record user query in conversation memory

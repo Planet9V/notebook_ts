@@ -162,6 +162,7 @@ export interface UpdateNoteRequest {
   content_markdown_backup?: string | null
   customer_id?: string
   location_id?: string
+  notebook_id?: string
 }
 
 export interface UpdateSourceRequest {

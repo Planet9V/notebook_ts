@@ -1,8 +1,8 @@
 """Tests for the credentials API endpoint."""
 
+import asyncio
 from unittest.mock import AsyncMock, patch
 
-import asyncio
 import pytest
 from fastapi.testclient import TestClient
 

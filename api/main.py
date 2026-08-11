@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from open_notebook.utils.logging import setup_db_logging
+
 setup_db_logging("api")
 
 import asyncio
@@ -22,6 +23,9 @@ from api.routers import (
     agents,
     assessments,
     auth,
+    backup,
+    campaigns,
+    capabilities,
     chat,
     config,
     contacts,
@@ -36,36 +40,37 @@ from api.routers import (
     insights,
     languages,
     locations,
+    market_analysis,
+    mcp,
     models,
     notebooks,
     notes,
     organizations,
+    oxot,
     pipeline,
     platform,
     podcasts,
+    providers,
     projects,
+    publications,
     regulations,
     research_items,
+    research_memory,
     scheduled_search,
     search,
     settings,
+    skills,
     source_chat,
     sources,
     speaker_profiles,
     styleguides,
+    system_logs,
+    tasks,
     transformations,
     voice,
     voice_rag,
     voice_sessions,
     voice_tools,
-    skills,
-    mcp,
-    publications,
-    research_memory,
-    system_logs,
-    backup,
-    tasks,
-    campaigns,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -241,7 +246,10 @@ async def _periodic_publications_check():
     Run every 60 seconds to check for due publications and track metrics.
     """
     try:
-        from open_notebook.tasks.publication_worker import publish_due_posts, track_published_post_metrics
+        from open_notebook.tasks.publication_worker import (
+            publish_due_posts,
+            track_published_post_metrics,
+        )
     except ImportError as e:
         logger.error(f"Failed to import publication task: {e}")
         return
@@ -311,8 +319,8 @@ async def _periodic_research_items_check():
     Run every 5 minutes (300 seconds) to trigger due scheduled recurring research items.
     """
     try:
-        from open_notebook.domain.research_item import ResearchItem
         from api.routers.research_items import background_run_research
+        from open_notebook.domain.research_item import ResearchItem
     except ImportError as e:
         logger.error(f"Failed to import research item models or tasks: {e}")
         return
@@ -511,6 +519,8 @@ app.include_router(
     embedding_rebuild.router, prefix="/api/embeddings", tags=["embeddings"]
 )
 app.include_router(settings.router, prefix="/api", tags=["settings"])
+app.include_router(capabilities.router, prefix="/api", tags=["capabilities"])
+app.include_router(providers.router, prefix="/api", tags=["providers"])
 app.include_router(context.router, prefix="/api", tags=["context"])
 app.include_router(sources.router, prefix="/api", tags=["sources"])
 app.include_router(insights.router, prefix="/api", tags=["insights"])
@@ -543,6 +553,8 @@ app.include_router(system_logs.router, prefix="/api", tags=["system-logs"])
 app.include_router(backup.router, prefix="/api", tags=["backup"])
 app.include_router(tasks.router, prefix="/api", tags=["tasks"])
 app.include_router(campaigns.router, prefix="/api", tags=["campaigns"])
+app.include_router(market_analysis.router, prefix="/api", tags=["market-analysis"])
+app.include_router(oxot.router)
 
 
 

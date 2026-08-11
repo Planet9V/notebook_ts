@@ -54,6 +54,11 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+debug_bento.*
+scratch/
+agentdb.rvf*
+ruvector.db
+
 
 # Jupyter Notebook
 .ipynb_checkpoints

@@ -10,7 +10,6 @@ from typing import ClassVar, Optional
 
 from open_notebook.domain.base import ObjectModel
 
-
 INTERVAL_DELTAS = {
     "hourly": timedelta(hours=1),
     "daily": timedelta(days=1),

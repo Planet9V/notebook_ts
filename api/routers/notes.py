@@ -1,13 +1,23 @@
-from typing import List, Literal, Optional
 import re
 import uuid
 from datetime import datetime
-from pydantic import BaseModel
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
+from pydantic import BaseModel
 
-from api.models import NoteCreate, NoteResponse, NoteUpdate, LocationNotesRollup, CustomerNotesRollup, TagCreate, TagResponse, NodeLayoutCreate, NodeLayoutResponse
+from api.models import (
+    CustomerNotesRollup,
+    LocationNotesRollup,
+    NodeLayoutCreate,
+    NodeLayoutResponse,
+    NoteCreate,
+    NoteResponse,
+    NoteUpdate,
+    TagCreate,
+    TagResponse,
+)
 from open_notebook.domain.notebook import Note
 from open_notebook.exceptions import InvalidInputError
 
@@ -117,7 +127,7 @@ async def create_note(note_data: NoteCreate):
         )
         command_id = await new_note.save()
 
-        # Add to notebook if specified
+        # Add to notebook if specified, otherwise auto-bind to default research workspace
         if note_data.notebook_id:
             from open_notebook.domain.notebook import Notebook
 
@@ -125,13 +135,15 @@ async def create_note(note_data: NoteCreate):
             if not notebook:
                 raise HTTPException(status_code=404, detail="Notebook not found")
             await new_note.add_to_notebook(note_data.notebook_id)
+        else:
+            await new_note.add_to_notebook("notebook:system_default_workspace")
 
         # Add to location if specified
         if note_data.location_id:
             loc_id = note_data.location_id
             if ":" not in loc_id:
                 loc_id = f"location:{loc_id}"
-            from open_notebook.database.repository import repo_query, ensure_record_id
+            from open_notebook.database.repository import ensure_record_id, repo_query
             loc_check = await repo_query("SELECT id, customer_id FROM $id", {"id": ensure_record_id(loc_id)})
             if not loc_check:
                 raise HTTPException(status_code=404, detail="Location not found")
@@ -154,7 +166,7 @@ async def create_note(note_data: NoteCreate):
             cust_id = note_data.customer_id
             if ":" not in cust_id:
                 cust_id = f"customer:{cust_id}"
-            from open_notebook.database.repository import repo_query, ensure_record_id
+            from open_notebook.database.repository import ensure_record_id, repo_query
             cust_check = await repo_query("SELECT id FROM $id", {"id": ensure_record_id(cust_id)})
             if not cust_check:
                 raise HTTPException(status_code=404, detail="Customer not found")
@@ -305,9 +317,10 @@ class SuggestedLinkResponse(BaseModel):
 
 async def generate_relationship_reason(note_content: str, source_text: str, shared_terms: list[str]) -> str:
     """Generate a single-sentence explanation of how a note and source are related using the local LLM."""
+    from langchain_core.messages import HumanMessage, SystemMessage
+
     from open_notebook.ai.provision import provision_langchain_model
     from open_notebook.utils.text_utils import extract_text_content
-    from langchain_core.messages import SystemMessage, HumanMessage
 
     note_snippet = note_content[:800]
     source_snippet = source_text[:800]
@@ -344,9 +357,10 @@ Provide ONLY the one-sentence explanation. Do not include introductory text or m
 @router.get("/notes/suggested-links", response_model=List[SuggestedLinkResponse])
 async def get_suggested_links(notebook_id: str):
     """Retrieve suggested links between notes and sources in a notebook based on content overlap and customer/facility hierarchy."""
-    from open_notebook.domain.notebook import Notebook
-    from open_notebook.database.repository import repo_query
     import asyncio
+
+    from open_notebook.database.repository import repo_query
+    from open_notebook.domain.notebook import Notebook
 
     try:
         notebook = await Notebook.get(notebook_id)
@@ -514,7 +528,7 @@ async def get_note(note_id: str):
         if not note:
             raise HTTPException(status_code=404, detail="Note not found")
 
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
         linked_entities = await repo_query(
             "SELECT out, out.facility_name AS facility_name FROM entity_note WHERE in = $note_id;",
@@ -576,10 +590,13 @@ async def update_note(note_id: str, note_update: NoteUpdate):
         if note_update.content_markdown_backup is not None:
             note.content_markdown_backup = note_update.content_markdown_backup
 
+        if note_update.notebook_id:
+            await note.add_to_notebook(note_update.notebook_id)
+
         command_id = await note.save()
 
         # Handle updating linked location/customer
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
 
         if note_update.location_id is not None or note_update.customer_id is not None:
@@ -678,7 +695,7 @@ async def delete_note(note_id: str):
             raise HTTPException(status_code=404, detail="Note not found")
 
         # Fetch entity links before deletion for activity logging
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         linked_entities = await repo_query(
             "SELECT out FROM entity_note WHERE in = $note_id;",
             {"note_id": ensure_record_id(note_id)}
@@ -731,7 +748,7 @@ async def delete_note(note_id: str):
 async def get_location_notes(location_id: str):
     """Get all notes attached to a specific location/facility."""
     try:
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         loc_id = location_id if ":" in location_id else f"location:{location_id}"
         rec_id = ensure_record_id(loc_id)
 
@@ -785,7 +802,7 @@ async def create_location_note(location_id: str, note_data: NoteCreate):
 async def get_customer_notes(customer_id: str):
     """Get notes attached directly to a customer (not location notes)."""
     try:
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         cust_id = customer_id if ":" in customer_id else f"customer:{customer_id}"
         rec_id = ensure_record_id(cust_id)
 
@@ -837,7 +854,7 @@ async def create_customer_note(customer_id: str, note_data: NoteCreate):
 async def detach_location_note(location_id: str, note_id: str):
     """Detach a note from a location (remove edge only, keep the note)."""
     try:
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         loc_id = location_id if ":" in location_id else f"location:{location_id}"
         n_id = note_id if ":" in note_id else f"note:{note_id}"
         loc_rec = ensure_record_id(loc_id)
@@ -879,7 +896,7 @@ async def detach_location_note(location_id: str, note_id: str):
 async def detach_customer_note(customer_id: str, note_id: str):
     """Detach a note from a customer (remove edge only, keep the note)."""
     try:
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         cust_id = customer_id if ":" in customer_id else f"customer:{customer_id}"
         n_id = note_id if ":" in note_id else f"note:{note_id}"
         cust_rec = ensure_record_id(cust_id)
@@ -922,7 +939,7 @@ async def get_customer_notes_rollup(customer_id: str):
     Follows the same rollup pattern as the compliance assessment rollup.
     """
     try:
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
 
         cust_id = customer_id if ":" in customer_id else f"customer:{customer_id}"
         rec_id = ensure_record_id(cust_id)
@@ -1054,7 +1071,7 @@ async def trigger_mentions(note_id: str, content: Optional[str], note_title: str
     if not usernames:
         return
         
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     
     for username in usernames:
         try:
@@ -1126,7 +1143,7 @@ async def get_notifications(user_id: Optional[str] = Query(None)):
 @router.put("/notifications/{notification_id}/read")
 async def mark_notification_read(notification_id: str):
     """Mark a notification as read."""
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     try:
         nid = notification_id if ":" in notification_id else f"notification:{notification_id}"
         rid = ensure_record_id(nid)
@@ -1192,7 +1209,7 @@ async def create_tag(tag_data: TagCreate):
 @router.delete("/tags/{tag_id}")
 async def delete_tag(tag_id: str):
     """Delete a global tag and its note associations."""
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     try:
         tid = ensure_record_id(tag_id if ":" in tag_id else f"tag:{tag_id}")
         # Delete note_tag edges first
@@ -1208,7 +1225,7 @@ async def delete_tag(tag_id: str):
 @router.post("/notes/{note_id}/tags/{tag_id}")
 async def link_tag_to_note(note_id: str, tag_id: str):
     """Link a tag to a note."""
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     try:
         nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
         tid = ensure_record_id(tag_id if ":" in tag_id else f"tag:{tag_id}")
@@ -1234,7 +1251,7 @@ async def link_tag_to_note(note_id: str, tag_id: str):
 @router.delete("/notes/{note_id}/tags/{tag_id}")
 async def unlink_tag_from_note(note_id: str, tag_id: str):
     """Unlink a tag from a note."""
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     try:
         nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
         tid = ensure_record_id(tag_id if ":" in tag_id else f"tag:{tag_id}")
@@ -1249,7 +1266,7 @@ async def unlink_tag_from_note(note_id: str, tag_id: str):
 @router.get("/notes/{note_id}/tags", response_model=List[TagResponse])
 async def get_note_tags(note_id: str):
     """Get all tags linked to a note."""
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     try:
         nid = ensure_record_id(note_id if ":" in note_id else f"note:{note_id}")
         results = await repo_query("SELECT out.id AS id, out.name AS name, out.category_type AS category_type FROM note_tag WHERE in = $note_id;", {"note_id": nid})
@@ -1293,7 +1310,7 @@ async def get_node_layouts(view_type: str):
 @router.post("/node-layout", response_model=NodeLayoutResponse)
 async def save_node_layout(layout_data: NodeLayoutCreate):
     """Save/upsert coordinate layout for a node."""
-    from open_notebook.database.repository import repo_query, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_query
     try:
         node_id_clean = layout_data.node_id.replace(":", "_").replace("-", "_")
         layout_id = f"node_layout:{node_id_clean}_{layout_data.view_type}"

@@ -6,22 +6,23 @@ and schedule configurations.
 """
 
 import os
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, File, UploadFile, Depends
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from loguru import logger
 from pydantic import BaseModel, Field
 
 from open_notebook.database.repository import (
-    repo_query,
-    repo_delete,
     repo_create,
+    repo_delete,
+    repo_query,
     repo_update,
 )
 from open_notebook.tasks.backup_worker import (
+    BACKUPS_FOLDER,
     create_backup,
     restore_backup,
-    BACKUPS_FOLDER,
 )
 
 router = APIRouter()

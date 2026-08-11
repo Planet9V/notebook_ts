@@ -1,11 +1,13 @@
 """
 Tests for Google OAuth 2.0 Credentials Callbacks.
 """
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+
 
 @pytest.fixture
 def client():

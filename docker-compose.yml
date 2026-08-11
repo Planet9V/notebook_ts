@@ -25,7 +25,7 @@ services:
       POSTGRES_USER: tetrel
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tetrel_dev}
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres_init:/docker-entrypoint-initdb.d
@@ -64,6 +64,8 @@ services:
       - TTS_BATCH_SIZE=1
     volumes:
       - ./notebook_data:/app/data
+      - ./api:/app/api
+      - ./open_notebook:/app/open_notebook
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME:-~}/.gemini:/root/.gemini
     depends_on:

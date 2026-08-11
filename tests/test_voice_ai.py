@@ -6,10 +6,10 @@ These tests verify the critical runtime fixes:
 3. Voice RAG builds context from get_sources/get_notes (not get_context)
 """
 
+import asyncio
 import io
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -20,6 +20,27 @@ def client():
     from api.main import app
 
     return TestClient(app)
+
+
+def test_all_kokoro_voices_registered(client):
+    """Verify that GET /api/voice/tts/voices returns all 54 Kokoro voices and blend presets."""
+    response = client.get("/api/voice/tts/voices")
+    assert response.status_code == 200
+    data = response.json()
+    voices = data.get("voices", [])
+    voice_ids = [v["id"] if isinstance(v, dict) else v for v in voices]
+    
+    # Check key voices across languages
+    assert "af_heart" in voice_ids
+    assert "af_bella" in voice_ids
+    assert "am_adam" in voice_ids
+    assert "bf_emma" in voice_ids
+    assert "bm_george" in voice_ids
+    assert "jf_alpha" in voice_ids
+    assert "zf_xiaobei" in voice_ids
+    assert "ef_dora" in voice_ids
+    assert "blend_executive_host" in voice_ids
+    assert len(voice_ids) >= 54
 
 
 # ── Voice Sessions Tests ────────────────────────────────────────────

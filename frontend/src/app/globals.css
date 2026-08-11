@@ -111,33 +111,40 @@
 }
 
 .dark {
-  /* Theme mapping (Dark Mode) */
-  --background: var(--neutral-900);           /* Slate-900 */
-  --foreground: var(--neutral-50);            /* Slate-50 */
-  --card: var(--neutral-800);                 /* Slate-800 */
-  --card-foreground: var(--neutral-50);
-  --popover: var(--neutral-800);
-  --popover-foreground: var(--neutral-50);
-  --primary: var(--blue-500);                 /* Corporate Blue */
-  --primary-foreground: oklch(1 0 0);
-  --secondary: var(--neutral-700);            /* Slate-700 */
-  --secondary-foreground: var(--neutral-50);
-  --muted: var(--neutral-800);
-  --muted-foreground: var(--neutral-400);
-  --accent: var(--neutral-800);
-  --accent-foreground: var(--neutral-50);
+  /* OXOT Brand Dutch Orange Accents */
+  --oxot-orange: #ff6b00;
+  --oxot-orange-hover: #e05e00;
+  --oxot-obsidian: #0c0d10;
+  --oxot-card-bg: #13151a;
+  --oxot-card-border: #222630;
+
+  /* Theme mapping (Dark Mode) - OXOT Executive Obsidian */
+  --background: #0c0d10;
+  --foreground: #f8fafc;
+  --card: #13151a;
+  --card-foreground: #f8fafc;
+  --popover: #13151a;
+  --popover-foreground: #f8fafc;
+  --primary: #ff6b00;                 /* OXOT Dutch Orange */
+  --primary-foreground: #0c0d10;
+  --secondary: #1e222d;
+  --secondary-foreground: #f8fafc;
+  --muted: #181b22;
+  --muted-foreground: #94a3b8;
+  --accent: #1e222d;
+  --accent-foreground: #f8fafc;
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);  /* White on destructive */
-  --border: var(--neutral-700);               /* Slate-700 */
-  --input: var(--neutral-700);
-  --ring: var(--blue-500);
-  --chart-1: var(--blue-400);
-  --chart-2: var(--cyan-500);
-  --chart-3: var(--neutral-400);
-  --chart-4: var(--blue-600);
-  --chart-5: var(--blue-200);
-  --sidebar: var(--neutral-800);
-  --sidebar-foreground: var(--neutral-50);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: #222630;
+  --input: #222630;
+  --ring: #ff6b00;
+  --chart-1: #ff6b00;
+  --chart-2: #06b6d4;
+  --chart-3: #94a3b8;
+  --chart-4: #3b82f6;
+  --chart-5: #8b5cf6;
+  --sidebar: #090a0d;
+  --sidebar-foreground: #f8fafc;
   --sidebar-primary: var(--blue-500);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: var(--neutral-700);

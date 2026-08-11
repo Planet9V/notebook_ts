@@ -3,12 +3,13 @@
 E2E Playwright test script for Bento-Grid Customer Dossier View enhancements.
 """
 
+import json
+import re
 import sys
 import time
-import json
 import traceback
-import re
-from playwright.sync_api import sync_playwright, expect
+
+from playwright.sync_api import expect, sync_playwright
 
 # Constants
 BASE_URL = "http://localhost:8502"

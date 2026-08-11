@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, HTTPException
+from langchain_core.messages import HumanMessage, SystemMessage
 from loguru import logger
 
 from api.models import (
@@ -17,11 +18,10 @@ from api.models import (
     DraftCopilotRequest,
     DraftCopilotResponse,
 )
+from open_notebook.ai.models import model_manager
 from open_notebook.domain.agent import AgentConfig, AgentExecution, AgentLog
 from open_notebook.exceptions import InvalidInputError, NotFoundError
-from open_notebook.ai.models import model_manager
 from open_notebook.utils.text_utils import extract_text_content
-from langchain_core.messages import HumanMessage, SystemMessage
 
 router = APIRouter()
 
@@ -287,8 +287,8 @@ async def run_agent_pipeline(request: AgentRunPipelineRequest):
     warnings/errors into dynamic sub-agent logs and cost bounds.
     """
     try:
+        from api.models import GraphEdge, GraphNode, GraphValidationRequest
         from api.routers.notebooks import validate_graph
-        from api.models import GraphValidationRequest, GraphNode, GraphEdge
         
         # 1. Map input topology to GraphValidationRequest models
         nodes_pydantic = []
@@ -406,8 +406,12 @@ async def run_agent_pipeline(request: AgentRunPipelineRequest):
             
             # Persist execution run log in SurrealDB
             try:
-                from open_notebook.domain.agent import AgentConfig, AgentExecution, AgentLog
                 from open_notebook.database.repository import repo_query
+                from open_notebook.domain.agent import (
+                    AgentConfig,
+                    AgentExecution,
+                    AgentLog,
+                )
                 
                 configs = await repo_query("SELECT id FROM agent_config WHERE name = $name", {"name": task_name})
                 if configs:

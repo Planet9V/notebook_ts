@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Tuple, Union
 
 from loguru import logger
 from pydantic import ConfigDict, Field, field_validator
@@ -15,6 +15,7 @@ async def _resolve_model_config(model_id: str) -> Tuple[str, str, dict]:
     and per-speaker TTS overrides.
     """
     import os
+
     from open_notebook.ai.models import Model
 
     model = await Model.get(model_id)
@@ -99,10 +100,16 @@ class EpisodeProfile(ObjectModel):
         None,
         description="TTS engine override: 'kokoro' | 'openai' | None (use speaker profile default)",
     )
-    voice_mapping: Optional[Dict[str, str]] = Field(
+    voice_mapping: Optional[Dict[str, Union[str, Dict[str, float]]]] = Field(
         None,
-        description="Speaker name → Kokoro voice ID mapping for local TTS",
+        description="Speaker name → Kokoro voice ID or tensor blend vector mapping (e.g. {'Speaker 1': {'af_heart': 0.7, 'bf_emma': 0.3}})",
     )
+
+    # Audio Mastering & SFX Configuration
+    intro_music_url: Optional[str] = Field(None, description="URL or file path to intro background music track")
+    outro_music_url: Optional[str] = Field(None, description="URL or file path to outro background music track")
+    enable_sfx: bool = Field(default=True, description="Auto-insert transition sound effect chimes between segments")
+    output_format: Literal["mp3", "m4a", "wav", "flac", "ogg"] = Field(default="mp3", description="Mastered episode audio output format")
 
     default_briefing: str = Field(..., description="Default briefing template")
     num_segments: int = Field(default=5, description="Number of podcast segments")

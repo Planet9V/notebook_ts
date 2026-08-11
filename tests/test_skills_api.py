@@ -1,8 +1,8 @@
 """Tests for the Layer 2 Skills and MCP Registry API endpoints."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import asyncio
 import pytest
 from fastapi.testclient import TestClient
 

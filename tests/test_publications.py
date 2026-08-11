@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
 from open_notebook.database.repository import repo_query
 
@@ -54,7 +55,7 @@ def test_publications_connection_test():
 
 def test_publications_connection_test_real_mocked():
     """Test connection validation endpoint with mocked smtplib connection."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
     
     payload = {
         "smtp_host": "smtp.company.com",

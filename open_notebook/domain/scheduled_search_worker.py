@@ -22,9 +22,9 @@ async def execute_scheduled_search(scheduled_search) -> Dict[str, Any]:
 
     Returns a result dict with status and details.
     """
-    from open_notebook.ai.key_provider import get_api_key
-
     import httpx
+
+    from open_notebook.ai.key_provider import get_api_key
 
     engine = scheduled_search.engine
     query = scheduled_search.query

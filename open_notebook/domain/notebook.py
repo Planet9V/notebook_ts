@@ -60,7 +60,7 @@ class Notebook(ObjectModel):
             """,
                 {"id": ensure_record_id(self.id)},
             )
-            return [Source(**src["source"]) for src in srcs] if srcs else []
+            return [Source(**src["source"]) for src in srcs if src and src.get("source")] if srcs else []
         except Exception as e:
             logger.error(f"Error fetching sources for notebook {self.id}: {str(e)}")
             logger.exception(e)
@@ -82,7 +82,7 @@ class Notebook(ObjectModel):
             """,
                 {"id": ensure_record_id(self.id)},
             )
-            return [Note(**src["note"]) for src in srcs] if srcs else []
+            return [Note(**src["note"]) for src in srcs if src and src.get("note")] if srcs else []
         except Exception as e:
             logger.error(f"Error fetching notes for notebook {self.id}: {str(e)}")
             logger.exception(e)
@@ -295,6 +295,15 @@ class Notebook(ObjectModel):
             # Delete reference relationships (unlink all sources)
             await repo_query(
                 "DELETE reference WHERE out = $notebook_id",
+                {"notebook_id": notebook_id},
+            )
+            # Delete associated OT canvas assets and edges
+            await repo_query(
+                "DELETE asset WHERE notebook_id = $notebook_id",
+                {"notebook_id": notebook_id},
+            )
+            await repo_query(
+                "DELETE asset_edge WHERE notebook_id = $notebook_id",
                 {"notebook_id": notebook_id},
             )
             logger.info(
@@ -631,7 +640,11 @@ class Source(ObjectModel):
                 "DELETE source_insight WHERE source = $source_id",
                 {"source_id": source_id},
             )
-            logger.debug(f"Deleted embeddings and insights for source {self.id}")
+            await repo_query(
+                "DELETE reference WHERE in = $source_id",
+                {"source_id": source_id},
+            )
+            logger.debug(f"Deleted embeddings, insights, and reference edges for source {self.id}")
         except Exception as e:
             logger.warning(
                 f"Failed to delete embeddings/insights for source {self.id}: {e}. "
@@ -645,7 +658,7 @@ class Source(ObjectModel):
 class Note(ObjectModel):
     table_name: ClassVar[str] = "note"
     title: Optional[str] = None
-    note_type: Optional[Literal["human", "ai"]] = None
+    note_type: Optional[Literal["human", "ai", "general"]] = None
     content: Optional[str] = None
     content_format: Optional[str] = "markdown"
     content_markdown_backup: Optional[str] = None
@@ -710,6 +723,22 @@ class Note(ObjectModel):
                 title=self.title,
                 content=self.content[:100] if self.content else None,
             )
+
+    async def delete(self) -> bool:
+        """Delete note and clean up associated graph edges (artifact, entity_note, entity_link)."""
+        try:
+            note_id = ensure_record_id(self.id)
+            await repo_query("DELETE artifact WHERE in = $note_id", {"note_id": note_id})
+            await repo_query("DELETE entity_note WHERE in = $note_id", {"note_id": note_id})
+            await repo_query(
+                "DELETE entity_link WHERE in = $note_id OR out = $note_id",
+                {"note_id": note_id},
+            )
+            logger.debug(f"Deleted graph edges for note {self.id}")
+        except Exception as e:
+            logger.warning(f"Failed to delete graph edges for note {self.id}: {e}")
+
+        return await super().delete()
 
 
 class ChatSession(ObjectModel):

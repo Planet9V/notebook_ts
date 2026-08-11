@@ -9,9 +9,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 
 from api.auth import require_role
-from api.models import TaskTableCreate, TaskTableResponse, TaskTableUpdate, TaskSpecLinkRequest, TaskSpecLinkResponse
+from api.models import (
+    TaskSpecLinkRequest,
+    TaskSpecLinkResponse,
+    TaskTableCreate,
+    TaskTableResponse,
+    TaskTableUpdate,
+)
 from open_notebook.domain.task import Task
-from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, NotFoundError
+from open_notebook.exceptions import (
+    DatabaseOperationError,
+    InvalidInputError,
+    NotFoundError,
+)
 
 router = APIRouter()
 
@@ -85,7 +95,7 @@ async def create_task(data: TaskTableCreate, _ = Depends(require_role("editor"))
         await task.save()
 
         # Handle task_relation link creation if relation records are present
-        from open_notebook.database.repository import repo_relate, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_relate
         for field_val, rel_name in [
             (data.project_id, "project"),
             (data.customer_id, "customer"),
@@ -165,9 +175,12 @@ async def update_task(task_id: str, data: TaskTableUpdate, _ = Depends(require_r
 async def delete_task(task_id: str, _ = Depends(require_role("editor"))):
     """Delete a task."""
     try:
-        from open_notebook.database.repository import repo_delete, ensure_record_id
         # Also clean up any task_relation links first
-        from open_notebook.database.repository import repo_query
+        from open_notebook.database.repository import (
+            ensure_record_id,
+            repo_delete,
+            repo_query,
+        )
         try:
             await repo_query("DELETE task_relation WHERE in = $task_id", {"task_id": ensure_record_id(task_id)})
         except Exception as rel_err:
@@ -186,7 +199,11 @@ async def delete_task(task_id: str, _ = Depends(require_role("editor"))):
 async def create_task_spec_link(request: TaskSpecLinkRequest, _ = Depends(require_role("editor"))):
     """Link a Task to a compliance spec (Note or Source)."""
     try:
-        from open_notebook.database.repository import repo_relate, ensure_record_id, repo_query
+        from open_notebook.database.repository import (
+            ensure_record_id,
+            repo_query,
+            repo_relate,
+        )
         
         res = await repo_relate(
             ensure_record_id(request.task_id),
@@ -237,7 +254,7 @@ async def delete_task_spec_link(link_id: str, _ = Depends(require_role("editor")
 async def list_task_spec_links(task_id: str):
     """List all compliance specifications linked to a task."""
     try:
-        from open_notebook.database.repository import repo_query, ensure_record_id
+        from open_notebook.database.repository import ensure_record_id, repo_query
         results = await repo_query(
             "SELECT id, in, out, created_at FROM task_spec_link WHERE in = $task_id",
             {"task_id": ensure_record_id(task_id)}

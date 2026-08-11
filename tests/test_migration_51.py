@@ -1,6 +1,8 @@
 """Test that content_format defaults to 'markdown' on new notes."""
 import asyncio
+
 from open_notebook.database.repository import repo_create, repo_delete, repo_query
+
 
 def test_note_content_format_defaults_to_markdown():
     """Migration 51: content_format field defaults to 'markdown'."""

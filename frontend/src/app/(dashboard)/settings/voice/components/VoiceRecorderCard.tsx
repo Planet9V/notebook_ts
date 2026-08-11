@@ -229,10 +229,15 @@ export function VoiceRecorderCard({ onRefresh }: { onRefresh: () => void }) {
                 <SelectValue placeholder="Select provider" />
               </SelectTrigger>
               <SelectContent className="bg-slate-950 border-white/10">
-                <SelectItem value="kokoro" className="text-xs">Kokoro (Local)</SelectItem>
-                <SelectItem value="elevenlabs" className="text-xs">ElevenLabs (Cloned)</SelectItem>
+                <SelectItem value="kokoro" className="text-xs">Kokoro (Local - Sample Playback & Base Models)</SelectItem>
+                <SelectItem value="elevenlabs" className="text-xs">ElevenLabs (Instant Voice Cloning)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {provider === 'elevenlabs'
+                ? 'Creates a true cloned voice model on ElevenLabs to speak with your exact recorded voice.'
+                : 'Saves recording for sample playback. Local Kokoro TTS uses built-in voice models (am_adam, af_heart) for local synthesis.'}
+            </p>
           </div>
         </div>
 

@@ -2,8 +2,10 @@
 Integration and unit tests for Google Workspace & DOCX Exporters.
 """
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
+
 
 @pytest.fixture
 def client():
@@ -15,8 +17,9 @@ class TestDOCXCompiler:
     @patch("open_notebook.domain.styleguide.StyleGuide.get_all", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_compile_markdown_to_docx_default(self, mock_get_all, mock_get):
-        from api.routers.notebooks import compile_markdown_to_docx
         import os
+
+        from api.routers.notebooks import compile_markdown_to_docx
         
         mock_get_all.return_value = []
         markdown_text = "# SOW Section\nThis is normal text.\n- Bullet point 1\n* Bullet point 2\n> Blockquote text"
@@ -29,9 +32,10 @@ class TestDOCXCompiler:
     @patch("open_notebook.domain.styleguide.StyleGuide.get", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_compile_markdown_to_docx_with_styleguide(self, mock_get):
+        import os
+
         from api.routers.notebooks import compile_markdown_to_docx
         from open_notebook.domain.styleguide import StyleGuide
-        import os
         
         mock_sg = StyleGuide(
             id="styleguide:sg1",

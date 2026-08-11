@@ -384,11 +384,12 @@ async def execute_chat(request: ExecuteChatRequest):
 
         # Check for user-facing slash commands
         if request.message.startswith("/"):
+            from langchain_core.messages import AIMessage, HumanMessage
+
             from open_notebook.commands.slash_commands import (
                 execute_deep_research,
                 execute_planning_with_files,
             )
-            from langchain_core.messages import AIMessage, HumanMessage
 
             notebook_id_str = str(notebook.id) if notebook else ""
             cmd_text = request.message.strip()
@@ -487,10 +488,11 @@ async def execute_chat(request: ExecuteChatRequest):
 async def build_context(request: BuildContextRequest):
     """Build context for a notebook based on context configuration."""
     try:
-        # Verify notebook exists
-        notebook = await Notebook.get(request.notebook_id)
-        if not notebook:
-            raise HTTPException(status_code=404, detail="Notebook not found")
+        # Verify notebook exists if provided and not virtual
+        if request.notebook_id and request.notebook_id != "scratchpad-virtual-nb":
+            notebook = await Notebook.get(request.notebook_id)
+            if not notebook:
+                raise HTTPException(status_code=404, detail="Notebook not found")
 
         context_data: dict[str, list[dict[str, str]]] = {"sources": [], "notes": []}
         total_content = ""

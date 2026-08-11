@@ -32,7 +32,7 @@ export function SaveToNotebooksDialog({
 }: SaveToNotebooksDialogProps) {
   const { t } = useTranslation()
   const [selectedNotebooks, setSelectedNotebooks] = useState<string[]>([])
-  const { data: notebooks, isLoading } = useNotebooks(false) // false = not archived
+  const { data: notebooks, isLoading } = useNotebooks() // fetch all available research notebooks
   const createNote = useCreateNote()
 
   const handleToggle = (notebookId: string) => {

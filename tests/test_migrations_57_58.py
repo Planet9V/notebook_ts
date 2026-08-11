@@ -1,6 +1,14 @@
 """Test that migrations 57 (entity_link) and 58 (notification) work as expected."""
 import asyncio
-from open_notebook.database.repository import repo_create, repo_delete, repo_query, repo_relate, ensure_record_id
+
+from open_notebook.database.repository import (
+    ensure_record_id,
+    repo_create,
+    repo_delete,
+    repo_query,
+    repo_relate,
+)
+
 
 def test_entity_link_schema():
     """Migration 57: Verify entity_link table accepts valid relations and defaults created field."""

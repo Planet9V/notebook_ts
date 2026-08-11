@@ -4,8 +4,8 @@ Unit tests for Task and Campaign domain validation logic.
 import pytest
 from pydantic import ValidationError
 
-from open_notebook.domain.task import Task
 from open_notebook.domain.campaign import Campaign
+from open_notebook.domain.task import Task
 from open_notebook.exceptions import InvalidInputError
 
 

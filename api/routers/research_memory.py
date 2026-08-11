@@ -1,4 +1,3 @@
-from typing import Optional, List
 import base64
 import hashlib
 import io
@@ -6,8 +5,9 @@ import os
 import re
 import subprocess
 import tempfile
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Form, File, UploadFile, Depends
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from loguru import logger
 from pydantic import BaseModel
@@ -131,6 +131,7 @@ def generate_apa_citation(
 async def describe_diagram_via_vlm(base64_image: str) -> str:
     """Analyze diagram image via the default vision model."""
     from langchain_core.messages import HumanMessage, SystemMessage
+
     from open_notebook.ai.provision import provision_langchain_model
     from open_notebook.utils.text_utils import extract_text_content
 
@@ -420,7 +421,7 @@ async def ingest_provenance_document(
         # 9. Register as Source in SurrealDB
         logger.info(f"Registering ingested markdown in SurrealDB source table...")
         try:
-            from open_notebook.domain.notebook import Source, Asset
+            from open_notebook.domain.notebook import Asset, Source
             surreal_source = Source(
                 title=title or filename,
                 full_text=markdown_text,

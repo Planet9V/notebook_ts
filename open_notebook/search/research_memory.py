@@ -32,6 +32,12 @@ class ResearchMemory:
     async def _init_db(cls, pool: asyncpg.Pool):
         """Initialize Postgres tables and indexes if they don't exist."""
         async with pool.acquire() as conn:
+            # Create pgvector extension
+            try:
+                await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            except Exception as ext_err:
+                logger.warning(f"pgvector extension init notice: {ext_err}")
+
             # Create provenance table
             await conn.execute(
                 """
@@ -54,7 +60,38 @@ class ResearchMemory:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_location ON provenance(location_id);")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_category ON provenance(category);")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_provenance_hash ON provenance(file_hash);")
-            logger.info("Postgres provenance table initialized")
+
+            # Create research_corpus table for vector hybrid RRF search
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS research_corpus (
+                    id                  SERIAL PRIMARY KEY,
+                    query               TEXT,
+                    title               TEXT,
+                    url                 TEXT,
+                    content             TEXT,
+                    source_type         VARCHAR(50),
+                    relevance_score     FLOAT DEFAULT 0.0,
+                    embedding           vector(1536),
+                    organization_id     VARCHAR(255),
+                    persona_role        VARCHAR(100),
+                    location_region     VARCHAR(100),
+                    service_category    VARCHAR(100),
+                    metadata            JSONB DEFAULT '{}',
+                    created_at          TIMESTAMPTZ DEFAULT NOW()
+                );
+                """
+            )
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_research_corpus_org ON research_corpus(organization_id);")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_research_corpus_cat ON research_corpus(service_category);")
+            try:
+                await conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_research_corpus_hnsw ON research_corpus USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);"
+                )
+            except Exception as hnsw_err:
+                logger.warning(f"HNSW index creation note: {hnsw_err}")
+
+            logger.info("Postgres provenance & pgvector research_corpus initialized")
 
     @classmethod
     async def store_provenance_record(

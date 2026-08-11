@@ -1,11 +1,12 @@
-from typing import List
 import uuid
 from datetime import datetime
+from typing import List
+
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
-from api.models import UserResponse, UserCreate, UserUpdate
-from open_notebook.database.repository import repo_query, repo_delete, ensure_record_id
+from api.models import UserCreate, UserResponse, UserUpdate
+from open_notebook.database.repository import ensure_record_id, repo_delete, repo_query
 from open_notebook.utils.encryption import get_secret_from_env
 
 router = APIRouter(prefix="/auth", tags=["auth"])

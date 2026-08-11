@@ -18,7 +18,11 @@ from api.models import (
     TaskUpdate,
 )
 from open_notebook.domain.project import Project
-from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, NotFoundError
+from open_notebook.exceptions import (
+    DatabaseOperationError,
+    InvalidInputError,
+    NotFoundError,
+)
 
 router = APIRouter()
 

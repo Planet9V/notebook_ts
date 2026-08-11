@@ -1,14 +1,15 @@
+import asyncio
+import json
 import os
 import re
-import json
-import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from loguru import logger
 
-from open_notebook.database.repository import repo_query, ensure_record_id, repo_relate
-from open_notebook.domain.notebook import Notebook, Note, Source
-from open_notebook.domain.task import Task
 from api.routers.search import stream_research_response
+from open_notebook.database.repository import ensure_record_id, repo_query, repo_relate
+from open_notebook.domain.notebook import Note, Notebook, Source
+from open_notebook.domain.task import Task
 
 # Regex to parse markdown checklist items
 # Matches: - [ ] Task Title (ID: task:123) or - [x] Task Title

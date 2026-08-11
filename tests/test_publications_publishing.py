@@ -1,7 +1,9 @@
 import asyncio
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
+
 from api.main import app
 from open_notebook.database.repository import repo_query
 

@@ -2,6 +2,7 @@
 import asyncio
 import os
 from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -92,8 +93,9 @@ def test_rbac_admin_allowed(client):
 
 def test_rbac_db_lookup_viewer(client):
     """If X-User-Id matches a database user with role 'viewer', requests should be blocked."""
-    from open_notebook.database.repository import repo_create, repo_delete
     import uuid
+
+    from open_notebook.database.repository import repo_create, repo_delete
 
     username = f"user_{uuid.uuid4().hex[:8]}"
     result = asyncio.run(repo_create("user", {
@@ -123,8 +125,9 @@ def test_rbac_db_lookup_viewer(client):
 
 def test_rbac_db_lookup_editor(client):
     """If X-User-Id matches a database user with role 'editor', requests should succeed."""
-    from open_notebook.database.repository import repo_create, repo_delete
     import uuid
+
+    from open_notebook.database.repository import repo_create, repo_delete
 
     username = f"user_{uuid.uuid4().hex[:8]}"
     result = asyncio.run(repo_create("user", {

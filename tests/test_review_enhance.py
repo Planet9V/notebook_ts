@@ -1,11 +1,13 @@
-import json
-from unittest.mock import AsyncMock, patch, MagicMock
 import asyncio
-import pytest
-from fastapi.testclient import TestClient
-from fastapi import HTTPException
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from open_notebook.exceptions import NotFoundError, InvalidInputError
+import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
+from open_notebook.exceptions import InvalidInputError, NotFoundError
+
 
 @pytest.fixture
 def client():

@@ -14,7 +14,7 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 import type { TFunction } from 'i18next'
 import { ViewToggle, ViewMode } from '@/components/ui/view-toggle'
 import { DataTable } from '@/components/data-table'
-import { podcastColumns } from '@/components/columns/podcast-columns'
+import { getPodcastColumns } from '@/components/columns/podcast-columns'
 
 const getSTATUS_ORDER = (t: TFunction): Array<{
   key: 'running' | 'completed' | 'failed' | 'pending'
@@ -184,7 +184,7 @@ export function EpisodesTab() {
 
       {viewMode === 'table' && (
         <DataTable
-          columns={podcastColumns}
+          columns={getPodcastColumns(handleDelete, handleRetry)}
           data={episodes}
           searchPlaceholder="Search episodes..."
           isLoading={isLoading}

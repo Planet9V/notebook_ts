@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
 from open_notebook.database.repository import repo_delete, repo_query
 
@@ -31,7 +32,7 @@ async def test_organizations_crud():
 @pytest.mark.asyncio
 async def test_tenant_boundary_isolation():
     # Setup test orgs directly in SurrealDB
-    from open_notebook.database.repository import repo_upsert, repo_delete, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_upsert
     
     # Org A & Notebook A
     await repo_upsert("organization", "organization:org_a", {"name": "Org A", "type": "customer"})
@@ -65,7 +66,7 @@ async def test_tenant_boundary_isolation():
 
 @pytest.mark.asyncio
 async def test_file_audit_logging():
-    from open_notebook.database.repository import repo_query, repo_delete
+    from open_notebook.database.repository import repo_query
 
     notebook_id = "test-nb-999"
     node_id = "plc-99"
@@ -112,7 +113,7 @@ async def test_file_audit_logging():
 
 @pytest.mark.asyncio
 async def test_tenant_boundary_isolation_direct_access():
-    from open_notebook.database.repository import repo_upsert, repo_delete, ensure_record_id
+    from open_notebook.database.repository import ensure_record_id, repo_upsert
     
     # Org A & Notebook A
     await repo_upsert("organization", "organization:org_a", {"name": "Org A", "type": "customer"})
@@ -166,7 +167,7 @@ async def test_tenant_boundary_isolation_direct_access():
 
 @pytest.mark.asyncio
 async def test_file_audit_logging_ip_user_agent():
-    from open_notebook.database.repository import repo_query, repo_delete
+    from open_notebook.database.repository import repo_query
 
     notebook_id = "test-nb-999"
     node_id = "plc-99"

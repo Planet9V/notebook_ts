@@ -1,4 +1,5 @@
 from typing import Any, ClassVar, Dict, Optional
+
 from pydantic import Field, field_validator
 from surrealdb import RecordID
 

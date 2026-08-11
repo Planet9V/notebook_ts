@@ -1,9 +1,10 @@
+import asyncio
 import json
 from unittest.mock import AsyncMock, patch
-import asyncio
+
 import pytest
-from fastapi.testclient import TestClient
 from fastapi import BackgroundTasks
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

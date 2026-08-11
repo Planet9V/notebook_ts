@@ -326,7 +326,11 @@ class TestAssessmentsAPI:
     @patch("api.routers.assessments.get_session_report")
     def test_export_session_report_xlsx(self, mock_report, client):
         """Test GET /api/sessions/{session_id}/export?format=xlsx triggers openpyxl sheet download."""
-        from api.models import AssessmentReportResponse, AssessmentReportStats, CategoryCoverage
+        from api.models import (
+            AssessmentReportResponse,
+            AssessmentReportStats,
+            CategoryCoverage,
+        )
         
         mock_report.return_value = AssessmentReportResponse(
             session_id="assessment_session:sess_q1",
@@ -357,7 +361,11 @@ class TestAssessmentsAPI:
     @patch("api.routers.assessments.get_session_report")
     def test_export_session_report_csv(self, mock_report, client):
         """Test GET /api/sessions/{session_id}/export?format=csv triggers CSV stream download."""
-        from api.models import AssessmentReportResponse, AssessmentReportStats, CategoryCoverage
+        from api.models import (
+            AssessmentReportResponse,
+            AssessmentReportStats,
+            CategoryCoverage,
+        )
         
         mock_report.return_value = AssessmentReportResponse(
             session_id="assessment_session:sess_q1",

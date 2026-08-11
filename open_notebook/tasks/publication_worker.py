@@ -1,8 +1,11 @@
-import uuid
 import random
+import uuid
 from datetime import datetime, timezone
+
 from loguru import logger
-from open_notebook.database.repository import repo_query, repo_upsert, repo_update
+
+from open_notebook.database.repository import repo_query, repo_update, repo_upsert
+
 
 async def track_published_post_metrics():
     """
@@ -138,8 +141,8 @@ async def publish_due_posts():
                         })
                     else:
                         import smtplib
-                        from email.mime.text import MIMEText
                         from email.mime.multipart import MIMEMultipart
+                        from email.mime.text import MIMEText
 
                         logger.info(f"Attempting to send email via SMTP {smtp_host}:{smtp_port}")
                         msg = MIMEMultipart()

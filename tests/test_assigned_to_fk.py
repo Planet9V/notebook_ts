@@ -1,8 +1,15 @@
 """Test Migration 56: assigned_to_user FK field on project and notebook."""
 import asyncio
 import os
+
 import pytest
-from open_notebook.database.repository import repo_create, repo_delete, repo_query, ensure_record_id
+
+from open_notebook.database.repository import (
+    ensure_record_id,
+    repo_create,
+    repo_delete,
+    repo_query,
+)
 
 # Set environment variables BEFORE importing any app code
 os.environ.setdefault("SURREAL_URL", "ws://localhost:8000/rpc")

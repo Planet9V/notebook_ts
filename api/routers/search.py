@@ -31,6 +31,7 @@ router = APIRouter()
 async def search_knowledge_base(search_request: SearchRequest):
     """Search the knowledge base using vector or hybrid (vector + Valyu) search."""
     import asyncio
+
     import httpx
 
     try:
@@ -163,6 +164,7 @@ async def compare_search(request: CompareRequest):
     Perform search with and without reranker and return scores, result items, and latency comparisons.
     """
     import time
+
     from open_notebook.exceptions import DatabaseOperationError
 
     try:
@@ -431,10 +433,11 @@ async def stream_research_response(
     styleguide_id: Optional[str] = None,
 ) -> AsyncGenerator[str, None]:
     try:
+        import httpx
+
+        from open_notebook.ai.key_provider import get_api_key
         from open_notebook.domain.credential import Credential
         from open_notebook.domain.transformation import Transformation
-        from open_notebook.ai.key_provider import get_api_key
-        import httpx
 
         # 1. Build system prompt
         system_prompt = "You are a professional intelligence researcher. Provide structured, detailed research findings with clear citations."
@@ -720,4 +723,38 @@ async def deep_research_endpoint(request: ResearchRequest):
         ),
         media_type="text/plain",
     )
+
+
+@router.get("/content/search")
+async def unified_content_search(
+    q: Optional[str] = None,
+    limit: int = 20,
+):
+    """Unified Poly-Typed Search across Notebooks, Sources, and Notes."""
+    from open_notebook.database.repository import repo_query
+
+    where_notebook = "WHERE name CONTAINS $q" if q else ""
+    where_item = "WHERE title CONTAINS $q" if q else ""
+    vars_dict: Dict[str, Any] = {"limit": limit}
+    if q:
+        vars_dict["q"] = q
+
+    nbs = await repo_query(
+        f"SELECT id, name, description, 'notebook' AS entity_type FROM notebook {where_notebook} LIMIT $limit;",
+        vars_dict,
+    )
+    notes = await repo_query(
+        f"SELECT id, title, content, 'note' AS entity_type FROM note {where_item} LIMIT $limit;",
+        vars_dict,
+    )
+    sources = await repo_query(
+        f"SELECT id, title, asset, 'source' AS entity_type FROM source {where_item} LIMIT $limit;",
+        vars_dict,
+    )
+
+    return {
+        "notebooks": nbs or [],
+        "notes": notes or [],
+        "sources": sources or [],
+    }
 

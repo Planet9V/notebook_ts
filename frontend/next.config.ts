@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   // Enable standalone output for optimized Docker deployment
   output: "standalone",
 
+  // Explicitly set Turbopack workspace root to frontend directory
+  turbopack: {
+    root: __dirname,
+  },
+
   // Experimental features
   // Type assertion needed: proxyClientMaxBodySize is valid in Next.js 15 but types lag behind
   experimental: {

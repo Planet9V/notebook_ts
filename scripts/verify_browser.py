@@ -4,8 +4,8 @@ Browser verification script for Tetrel Notebook.
 Captures screenshots of key pages to confirm the app is running correctly.
 Usage: .venv/bin/python scripts/verify_browser.py
 """
-import sys
 import os
+import sys
 from pathlib import Path
 
 SCREENSHOTS_DIR = Path("/tmp/tetrel_verify")
@@ -21,6 +21,7 @@ PAGES = [
 ]
 
 from playwright.sync_api import sync_playwright
+
 
 def verify():
     results = []

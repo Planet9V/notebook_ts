@@ -261,24 +261,53 @@ async def generate_podcast_command(
             sp_name_active = speaker_profile.name
             if sp_name_active in speaker_profiles_dict:
                 sp_dict = speaker_profiles_dict[sp_name_active]
-                # Set profile-level TTS to OpenAI provider with Kokoro base_url
+                # Set profile-level TTS to OpenAI provider with Kokoro base_url and 300s timeout
                 sp_dict["tts_provider"] = "openai"
                 sp_dict["tts_model"] = "kokoro"
                 sp_dict["tts_config"] = {
                     "base_url": f"{kokoro_url}/v1",
                     "api_key": "not-needed",  # Kokoro doesn't require auth
+                    "timeout": 300.0,
                 }
-                # Apply voice_mapping to individual speakers
+                # Apply voice_mapping to individual speakers in both dict and object
                 for speaker in sp_dict.get("speakers", []):
                     speaker_name = speaker.get("name", "")
                     if speaker_name in voice_mapping:
-                        speaker["voice_id"] = voice_mapping[speaker_name]
+                        vid = voice_mapping[speaker_name]
+                        if vid.startswith("custom_"):
+                            logger.info(
+                                f"Custom recorded voice '{vid}' selected for '{speaker_name}'. "
+                                "Local Kokoro TTS engine does not support zero-shot audio voice cloning; "
+                                "falling back to Kokoro voice 'am_adam'."
+                            )
+                            vid = "am_adam"
+                        speaker["voice_id"] = vid
+                    else:
+                        vid = speaker.get("voice_id", "am_adam")
+                        if vid and vid.startswith("custom_"):
+                            logger.info(
+                                f"Custom recorded voice '{vid}' found on speaker '{speaker_name}'. "
+                                "Falling back to Kokoro voice 'am_adam' for local TTS synthesis."
+                            )
+                            speaker["voice_id"] = "am_adam"
                     speaker["tts_provider"] = "openai"
                     speaker["tts_model"] = "kokoro"
                     speaker["tts_config"] = {
                         "base_url": f"{kokoro_url}/v1",
                         "api_key": "not-needed",
+                        "timeout": 300.0,
                     }
+
+                # Also update the active speaker_profile model instance so get_voice_mapping() returns clean IDs
+                if hasattr(speaker_profile, "speakers") and isinstance(speaker_profile.speakers, list):
+                    for sp_obj in speaker_profile.speakers:
+                        s_name = getattr(sp_obj, "name", "") if not isinstance(sp_obj, dict) else sp_obj.get("name", "")
+                        v_id = getattr(sp_obj, "voice_id", "") if not isinstance(sp_obj, dict) else sp_obj.get("voice_id", "")
+                        if v_id and str(v_id).startswith("custom_"):
+                            if isinstance(sp_obj, dict):
+                                sp_obj["voice_id"] = "am_adam"
+                            else:
+                                setattr(sp_obj, "voice_id", "am_adam")
         elif input_data.tts_engine == "openai":
             logger.info("Overriding TTS to OpenAI")
             openai_key = os.getenv("OPENAI_API_KEY", "")

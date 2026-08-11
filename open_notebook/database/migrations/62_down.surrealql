@@ -1,0 +1,2 @@
+-- Migration 62 Down: Remove System Default Workspace Notebook Definition
+DELETE notebook:system_default_workspace;

@@ -1,16 +1,18 @@
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi import HTTPException
 
 from api.routers.podcasts import (
-    list_podcast_episodes,
-    get_podcast_episode,
     delete_podcast_episode,
+    get_podcast_episode,
+    list_podcast_episodes,
     retry_podcast_episode,
 )
-from open_notebook.database.repository import repo_query, repo_create, repo_delete
-from open_notebook.podcasts.models import PodcastEpisode, EpisodeProfile, SpeakerProfile
-from commands.podcast_commands import generate_podcast_command, PodcastGenerationInput
+from commands.podcast_commands import PodcastGenerationInput, generate_podcast_command
+from open_notebook.database.repository import repo_create, repo_delete, repo_query
+from open_notebook.podcasts.models import EpisodeProfile, PodcastEpisode, SpeakerProfile
+
 
 @pytest.mark.anyio
 async def test_list_podcast_episodes_synthesizes_placeholder():
@@ -102,8 +104,9 @@ async def test_placeholder_endpoints_routing():
 
 @pytest.mark.anyio
 async def test_generate_podcast_command_atomic_concurrency():
-    from surreal_commands.core.types import ExecutionContext
     from datetime import datetime
+
+    from surreal_commands.core.types import ExecutionContext
     
     command_id = "command:testconcurrency123"
     ctx = ExecutionContext(

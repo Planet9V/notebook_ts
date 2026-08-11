@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Search, ChevronDown, AlertCircle, Settings, Save, MessageCircleQuestion, Wand2, Bot, Database, Layers, Globe, RotateCw, ExternalLink, ShieldCheck, Plus, FileEdit } from 'lucide-react'
+import { Search, ChevronDown, AlertCircle, Settings, Save, MessageCircleQuestion, Wand2, Bot, Database, Layers, Globe, RotateCw, ExternalLink, ShieldCheck, Plus, FileEdit, BookOpen } from 'lucide-react'
 import CompliancePage from '@/app/(dashboard)/compliance/page'
 import { useSearch } from '@/lib/hooks/use-search'
 import { useAsk } from '@/lib/hooks/use-ask'
@@ -23,6 +23,8 @@ import { useModalManager } from '@/lib/hooks/use-modal-manager'
 import { useTransformations } from '@/lib/hooks/use-transformations'
 import { useStyleguides } from '@/lib/hooks/use-styleguides'
 import { useAllNotes, useCreateNote, useUpdateNote } from '@/lib/hooks/use-notes'
+import { useNotebooks } from '@/lib/hooks/use-notebooks'
+import { useToast } from '@/lib/hooks/use-toast'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { StreamingResponse } from '@/components/search/StreamingResponse'
 import { AdvancedModelsDialog } from '@/components/search/AdvancedModelsDialog'
@@ -103,11 +105,13 @@ export default function SearchPage({
   // Hooks
   const searchMutation = useSearch()
   const ask = useAsk()
+  const { toast } = useToast()
   const { data: modelDefaults, isLoading: modelsLoading } = useModelDefaults()
   const { data: availableModels } = useModels()
   const { openModal } = useModalManager()
 
-  // Research Note Scratchpad States & Mutations
+  // Notebooks & Research Note Scratchpad States & Mutations
+  const { data: notebooksList = [] } = useNotebooks()
   const { data: notesList = [], refetch: refetchNotes } = useAllNotes()
   const createNoteMutation = useCreateNote()
   const updateNoteMutation = useUpdateNote()
@@ -115,6 +119,7 @@ export default function SearchPage({
   const [activeNoteId, setActiveNoteId] = useState<string>('')
   const [activeNoteTitle, setActiveNoteTitle] = useState('')
   const [activeNoteContent, setActiveNoteContent] = useState('')
+  const [selectedNotebookId, setSelectedNotebookId] = useState<string>('notebook:system_default_workspace')
   const [isSavingNote, setIsSavingNote] = useState(false)
 
   // Load selected note content into scratchpad
@@ -134,24 +139,43 @@ export default function SearchPage({
     if (!activeNoteTitle.trim()) return
     setIsSavingNote(true)
     try {
+      const targetNbName = notebooksList.find(nb => nb.id === selectedNotebookId)?.name || 'Default Research Workspace'
       if (activeNoteId && activeNoteId !== 'new') {
         await updateNoteMutation.mutateAsync({
           id: activeNoteId,
-          data: { title: activeNoteTitle, content: activeNoteContent }
+          data: {
+            title: activeNoteTitle,
+            content: activeNoteContent,
+            notebook_id: selectedNotebookId,
+          }
+        })
+        toast({
+          title: "Note Updated & Bound",
+          description: `Updated note "${activeNoteTitle}" and linked to "${targetNbName}".`,
         })
       } else {
         const newNote = await createNoteMutation.mutateAsync({
           title: activeNoteTitle,
           content: activeNoteContent,
-          note_type: 'human'
+          note_type: 'human',
+          notebook_id: selectedNotebookId,
         })
         if (newNote && newNote.id) {
           setActiveNoteId(newNote.id)
         }
+        toast({
+          title: "Note Created & Saved",
+          description: `Saved note "${activeNoteTitle}" into "${targetNbName}".`,
+        })
       }
       refetchNotes()
     } catch (err) {
       console.error(err)
+      toast({
+        title: "Save Failed",
+        description: "Could not save note to selected notebook.",
+        variant: "destructive",
+      })
     } finally {
       setIsSavingNote(false)
     }
@@ -412,6 +436,27 @@ export default function SearchPage({
             onChange={(e) => setActiveNoteTitle(e.target.value)}
             className="text-xs h-9 bg-slate-900/40 border-white/5 font-mono text-white"
           />
+        </div>
+
+        {/* Target Notebook Selector */}
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase font-bold font-mono tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <BookOpen className="h-3 w-3 text-cyan-400" />
+            Save to Notebook Container
+          </label>
+          <Select value={selectedNotebookId} onValueChange={setSelectedNotebookId}>
+            <SelectTrigger className="w-full text-xs h-9 bg-slate-900/40 border-white/5 text-white">
+              <SelectValue placeholder="-- Target Notebook --" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-950 border-white/10 text-xs text-white">
+              <SelectItem value="notebook:system_default_workspace">Default Research Workspace</SelectItem>
+              {notebooksList.filter(nb => nb.id !== 'notebook:system_default_workspace').map((nb) => (
+                <SelectItem key={nb.id} value={nb.id}>
+                  {nb.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Note Content Textarea */}

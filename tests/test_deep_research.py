@@ -306,6 +306,7 @@ class TestResearchItemDeepResearch:
     async def test_run_deep_research_workflow_timeout(self, mock_workflow, client):
         """Test that a timeout in the deep research workflow is handled, stage is reset, and error is saved."""
         import asyncio
+
         from api.routers.research_items import background_run_research
         from open_notebook.domain.research_item import ResearchItem
 

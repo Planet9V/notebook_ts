@@ -7,8 +7,9 @@ allowing tests to import from the api and open_notebook modules.
 
 import os
 import sys
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Ensure password auth is disabled for tests BEFORE any imports
 # The PasswordAuthMiddleware skips auth when this env var is not set
@@ -72,4 +73,24 @@ except ImportError:
         "test_bento_mockup.py",
         "test_loom_mockup.py",
     ]
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Automatically clean up any temporary test notebooks created during pytest execution."""
+    try:
+        import asyncio
+        from open_notebook.domain.notebook import Notebook
+
+        async def _cleanup():
+            nbs = await Notebook.get_all()
+            for nb in nbs:
+                if 'test-nb-' in str(nb.id) or (nb.name and 'Notebook test-nb-' in nb.name):
+                    try:
+                        await nb.delete()
+                    except Exception:
+                        pass
+
+        asyncio.run(_cleanup())
+    except Exception as e:
+        print(f"Warning: Failed to clean up test notebooks: {e}")
 

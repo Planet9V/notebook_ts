@@ -124,7 +124,10 @@ class RoleChecker:
 
         if not user_role and user_id:
             try:
-                from open_notebook.database.repository import repo_query, ensure_record_id
+                from open_notebook.database.repository import (
+                    ensure_record_id,
+                    repo_query,
+                )
                 # User ID could be format user:123 or just 123
                 if ":" not in user_id:
                     user_id = f"user:{user_id}"

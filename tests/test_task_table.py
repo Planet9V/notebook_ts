@@ -1,5 +1,6 @@
 import asyncio
 import os
+
 import pytest
 
 # Set environment variables BEFORE importing any app code
@@ -10,6 +11,7 @@ os.environ.setdefault("SURREAL_NAMESPACE", "open_notebook")
 os.environ.setdefault("SURREAL_DATABASE", "open_notebook")
 
 from open_notebook.database.repository import repo_create, repo_delete, repo_query
+
 
 def test_task_table_exists_and_accepts_create():
     """Migration 52: task table must exist and accept CRUD."""

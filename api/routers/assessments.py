@@ -12,14 +12,14 @@ from api.models import (
     AssessmentReportStats,
     AssessmentResponse,
     AssessmentSessionCreate,
+    AssessmentSessionDiffItem,
+    AssessmentSessionDiffResponse,
     AssessmentSessionResponse,
     CategoryCoverage,
     ComplianceSnapshot,
+    CustomerComplianceRollup,
     FacilityRollup,
     FrameworkRollup,
-    CustomerComplianceRollup,
-    AssessmentSessionDiffResponse,
-    AssessmentSessionDiffItem,
 )
 from open_notebook.database.repository import (
     ensure_record_id,
@@ -971,9 +971,10 @@ def _build_session_csv_stream(report: AssessmentReportResponse):
 
 
 def _build_session_xlsx_bytes(report: AssessmentReportResponse) -> bytes:
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     import io
+
+    import openpyxl
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
 
     wb = openpyxl.Workbook()
@@ -1302,8 +1303,9 @@ async def export_session_report(
     format: str = Query("xlsx", description="Export format: csv or xlsx")
 ):
     """Export the compliance report metrics and prioritized gaps remediation list."""
-    from fastapi.responses import StreamingResponse
     import io
+
+    from fastapi.responses import StreamingResponse
     try:
         report = await get_session_report(session_id)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")

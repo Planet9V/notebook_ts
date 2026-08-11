@@ -1,20 +1,22 @@
-import pytest
 import os
-import zipfile
 import shutil
-from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
+import zipfile
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from open_notebook.tasks.backup_worker import (
-    match_cron_field,
-    cron_matches,
-    is_scheduled_due,
-    create_backup,
-    restore_backup,
-    check_and_run_scheduled_backups,
-    get_http_url,
     BACKUPS_FOLDER,
+    check_and_run_scheduled_backups,
+    create_backup,
+    cron_matches,
+    get_http_url,
+    is_scheduled_due,
+    match_cron_field,
+    restore_backup,
 )
+
 
 def test_match_cron_field():
     assert match_cron_field(5, "*")

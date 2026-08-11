@@ -11,7 +11,11 @@ from loguru import logger
 from api.auth import require_role
 from api.models import CampaignCreate, CampaignResponse, CampaignUpdate
 from open_notebook.domain.campaign import Campaign
-from open_notebook.exceptions import DatabaseOperationError, InvalidInputError, NotFoundError
+from open_notebook.exceptions import (
+    DatabaseOperationError,
+    InvalidInputError,
+    NotFoundError,
+)
 
 router = APIRouter()
 

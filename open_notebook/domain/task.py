@@ -2,6 +2,7 @@
 Task domain model for unified task management.
 """
 from typing import ClassVar, List, Optional
+
 from pydantic import Field, field_validator
 
 from open_notebook.database.repository import ensure_record_id

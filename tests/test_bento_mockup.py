@@ -1,6 +1,7 @@
-import pytest
 import os
 import time
+
+import pytest
 from playwright.sync_api import sync_playwright
 
 HTML_PATH = "file://" + os.path.abspath("docs/notebook-features-rev-3/bento-console/index.html")
