@@ -1,5 +1,7 @@
 import subprocess
 
+from cset_db_pure_sync import cset_mssql_auth_args
+
 def main():
     query_str = (
         "SELECT "
@@ -20,7 +22,7 @@ def main():
     cmd = [
         "docker", "exec", "-i", "cset-mssql",
         "/opt/mssql-tools/bin/sqlcmd",
-        "-U", "sa", "-P", "Password123",
+        *cset_mssql_auth_args(),
         "-d", "CSET", "-y", "0",
         "-Q", f"SET NOCOUNT ON; {query_str}"
     ]

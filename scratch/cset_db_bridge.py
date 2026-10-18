@@ -23,11 +23,27 @@ def map_sal_level(sal):
     elif sal == "VH": return 4
     else: return 0
 
+def cset_mssql_auth_args():
+    """Return sqlcmd -S/-U/-P arguments from CSET_MSSQL_HOST, CSET_MSSQL_USER and CSET_MSSQL_PASSWORD."""
+    names = ("CSET_MSSQL_HOST", "CSET_MSSQL_USER", "CSET_MSSQL_PASSWORD")
+    missing = [name for name in names if not os.environ.get(name)]
+    if missing:
+        sys.exit(
+            f"Error: missing required environment variable(s): {', '.join(missing)}. "
+            "Set CSET_MSSQL_HOST (the sqlcmd server as seen from inside the cset-mssql container, e.g. localhost), "
+            "CSET_MSSQL_USER and CSET_MSSQL_PASSWORD in your environment or .env before running this script."
+        )
+    return [
+        "-S", os.environ["CSET_MSSQL_HOST"],
+        "-U", os.environ["CSET_MSSQL_USER"],
+        "-P", os.environ["CSET_MSSQL_PASSWORD"],
+    ]
+
 def run_mssql_query(query_str):
     cmd = [
         "docker", "exec", "-i", "cset-mssql",
         "/opt/mssql-tools/bin/sqlcmd",
-        "-U", "sa", "-P", "Password123",
+        *cset_mssql_auth_args(),
         "-d", "CSET", "-C", "-W", "-s", "|",
         "-Q", query_str
     ]
