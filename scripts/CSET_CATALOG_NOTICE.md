@@ -30,6 +30,41 @@ requirements in any standard, and the per-row guidance text is generated.
 Genuine CSET content is published by CISA in the [cisagov/cset](https://github.com/cisagov/cset)
 repository under the MIT licence. Use that as the source for any real assessment content.
 
+## CSET MSSQL connection settings (environment variables)
+
+The CSET database helpers (`scratch/cset_db_bridge.py`, `scratch/cset_db_pure_sync.py`,
+`scratch/test_json_line_wrapping.py`, `scratch/test_large_json_no_strip.py`) run `sqlcmd`
+inside the `cset-mssql` container. They read their credentials from the environment and exit
+with an error naming any variable that is unset:
+
+| Variable | Meaning |
+|---|---|
+| `CSET_MSSQL_HOST` | sqlcmd `-S` server as seen from inside the `cset-mssql` container (normally `localhost`) |
+| `CSET_MSSQL_USER` | SQL login used by sqlcmd `-U` |
+| `CSET_MSSQL_PASSWORD` | Password for that login (`-P`) |
+
+Placeholders for a local `.env`. Never commit real values:
+
+```
+CSET_MSSQL_HOST=
+CSET_MSSQL_USER=
+CSET_MSSQL_PASSWORD=
+```
+
+Shell example:
+
+```
+export CSET_MSSQL_HOST=localhost
+export CSET_MSSQL_USER=<login>
+export CSET_MSSQL_PASSWORD=<password>
+python scratch/cset_db_pure_sync.py
+```
+
+The repository's `.env.example` has not yet been updated with these lines. The owner can add
+them in review.
+
+## Keeping the files
+
 The files are kept in place, not deleted, because scripts in `scripts/` and `scratch/` read
 `scripts/cset_catalog.json`. Replace both copies with content derived from cisagov/cset
 before any production or customer-facing use.
