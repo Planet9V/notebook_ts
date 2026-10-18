@@ -1,6 +1,8 @@
 import json
 import subprocess
 
+from cset_db_pure_sync import cset_mssql_auth_args
+
 def run_mssql_json_query_no_strip(query_str):
     query_str = query_str.strip().rstrip(";")
     if "FOR JSON PATH" not in query_str.upper():
@@ -9,7 +11,7 @@ def run_mssql_json_query_no_strip(query_str):
     cmd = [
         "docker", "exec", "-i", "cset-mssql",
         "/opt/mssql-tools/bin/sqlcmd",
-        "-U", "sa", "-P", "Password123",
+        *cset_mssql_auth_args(),
         "-d", "CSET", "-y", "0",
         "-Q", f"SET NOCOUNT ON; {query_str}"
     ]
